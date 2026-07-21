@@ -6,6 +6,7 @@ export type WatermarkType = 'text' | 'image';
 export type SettleStatus = 'idle' | 'waiting' | 'ready' | 'timed_out';
 /** auto follows Obsidian app language (zh* → Chinese, else English). */
 export type PluginLocale = 'auto' | 'en' | 'zh';
+export type PreviewAlign = 'left' | 'center';
 
 export interface PaddingSettings {
   top: number;
@@ -50,11 +51,15 @@ export interface ExportImgSettings {
   quickExportSelection: boolean;
   /** UI language preference. */
   locale: PluginLocale;
-  /**
-   * Fallback padding stored in settings.
-   * Opening Export Studio seeds draft padding from the live reading view instead.
-   */
+  /** Default padding used when opening Export Studio. */
   padding: PaddingSettings;
+  /**
+   * Preview fit: max height in CSS pixels of the preview viewport content.
+   * 0 = auto (width fills 100%, height scales freely).
+   */
+  previewMaxHeight: number;
+  /** Horizontal alignment when max-height constrains the preview. */
+  previewAlign: PreviewAlign;
   split: SplitSettings;
   watermark: WatermarkSettings;
   author: AuthorSettings;

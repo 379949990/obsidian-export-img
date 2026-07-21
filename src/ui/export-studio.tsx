@@ -1,4 +1,4 @@
-import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import {
   Modal,
@@ -13,6 +13,7 @@ import { cloneSettings, scaleToNumber } from '../settings';
 import type { ExportImgSettings, SettleDiagnostic } from '../types';
 import { captureElement } from '../pipeline/capture';
 import { readReadingViewPadding } from '../pipeline/document-padding';
+import { expandHorizontalOverflow, waitForNextPaint } from '../pipeline/overflow';
 import { createRenderHost, type RenderHostHandle } from '../pipeline/render-host';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
@@ -27,9 +28,8 @@ import { FidelityPanel } from './fidelity-panel';
 import { PreviewPane } from './preview-pane';
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
-  const draft = cloneSettings(plugin.settings);
-  draft.padding = readReadingViewPadding();
-  return draft;
+  // Use settings defaults (including padding) — do not override with document each open.
+  return cloneSettings(plugin.settings);
 }
 
 export interface StudioOpenArgs {
@@ -69,23 +69,25 @@ const RENDER_DEBOUNCE_MS = 280;
 function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null): void {
   titleEl.empty();
   titleEl.addClass('export-img-modal-titlebar');
-  titleEl.createSpan({ cls: 'export-img-modal-title-text', text: t('studio.title') });
-  const right = titleEl.createDiv({ cls: 'export-img-modal-title-status' });
+
+  const status = titleEl.createDiv({ cls: 'export-img-modal-title-status' });
   if (!settle) {
-    right.createSpan({
+    status.createSpan({
       cls: 'export-img-title-pill is-idle',
       text: t('studio.settle.idle'),
     });
-    return;
+  } else {
+    status.createSpan({
+      cls: `export-img-title-pill is-${settle.status}`,
+      text: t(`studio.settle.${settle.status}`),
+    });
+    status.createSpan({
+      cls: 'export-img-title-meta',
+      text: `${settle.elapsedMs}ms`,
+    });
   }
-  right.createSpan({
-    cls: `export-img-title-pill is-${settle.status}`,
-    text: t(`studio.settle.${settle.status}`),
-  });
-  right.createSpan({
-    cls: 'export-img-title-meta',
-    text: `${settle.elapsedMs}ms`,
-  });
+
+  titleEl.createSpan({ cls: 'export-img-modal-title-text', text: t('studio.title') });
 }
 
 function StudioApp(
@@ -125,7 +127,14 @@ function StudioApp(
     updateModalTitle(titleEl, settle);
   }, [titleEl, settle]);
 
+  // Debounce preview rebuilds, but skip delay on the first pass so the initial preview appears promptly.
+  const firstSignaturePass = useRef(true);
   useEffect(() => {
+    if (firstSignaturePass.current) {
+      firstSignaturePass.current = false;
+      setDebouncedSignature(previewSignature);
+      return;
+    }
     const timer = window.setTimeout(() => {
       setDebouncedSignature(previewSignature);
     }, RENDER_DEBOUNCE_MS);
@@ -133,11 +142,14 @@ function StudioApp(
   }, [previewSignature]);
 
   const rerender = useCallback(async () => {
+    // Wait one frame so the offscreen slot ref is attached after mount / StrictMode remount.
+    await waitForNextPaint();
     const slot = renderSlotRef.current;
     if (!slot) return;
     const settings = draftRef.current;
     const token = ++renderToken.current;
     setRendering(true);
+    setPreviewUrl(null);
     setSettle({
       status: 'waiting',
       pendingImages: 0,
@@ -169,6 +181,10 @@ function StudioApp(
       }
       hostRef.current = host;
 
+      // Let Mermaid / math / embeds finish layout before measuring overflow.
+      await waitForNextPaint();
+      expandHorizontalOverflow(host.rootEl);
+
       const diag = await settleElement(host.captureEl, {
         timeoutMs: settings.settleTimeoutMs,
         signal: settleAbort.signal,
@@ -183,17 +199,23 @@ function StudioApp(
       });
       if (token !== renderToken.current) return;
 
+      // Mermaid may grow during settle — expand again, then paint once more.
+      expandHorizontalOverflow(host.rootEl);
+      await waitForNextPaint();
+
       setSettle({
         ...diag,
         warnings: [...host.remoteWarnings, ...diag.warnings],
       });
 
-      // Build a real bitmap preview (PNG @ 1x for speed/clarity in the viewer).
       const blob = await captureElement(host.captureEl, {
         scale: 1,
         format: 'png',
       });
       if (token !== renderToken.current) return;
+      if (!blob || blob.size < 32) {
+        throw new Error('Preview capture returned an empty image');
+      }
 
       revokePreviewUrl();
       const url = URL.createObjectURL(blob);
@@ -257,6 +279,9 @@ function StudioApp(
   const captureAll = async (): Promise<{ blob: Blob; index?: number }[]> => {
     const host = hostRef.current;
     if (!host) throw new Error('Host not ready');
+
+    expandHorizontalOverflow(host.rootEl);
+    await waitForNextPaint();
 
     const scale = scaleToNumber(draft.scale);
     const { captureEl, contentEl } = host;
@@ -340,7 +365,12 @@ function StudioApp(
   return (
     <div className="export-img-studio">
       <div className="export-img-render-slot" ref={renderSlotRef} aria-hidden="true" />
-      <PreviewPane imageUrl={previewUrl} rendering={rendering || busy} />
+      <PreviewPane
+        imageUrl={previewUrl}
+        rendering={rendering || busy}
+        maxHeight={draft.previewMaxHeight}
+        align={draft.previewAlign}
+      />
       <FidelityPanel
         draft={draft}
         busy={busy || rendering}
@@ -369,15 +399,13 @@ export class ExportStudioModal extends Modal {
     updateModalTitle(this.titleEl, null);
     this.root = createRoot(this.contentEl);
     this.root.render(
-      <StrictMode>
-        <AppContext.Provider value={{ app: this.args.app, plugin: this.args.plugin }}>
-          <StudioApp
-            {...this.args}
-            titleEl={this.titleEl}
-            onClose={() => this.close()}
-          />
-        </AppContext.Provider>
-      </StrictMode>,
+      <AppContext.Provider value={{ app: this.args.app, plugin: this.args.plugin }}>
+        <StudioApp
+          {...this.args}
+          titleEl={this.titleEl}
+          onClose={() => this.close()}
+        />
+      </AppContext.Provider>,
     );
   }
 
@@ -399,7 +427,7 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   settings.showFilename = false;
   settings.showMetadata = false;
   settings.split = { ...settings.split, mode: 'none' };
-  settings.padding = readReadingViewPadding();
+  // Keep settings padding for quick export (consistent with Studio defaults).
 
   const holder = document.body.createDiv({ cls: 'export-img-offscreen' });
   try {
@@ -414,6 +442,8 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
       themeMode: settings.themeMode,
     });
     await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
+    expandHorizontalOverflow(host.rootEl);
+    await waitForNextPaint();
     const blob = await captureElement(host.captureEl, {
       scale: scaleToNumber(settings.scale),
       format: settings.format,

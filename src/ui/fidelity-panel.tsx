@@ -49,6 +49,41 @@ export function FidelityPanel(props: FidelityPanelProps) {
         </label>
 
         <label className="export-img-field">
+          <span>{t('studio.previewMaxHeight')}</span>
+          <input
+            type="number"
+            min={0}
+            placeholder="auto"
+            value={draft.previewMaxHeight || ''}
+            disabled={busy}
+            onChange={(e) => {
+              const raw = e.target.value.trim();
+              if (raw === '') {
+                onChange({ previewMaxHeight: 0 });
+                return;
+              }
+              const n = Number(raw);
+              if (!Number.isFinite(n) || n < 0) return;
+              onChange({ previewMaxHeight: Math.round(n) });
+            }}
+          />
+        </label>
+
+        <label className="export-img-field">
+          <span>{t('studio.previewAlign')}</span>
+          <select
+            value={draft.previewAlign}
+            disabled={busy || draft.previewMaxHeight <= 0}
+            onChange={(e) =>
+              onChange({ previewAlign: e.target.value as 'left' | 'center' })
+            }
+          >
+            <option value="center">{t('studio.previewAlign.center')}</option>
+            <option value="left">{t('studio.previewAlign.left')}</option>
+          </select>
+        </label>
+
+        <label className="export-img-field">
           <span>{t('studio.scale')}</span>
           <select
             value={draft.scale}

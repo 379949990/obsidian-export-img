@@ -127,6 +127,44 @@ export class ExportImgSettingTab extends PluginSettingTab {
         );
     }
 
+    new Setting(containerEl)
+      .setName(t('setting.previewMaxHeight'))
+      .setDesc(t('setting.previewMaxHeightDesc'))
+      .addText((text) =>
+        text
+          .setPlaceholder('auto')
+          .setValue(
+            this.plugin.settings.previewMaxHeight > 0
+              ? String(this.plugin.settings.previewMaxHeight)
+              : '',
+          )
+          .onChange(async (value) => {
+            const raw = value.trim();
+            if (raw === '') {
+              this.plugin.settings.previewMaxHeight = 0;
+              await this.plugin.saveSettings();
+              return;
+            }
+            const n = Number(raw);
+            if (!Number.isFinite(n) || n < 0) return;
+            this.plugin.settings.previewMaxHeight = Math.round(n);
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(t('setting.previewAlign'))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('center', t('studio.previewAlign.center'))
+          .addOption('left', t('studio.previewAlign.left'))
+          .setValue(this.plugin.settings.previewAlign)
+          .onChange(async (value) => {
+            this.plugin.settings.previewAlign = value as 'left' | 'center';
+            await this.plugin.saveSettings();
+          }),
+      );
+
     new Setting(containerEl).setName(t('setting.heading.behavior')).setHeading();
 
     new Setting(containerEl)

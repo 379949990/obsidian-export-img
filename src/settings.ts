@@ -1,4 +1,4 @@
-import type { ExportImgSettings, PluginLocale } from './types';
+import type { ExportFormat, ExportImgSettings, PluginLocale, PreviewAlign } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   width: 800,
@@ -10,13 +10,16 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   settleTimeoutMs: 8000,
   quickExportSelection: false,
   locale: 'auto',
-  // Fallback only — Studio opens with live reading-view padding.
+  /** Default export padding — Studio opens with these values. */
   padding: {
     top: 20,
     right: 30,
     bottom: 20,
     left: 30,
   },
+  /** 0 = auto (fit preview to 100% width). */
+  previewMaxHeight: 0,
+  previewAlign: 'center',
   split: {
     mode: 'none',
     height: 1200,
@@ -58,4 +61,4 @@ export function scaleToNumber(scale: ExportImgSettings['scale']): number {
   return 1;
 }
 
-export type { PluginLocale };
+export type { PluginLocale, PreviewAlign };

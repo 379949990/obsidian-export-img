@@ -27,6 +27,8 @@ export default class ExportImgPlugin extends Plugin {
       ...DEFAULT_SETTINGS,
       ...data,
       locale: data?.locale ?? DEFAULT_SETTINGS.locale,
+      previewMaxHeight: data?.previewMaxHeight ?? DEFAULT_SETTINGS.previewMaxHeight,
+      previewAlign: data?.previewAlign ?? DEFAULT_SETTINGS.previewAlign,
       padding: { ...DEFAULT_SETTINGS.padding, ...data?.padding },
       split: { ...DEFAULT_SETTINGS.split, ...data?.split },
       watermark: { ...DEFAULT_SETTINGS.watermark, ...data?.watermark },

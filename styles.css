@@ -27,18 +27,21 @@
   width: 100%;
 }
 
-.export-img-modal-title-text {
-  font-weight: 600;
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
 .export-img-modal-title-status {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto;
   flex-shrink: 0;
+  order: 0;
+}
+
+.export-img-modal-title-text {
+  font-weight: 600;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  text-align: right;
+  order: 1;
 }
 
 .export-img-title-pill {
@@ -305,9 +308,15 @@
   border: none;
   background: transparent;
   color: var(--text-accent);
-  font-size: var(--font-ui-smaller);
+  font-size: 11px;
+  line-height: 1.2;
   cursor: pointer;
-  padding: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.export-img-link-btn:hover {
+  background: var(--background-modifier-hover);
 }
 
 .export-img-link-btn:disabled {

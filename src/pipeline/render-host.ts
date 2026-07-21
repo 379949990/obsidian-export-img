@@ -124,12 +124,14 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   rootEl.style.width = `${width}px`;
   applyThemeMode(rootEl, themeMode);
 
-  const { padding } = settings;
-  rootEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
-
   const captureEl = rootEl.createDiv({ cls: 'export-img-capture' });
   captureEl.style.position = 'relative';
-  captureEl.style.overflow = 'hidden';
+  captureEl.style.overflow = 'visible';
+  // Padding must live on the captured node (root padding would be clipped out of the bitmap).
+  const { padding } = settings;
+  captureEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
+  captureEl.style.boxSizing = 'border-box';
+  captureEl.style.background = 'var(--background-primary)';
 
   const contentEl = captureEl.createDiv({ cls: 'export-img-content' });
 

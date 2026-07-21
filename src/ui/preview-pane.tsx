@@ -7,16 +7,25 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 import { t } from '../i18n';
+import type { PreviewAlign } from '../types';
 
 interface PreviewPaneProps {
   imageUrl: string | null;
   rendering: boolean;
+  /** 0 = auto (fit to 100% width). */
+  maxHeight: number;
+  align: PreviewAlign;
 }
 
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 6;
 
-export function PreviewPane({ imageUrl, rendering }: PreviewPaneProps) {
+export function PreviewPane({
+  imageUrl,
+  rendering,
+  maxHeight,
+  align,
+}: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tx, setTx] = useState(0);
@@ -33,14 +42,29 @@ export function PreviewPane({ imageUrl, rendering }: PreviewPaneProps) {
   const fitToView = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport || !natural.w || !natural.h) return;
-    const pad = 32;
-    const availW = Math.max(80, viewport.clientWidth - pad);
-    const availH = Math.max(80, viewport.clientHeight - pad);
-    const next = Math.min(1, availW / natural.w, availH / natural.h);
+
+    const availW = Math.max(40, viewport.clientWidth);
+    // Default: occupy 100% of preview width.
+    let next = availW / natural.w;
+    let nextTx = 0;
+    let nextTy = 0;
+
+    const scaledH = natural.h * next;
+    const limit = maxHeight > 0 ? maxHeight : 0;
+    if (limit > 0 && scaledH > limit) {
+      next = limit / natural.h;
+      const fittedW = natural.w * next;
+      nextTx = align === 'left'
+        ? fittedW / 2 - availW / 2
+        : 0;
+      // Vertically center within the max-height band when possible.
+      nextTy = 0;
+    }
+
     setScale(next);
-    setTx(0);
-    setTy(0);
-  }, [natural.h, natural.w]);
+    setTx(nextTx);
+    setTy(nextTy);
+  }, [align, maxHeight, natural.h, natural.w]);
 
   useEffect(() => {
     setScale(1);

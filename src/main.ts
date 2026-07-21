@@ -1,12 +1,12 @@
 import { Plugin } from 'obsidian';
-import { DEFAULT_SETTINGS } from './settings';
+import { cloneSettings, DEFAULT_SETTINGS } from './settings';
 import type { ExportImgSettings } from './types';
 import { registerCommands } from './commands';
 import { registerMenus } from './menus';
 import { ExportImgSettingTab } from './setting-tab';
 
 export default class ExportImgPlugin extends Plugin {
-  settings: ExportImgSettings = { ...DEFAULT_SETTINGS };
+  settings: ExportImgSettings = cloneSettings(DEFAULT_SETTINGS);
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -21,14 +21,14 @@ export default class ExportImgPlugin extends Plugin {
 
   async loadSettings(): Promise<void> {
     const data = (await this.loadData()) as Partial<ExportImgSettings> | null;
-    this.settings = {
+    this.settings = cloneSettings({
       ...DEFAULT_SETTINGS,
       ...data,
       padding: { ...DEFAULT_SETTINGS.padding, ...data?.padding },
       split: { ...DEFAULT_SETTINGS.split, ...data?.split },
       watermark: { ...DEFAULT_SETTINGS.watermark, ...data?.watermark },
       author: { ...DEFAULT_SETTINGS.author, ...data?.author },
-    };
+    });
   }
 
   async saveSettings(): Promise<void> {

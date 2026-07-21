@@ -39,6 +39,17 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   },
 };
 
+/** Deep-clone settings so Studio draft state cannot mutate plugin.settings in place. */
+export function cloneSettings(settings: ExportImgSettings): ExportImgSettings {
+  return {
+    ...settings,
+    padding: { ...settings.padding },
+    split: { ...settings.split },
+    watermark: { ...settings.watermark },
+    author: { ...settings.author },
+  };
+}
+
 export function scaleToNumber(scale: ExportImgSettings['scale']): number {
   if (scale === '3x') return 3;
   if (scale === '2x') return 2;

@@ -9,7 +9,7 @@ import {
 } from 'obsidian';
 import type ExportImgPlugin from '../main';
 import { t } from '../i18n';
-import { scaleToNumber } from '../settings';
+import { cloneSettings, scaleToNumber } from '../settings';
 import type { ExportImgSettings, SettleDiagnostic } from '../types';
 import { captureElement } from '../pipeline/capture';
 import { createRenderHost, type RenderHostHandle } from '../pipeline/render-host';
@@ -52,7 +52,7 @@ const RENDER_DEBOUNCE_MS = 280;
 
 function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
   const { app, plugin, markdown, file, frontmatter, type } = props;
-  const [draft, setDraft] = useState<ExportImgSettings>({ ...plugin.settings });
+  const [draft, setDraft] = useState<ExportImgSettings>(() => cloneSettings(plugin.settings));
   const [settle, setSettle] = useState<SettleDiagnostic | null>(null);
   const [rendering, setRendering] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -170,10 +170,16 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
     key: K,
     patch: Partial<ExportImgSettings[K]>,
   ) => {
-    setDraft((prev) => ({
-      ...prev,
-      [key]: { ...(prev[key] as object), ...patch },
-    }));
+    setDraft((prev) => {
+      const current = prev[key];
+      if (current && typeof current === 'object') {
+        return {
+          ...prev,
+          [key]: { ...(current as object), ...patch },
+        };
+      }
+      return { ...prev, [key]: patch as ExportImgSettings[K] };
+    });
   };
 
   const captureAll = async (): Promise<{ blob: Blob; index?: number }[]> => {
@@ -250,7 +256,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         );
       }
       // Persist studio choices as new defaults
-      plugin.settings = { ...plugin.settings, ...draft };
+      plugin.settings = cloneSettings(draft);
       await plugin.saveSettings();
     } catch (error) {
       console.error(error);
@@ -313,7 +319,7 @@ export async function openExportStudio(args: StudioOpenArgs): Promise<void> {
 export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   const { app, plugin, markdown, file } = args;
   const settings: ExportImgSettings = {
-    ...plugin.settings,
+    ...cloneSettings(plugin.settings),
     showFilename: false,
     showMetadata: false,
     split: { ...plugin.settings.split, mode: 'none' },

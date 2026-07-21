@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, cloneSettings } from '../src/settings';
 import {
+  assertNonEmptyCapture,
   getCaptureSignature,
   getExportCacheKey,
   getRenderSignature,
@@ -43,5 +44,20 @@ describe('resolvePreviewPhase', () => {
       phase: 'recapture',
       renderSig: sig,
     });
+  });
+});
+
+describe('assertNonEmptyCapture', () => {
+  it('accepts a non-trivial blob', () => {
+    expect(() =>
+      assertNonEmptyCapture([{ blob: new Blob([new Uint8Array(64)]) }], 'preview'),
+    ).not.toThrow();
+  });
+
+  it('rejects missing or tiny blobs', () => {
+    expect(() => assertNonEmptyCapture([], 'export')).toThrow(/empty image/);
+    expect(() =>
+      assertNonEmptyCapture([{ blob: new Blob([new Uint8Array(8)]) }], 'export'),
+    ).toThrow(/empty image/);
   });
 });

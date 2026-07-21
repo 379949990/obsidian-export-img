@@ -140,18 +140,17 @@ function fitSvgToWidth(
   svg.classList.add('export-img-mermaid-svg');
   applyAlignClass(svg, align);
 
-  const wrap = (svg.closest('.mermaid') ?? svg.parentElement) as HTMLElement | null;
-  if (wrap) {
-    wrap.addClass('export-img-mermaid-wrap');
-    wrap.removeClass('export-img-text-align-left');
-    wrap.removeClass('export-img-text-align-center');
-    wrap.addClass(
-      align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
-    );
-    wrap.setCssProps({
-      '--export-img-embed-max-h': maxHeight > 0 ? `${maxHeight}px` : 'none',
-    });
-  }
+  const wrapEl = svg.closest('.mermaid') ?? svg.parentElement;
+  if (!(wrapEl instanceof HTMLElement)) return;
+  wrapEl.addClass('export-img-mermaid-wrap');
+  wrapEl.removeClass('export-img-text-align-left');
+  wrapEl.removeClass('export-img-text-align-center');
+  wrapEl.addClass(
+    align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
+  );
+  wrapEl.setCssProps({
+    '--export-img-embed-max-h': maxHeight > 0 ? `${maxHeight}px` : 'none',
+  });
 }
 
 function ensureFitWrap(el: HTMLElement): HTMLElement {

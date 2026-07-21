@@ -1,8 +1,8 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.1`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.2`.
 
-Product overview and install: [README.md](README.md).
+Agent onboarding: [HANDOFF.md](HANDOFF.md). Product overview and install: [README.md](README.md).
 
 ---
 
@@ -30,6 +30,8 @@ pnpm run build   # tsc + production bundle → main.js
 pnpm run test    # vitest (hard-killed if >60s)
 pnpm run verify  # tsc + test — also run by CI on PRs / version branches
 ```
+
+Automated coverage (Node + `happy-dom`): markdown prep, pagination, settings migrate, Studio signatures, **embed layout CSS classes**, **page-hidden split DOM**, **mobile vault save / desktop zip**, capture mime helpers, i18n. Still **not** a substitute for the desktop fixture smoke (Obsidian `MarkdownRenderer`, Mermaid settle, real clipboard).
 
 CI: [`.github/workflows/verify.yml`](.github/workflows/verify.yml) on `pull_request` and pushes to `main` / `v*`. Release remains [`.github/workflows/release.yml`](.github/workflows/release.yml) on `main` only.
 

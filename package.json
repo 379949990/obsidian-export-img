@@ -1,6 +1,6 @@
 {
   "name": "obsidian-export-img",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Export Obsidian notes as images approximating Reading view.",
   "main": "main.js",
   "packageManager": "pnpm@11.3.0",
@@ -24,6 +24,7 @@
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.15.17",
     "esbuild": "0.25.5",
+    "happy-dom": "^20.11.0",
     "obsidian": "latest",
     "typescript": "^5.8.3",
     "vitest": "^3.2.7"

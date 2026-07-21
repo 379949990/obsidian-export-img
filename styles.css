@@ -22,26 +22,34 @@
 .export-img-modal-titlebar {
   display: flex !important;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-start;
+  gap: 12px;
   width: 100%;
+  /* Leave room for Obsidian's native close button on the right */
+  padding-right: 28px;
+  box-sizing: border-box;
+}
+
+.export-img-modal-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 0 1 auto;
 }
 
 .export-img-modal-title-status {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
-  order: 0;
 }
 
 .export-img-modal-title-text {
   font-weight: 600;
   flex: 0 1 auto;
   min-width: 0;
-  margin-left: auto;
-  text-align: right;
-  order: 1;
+  white-space: nowrap;
 }
 
 .export-img-title-pill {
@@ -145,11 +153,36 @@
   pointer-events: none;
 }
 
-.export-img-preview-image {
+.export-img-preview-stack {
   position: absolute;
   top: 50%;
   left: 50%;
   transform-origin: center center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.export-img-preview-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.export-img-preview-page-label {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--background-primary) 85%, transparent);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 1px 8px;
+}
+
+.export-img-preview-image {
+  display: block;
   max-width: none;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   pointer-events: none;
@@ -324,49 +357,56 @@
   cursor: not-allowed;
 }
 
-.export-img-padding-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 8px;
+.export-img-padding-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.export-img-details {
-  border-top: 1px solid var(--background-modifier-border);
-  padding-top: 8px;
-  margin-top: 2px;
+.export-img-padding-rows .export-img-field > span {
+  flex: 0 0 auto;
+  min-width: 2.5em;
 }
 
-.export-img-details > summary {
-  cursor: pointer;
-  font-size: var(--font-ui-small);
-  font-weight: 600;
-  list-style: none;
+.export-img-padding-rows .export-img-field input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.export-img-field-hint {
+  margin: -2px 0 4px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-faint);
+}
+
+.export-img-setting-padding-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+  min-width: 160px;
+}
+
+.export-img-setting-padding-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  user-select: none;
+  gap: 10px;
+  width: 100%;
 }
 
-.export-img-details > summary::-webkit-details-marker {
-  display: none;
+.export-img-setting-padding-label {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
-.export-img-details > summary::before {
-  content: '';
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 6px solid var(--text-muted);
-  transition: transform 0.15s ease;
-}
-
-.export-img-details[open] > summary::before {
-  transform: rotate(90deg);
-}
-
-.export-img-details[open] > summary {
-  margin-bottom: 10px;
+.export-img-setting-padding-input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
 
 .export-img-decor-block {
@@ -451,7 +491,38 @@
 }
 
 .export-img-metadata {
-  margin-bottom: 1em;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0 0 1em;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-secondary);
+}
+
+.export-img-metadata-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-img-metadata-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 32%) 1fr;
+  gap: 8px 12px;
+  align-items: start;
+  font-size: var(--font-ui-small);
+}
+
+.export-img-metadata-key {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.export-img-metadata-value {
+  color: var(--text-normal);
+  word-break: break-word;
 }
 
 .export-img-author {

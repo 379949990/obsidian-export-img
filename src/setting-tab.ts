@@ -111,56 +111,85 @@ export class ExportImgSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName(t('setting.padding'))
-      .setDesc(t('setting.paddingDesc'));
+      .setDesc(t('setting.paddingDesc'))
+      .then((setting) => {
+        setting.controlEl.empty();
+        setting.controlEl.addClass('export-img-setting-padding-controls');
 
-    const pad = this.plugin.settings.padding;
-    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
-      new Setting(containerEl)
-        .setName(t(`studio.padding.${side}`))
-        .addText((text) =>
-          text.setValue(String(pad[side])).onChange(async (value) => {
-            const n = Number(value);
+        const pad = this.plugin.settings.padding;
+        const rows: { key: 'vertical' | 'horizontal'; value: number }[] = [
+          { key: 'vertical', value: pad.top },
+          { key: 'horizontal', value: pad.left },
+        ];
+
+        for (const row of rows) {
+          const line = setting.controlEl.createDiv({
+            cls: 'export-img-setting-padding-row',
+          });
+          line.createSpan({
+            text: t(`studio.padding.${row.key}`),
+            cls: 'export-img-setting-padding-label',
+          });
+          const input = line.createEl('input', {
+            type: 'number',
+            cls: 'export-img-setting-padding-input',
+            attr: {
+              min: '0',
+              max: '400',
+              value: String(row.value),
+            },
+          });
+          input.addEventListener('change', async () => {
+            const n = Number(input.value);
             if (!Number.isFinite(n) || n < 0) return;
-            this.plugin.settings.padding[side] = Math.round(n);
+            const v = Math.round(n);
+            if (row.key === 'vertical') {
+              this.plugin.settings.padding.top = v;
+              this.plugin.settings.padding.bottom = v;
+            } else {
+              this.plugin.settings.padding.left = v;
+              this.plugin.settings.padding.right = v;
+            }
             await this.plugin.saveSettings();
-          }),
-        );
-    }
+          });
+        }
+      });
 
     new Setting(containerEl)
-      .setName(t('setting.previewMaxHeight'))
-      .setDesc(t('setting.previewMaxHeightDesc'))
+      .setName(t('setting.embedMaxHeight'))
+      .setDesc(t('setting.embedMaxHeightDesc'))
       .addText((text) =>
         text
           .setPlaceholder('auto')
           .setValue(
-            this.plugin.settings.previewMaxHeight > 0
-              ? String(this.plugin.settings.previewMaxHeight)
+            this.plugin.settings.embedMaxHeight > 0
+              ? String(this.plugin.settings.embedMaxHeight)
               : '',
           )
           .onChange(async (value) => {
             const raw = value.trim();
             if (raw === '') {
-              this.plugin.settings.previewMaxHeight = 0;
+              this.plugin.settings.embedMaxHeight = 0;
               await this.plugin.saveSettings();
               return;
             }
             const n = Number(raw);
             if (!Number.isFinite(n) || n < 0) return;
-            this.plugin.settings.previewMaxHeight = Math.round(n);
+            this.plugin.settings.embedMaxHeight = Math.round(n);
             await this.plugin.saveSettings();
           }),
       );
 
     new Setting(containerEl)
-      .setName(t('setting.previewAlign'))
+      .setName(t('setting.embedAlign'))
+      .setDesc(t('setting.embedAlignDesc'))
       .addDropdown((dropdown) =>
         dropdown
-          .addOption('center', t('studio.previewAlign.center'))
-          .addOption('left', t('studio.previewAlign.left'))
-          .setValue(this.plugin.settings.previewAlign)
+          .addOption('center', t('studio.embedAlign.center'))
+          .addOption('left', t('studio.embedAlign.left'))
+          .setValue(this.plugin.settings.embedAlign)
           .onChange(async (value) => {
-            this.plugin.settings.previewAlign = value as 'left' | 'center';
+            this.plugin.settings.embedAlign = value as 'left' | 'center';
             await this.plugin.saveSettings();
           }),
       );

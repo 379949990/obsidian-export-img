@@ -7,25 +7,16 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 import { t } from '../i18n';
-import type { PreviewAlign } from '../types';
 
 interface PreviewPaneProps {
-  imageUrl: string | null;
+  imageUrls: string[];
   rendering: boolean;
-  /** 0 = auto (fit to 100% width). */
-  maxHeight: number;
-  align: PreviewAlign;
 }
 
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 6;
 
-export function PreviewPane({
-  imageUrl,
-  rendering,
-  maxHeight,
-  align,
-}: PreviewPaneProps) {
+export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tx, setTx] = useState(0);
@@ -39,39 +30,33 @@ export function PreviewPane({
     originTy: number;
   }>({ active: false, startX: 0, startY: 0, originTx: 0, originTy: 0 });
 
+  const primaryUrl = imageUrls[0] ?? null;
+  const pageCount = imageUrls.length;
+
   const fitToView = useCallback(() => {
     const viewport = viewportRef.current;
     if (!viewport || !natural.w || !natural.h) return;
 
     const availW = Math.max(40, viewport.clientWidth);
-    // Default: occupy 100% of preview width.
-    let next = availW / natural.w;
-    let nextTx = 0;
-    let nextTy = 0;
-
+    const gap = availW * 0.03;
+    // 94% width (3% side gaps); top also uses 3% of width as gap.
+    const next = (availW * 0.94) / natural.w;
     const scaledH = natural.h * next;
-    const limit = maxHeight > 0 ? maxHeight : 0;
-    if (limit > 0 && scaledH > limit) {
-      next = limit / natural.h;
-      const fittedW = natural.w * next;
-      nextTx = align === 'left'
-        ? fittedW / 2 - availW / 2
-        : 0;
-      // Vertically center within the max-height band when possible.
-      nextTy = 0;
-    }
+    // Image is positioned with translate(-50%, -50%) around viewport center.
+    // Move its top edge to `gap` from the viewport top.
+    const nextTy = gap + scaledH / 2 - viewport.clientHeight / 2;
 
     setScale(next);
-    setTx(nextTx);
+    setTx(0);
     setTy(nextTy);
-  }, [align, maxHeight, natural.h, natural.w]);
+  }, [natural.h, natural.w]);
 
   useEffect(() => {
     setScale(1);
     setTx(0);
     setTy(0);
     setNatural({ w: 0, h: 0 });
-  }, [imageUrl]);
+  }, [primaryUrl, pageCount]);
 
   useEffect(() => {
     if (natural.w > 0) fitToView();
@@ -103,7 +88,7 @@ export function PreviewPane({
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!imageUrl) return;
+    if (!primaryUrl) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
       active: true,
@@ -142,20 +127,42 @@ export function PreviewPane({
       onDoubleClick={() => fitToView()}
     >
       <div className="export-img-checkerboard" aria-hidden="true" />
-      {imageUrl ? (
-        <img
-          className="export-img-preview-image"
-          src={imageUrl}
-          alt=""
-          draggable={false}
+      {primaryUrl ? (
+        <div
+          className="export-img-preview-stack"
           style={{
             transform: `translate(-50%, -50%) translate(${tx}px, ${ty}px) scale(${scale})`,
           }}
-          onLoad={(e) => {
-            const img = e.currentTarget;
-            setNatural({ w: img.naturalWidth, h: img.naturalHeight });
-          }}
-        />
+        >
+          {imageUrls.map((url, index) => (
+            <div key={`${url}-${index}`} className="export-img-preview-page">
+              {pageCount > 1 && (
+                <div className="export-img-preview-page-label">
+                  {t('studio.pageOf', { page: index + 1, total: pageCount })}
+                </div>
+              )}
+              <img
+                className="export-img-preview-image"
+                src={url}
+                alt=""
+                draggable={false}
+                onLoad={(e) => {
+                  if (index !== 0) return;
+                  const img = e.currentTarget;
+                  // Stack height ≈ sum of pages; for fit use first page width and full stack height.
+                  const stack = e.currentTarget.closest('.export-img-preview-stack');
+                  const totalH = stack
+                    ? Array.from(stack.querySelectorAll('img')).reduce(
+                        (sum, node) => sum + (node as HTMLImageElement).naturalHeight,
+                        0,
+                      ) + Math.max(0, pageCount - 1) * 16
+                    : img.naturalHeight;
+                  setNatural({ w: img.naturalWidth, h: totalH || img.naturalHeight });
+                }}
+              />
+            </div>
+          ))}
+        </div>
       ) : (
         !rendering && (
           <div className="export-img-preview-empty">{t('studio.previewEmpty')}</div>
@@ -167,7 +174,7 @@ export function PreviewPane({
           <span className="export-img-preview-loading-text">{t('studio.rendering')}</span>
         </div>
       )}
-      {imageUrl && !rendering && (
+      {primaryUrl && !rendering && (
         <div className="export-img-preview-hint">{t('studio.previewHint')}</div>
       )}
     </div>

@@ -34,7 +34,9 @@ async function waitForImages(
   root: HTMLElement,
   signal: AbortSignal,
 ): Promise<{ pending: number; warnings: string[] }> {
-  const imgs = Array.from(root.querySelectorAll('img'));
+  const imgs = Array.from(root.querySelectorAll('img')).filter(
+    (img) => !img.closest('.export-img-watermark'),
+  );
   const warnings: string[] = [];
   let pending = 0;
 
@@ -81,15 +83,13 @@ async function waitForImages(
   return { pending, warnings };
 }
 
+/** Cap font wait — Obsidian may keep document.fonts.ready pending for unused faces. */
 async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   try {
-    if (document.fonts?.ready) {
-      await Promise.race([
-        document.fonts.ready,
-        delay(60_000, signal),
-      ]);
-    }
-    return false;
+    if (!document.fonts) return false;
+    if (document.fonts.status !== 'loading') return false;
+    await Promise.race([document.fonts.ready, delay(280, signal)]);
+    return document.fonts.status === 'loading';
   } catch (error) {
     if (isAbortError(error)) throw error;
     return true;
@@ -145,7 +145,8 @@ export async function settleElement(
   options: SettleOptions,
 ): Promise<SettleDiagnostic> {
   const started = performance.now();
-  const stableMs = options.stableMs ?? 180;
+  // Keep stability window short — Mermaid usually settles within one frame after render.
+  const stableMs = options.stableMs ?? 64;
   const warnings: string[] = [];
   const controller = new AbortController();
   let settled = false;
@@ -158,7 +159,6 @@ export async function settleElement(
 
   const emit = (status: SettleStatus, extra?: Partial<SettleDiagnostic>): SettleDiagnostic | null => {
     if (settled && status !== 'timed_out') {
-      // After a final status, ignore late "ready" updates from abandoned work.
       return null;
     }
     const diag: SettleDiagnostic = {
@@ -190,15 +190,16 @@ export async function settleElement(
   }, options.timeoutMs);
 
   try {
-    const fontPending = await waitForFonts(controller.signal);
-    const imageResult = await waitForImages(root, controller.signal);
+    // Images and fonts in parallel — largest settle win for notes with remote media.
+    const [fontPending, imageResult] = await Promise.all([
+      waitForFonts(controller.signal),
+      waitForImages(root, controller.signal),
+    ]);
     warnings.push(...imageResult.warnings);
 
-    await delay(80, controller.signal);
     const layoutStable = await waitForLayoutStable(root, stableMs, controller.signal);
 
     if (settled) {
-      // Timeout already won; do not downgrade/upgrade status.
       return {
         status: 'timed_out',
         pendingImages: imageResult.pending,
@@ -236,7 +237,6 @@ export async function settleElement(
           warnings: [...warnings, 'Settle timed out'],
         };
       }
-      // Caller aborted (remount) — report idle-ish timeout without spamming.
       return (
         emit('timed_out', {
           warnings: [...warnings],

@@ -1,6 +1,7 @@
 import {
   Component,
   MarkdownRenderer,
+  parseYaml,
   type App,
   type FrontMatterCache,
 } from 'obsidian';
@@ -38,23 +39,78 @@ function applyThemeMode(el: HTMLElement, mode: ThemeMode): void {
   }
 }
 
+function formatMetaValue(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => formatMetaValue(v)).filter(Boolean).join(', ');
+  }
+  if (typeof value === 'object') {
+    const rec = value as Record<string, unknown>;
+    if (typeof rec.displayText === 'string') return rec.displayText;
+    if (typeof rec.path === 'string') return rec.path;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
+function resolveFrontmatter(
+  markdown: string,
+  frontmatter?: FrontMatterCache,
+): Record<string, unknown> {
+  const fromCache = frontmatter
+    ? Object.fromEntries(
+        Object.entries(frontmatter).filter(([key]) => key !== 'position'),
+      )
+    : {};
+  if (Object.keys(fromCache).length > 0) return fromCache;
+
+  if (markdown.startsWith('---')) {
+    const end = markdown.indexOf('\n---', 3);
+    if (end !== -1) {
+      try {
+        const parsed = parseYaml(markdown.slice(3, end));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }
+  return {};
+}
+
 function renderMetadata(
   container: HTMLElement,
-  frontmatter: FrontMatterCache | undefined,
+  frontmatter: Record<string, unknown>,
 ): void {
-  if (!frontmatter || Object.keys(frontmatter).length === 0) return;
+  const entries = Object.entries(frontmatter).filter(([key]) => key !== 'position');
+  if (entries.length === 0) return;
 
-  const meta = container.createDiv({ cls: 'metadata-container export-img-metadata' });
-  const content = meta.createDiv({ cls: 'metadata-content' });
+  const meta = container.createDiv({
+    cls: 'metadata-container export-img-metadata',
+  });
+  meta.style.display = 'block';
+  meta.style.visibility = 'visible';
+  meta.style.opacity = '1';
 
-  for (const [key, value] of Object.entries(frontmatter)) {
-    if (key === 'position') continue;
-    const row = content.createDiv({ cls: 'metadata-property' });
-    const keyEl = row.createDiv({ cls: 'metadata-property-key' });
+  const content = meta.createDiv({ cls: 'metadata-content export-img-metadata-content' });
+
+  for (const [key, value] of entries) {
+    const row = content.createDiv({ cls: 'metadata-property export-img-metadata-row' });
+    const keyEl = row.createDiv({ cls: 'metadata-property-key export-img-metadata-key' });
     keyEl.createSpan({ cls: 'metadata-property-name', text: key });
-    const valEl = row.createDiv({ cls: 'metadata-property-value' });
-    const text = Array.isArray(value) ? value.join(', ') : String(value ?? '');
-    valEl.setText(text);
+    const valEl = row.createDiv({
+      cls: 'metadata-property-value export-img-metadata-value',
+    });
+    valEl.setText(formatMetaValue(value));
   }
 }
 
@@ -127,7 +183,6 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   const captureEl = rootEl.createDiv({ cls: 'export-img-capture' });
   captureEl.style.position = 'relative';
   captureEl.style.overflow = 'visible';
-  // Padding must live on the captured node (root padding would be clipped out of the bitmap).
   const { padding } = settings;
   captureEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
   captureEl.style.boxSizing = 'border-box';
@@ -144,7 +199,7 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   }
 
   if (settings.showMetadata) {
-    renderMetadata(preview, frontmatter);
+    renderMetadata(preview, resolveFrontmatter(markdown, frontmatter));
   }
 
   const sizer = preview.createDiv({ cls: 'markdown-preview-sizer' });

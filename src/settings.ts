@@ -1,4 +1,4 @@
-import type { ExportFormat, ExportImgSettings, PluginLocale, PreviewAlign } from './types';
+import type { ExportFormat, ExportImgSettings, PluginLocale, EmbedAlign } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   width: 800,
@@ -12,17 +12,21 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   locale: 'auto',
   /** Default export padding — Studio opens with these values. */
   padding: {
-    top: 20,
-    right: 30,
-    bottom: 20,
-    left: 30,
+    top: 96,
+    right: 48,
+    bottom: 96,
+    left: 48,
   },
-  /** 0 = auto (fit preview to 100% width). */
-  previewMaxHeight: 0,
-  previewAlign: 'center',
+  /**
+   * Max rendered height for embedded images, Mermaid, and other wide/scrollable blocks.
+   * 0 = auto (no height clamp).
+   */
+  embedMaxHeight: 0,
+  embedAlign: 'center',
   split: {
     mode: 'none',
-    height: 1200,
+    /** 0 = auto (1.5 × export width) when resolving fixed/auto pages. */
+    height: 0,
     overlap: 40,
   },
   watermark: {
@@ -61,4 +65,4 @@ export function scaleToNumber(scale: ExportImgSettings['scale']): number {
   return 1;
 }
 
-export type { PluginLocale, PreviewAlign };
+export type { PluginLocale, EmbedAlign };

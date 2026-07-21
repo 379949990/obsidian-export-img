@@ -8,6 +8,7 @@ import type ExportImgPlugin from './main';
 import { t } from './i18n';
 import { scaleToNumber } from './settings';
 import { createRenderHost } from './pipeline/render-host';
+import { prepareEmbedLayout, waitForNextPaint } from './pipeline/overflow';
 import { settleElement } from './pipeline/settle-gate';
 import { captureElement } from './pipeline/capture';
 import { saveMultipleBlobs } from './pipeline/output';
@@ -59,6 +60,8 @@ export async function exportFolderAsImages(
         themeMode: settings.themeMode,
       });
       await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
+      prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
+      await waitForNextPaint();
       const blob = await captureElement(host.captureEl, {
         scale: scaleToNumber(settings.scale),
         format: settings.format,

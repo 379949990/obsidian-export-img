@@ -6,7 +6,7 @@ export type WatermarkType = 'text' | 'image';
 export type SettleStatus = 'idle' | 'waiting' | 'ready' | 'timed_out';
 /** auto follows Obsidian app language (zh* → Chinese, else English). */
 export type PluginLocale = 'auto' | 'en' | 'zh';
-export type PreviewAlign = 'left' | 'center';
+export type EmbedAlign = 'left' | 'center';
 
 export interface PaddingSettings {
   top: number;
@@ -54,12 +54,12 @@ export interface ExportImgSettings {
   /** Default padding used when opening Export Studio. */
   padding: PaddingSettings;
   /**
-   * Preview fit: max height in CSS pixels of the preview viewport content.
-   * 0 = auto (width fills 100%, height scales freely).
+   * Max rendered height (px) for embedded images, Mermaid diagrams, and other
+   * wide/scrollable blocks inside the note. 0 = auto (no clamp).
    */
-  previewMaxHeight: number;
-  /** Horizontal alignment when max-height constrains the preview. */
-  previewAlign: PreviewAlign;
+  embedMaxHeight: number;
+  /** Horizontal alignment for embedded media (always applied). */
+  embedAlign: EmbedAlign;
   split: SplitSettings;
   watermark: WatermarkSettings;
   author: AuthorSettings;

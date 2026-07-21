@@ -10,12 +10,13 @@ import type {
 interface FidelityPanelProps {
   draft: ExportImgSettings;
   busy: boolean;
+  paddingMode: 'preset' | 'document';
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
     key: K,
     patch: Partial<ExportImgSettings[K]>,
   ) => void;
-  onResetPadding: () => void;
+  onTogglePadding: () => void;
   onCopy: () => void;
   onSave: () => void;
 }
@@ -24,9 +25,10 @@ export function FidelityPanel(props: FidelityPanelProps) {
   const {
     draft,
     busy,
+    paddingMode,
     onChange,
     onNestedChange,
-    onResetPadding,
+    onTogglePadding,
     onCopy,
     onSave,
   } = props;
@@ -49,37 +51,38 @@ export function FidelityPanel(props: FidelityPanelProps) {
         </label>
 
         <label className="export-img-field">
-          <span>{t('studio.previewMaxHeight')}</span>
+          <span>{t('studio.embedMaxHeight')}</span>
           <input
             type="number"
             min={0}
             placeholder="auto"
-            value={draft.previewMaxHeight || ''}
+            value={draft.embedMaxHeight || ''}
             disabled={busy}
             onChange={(e) => {
               const raw = e.target.value.trim();
               if (raw === '') {
-                onChange({ previewMaxHeight: 0 });
+                onChange({ embedMaxHeight: 0 });
                 return;
               }
               const n = Number(raw);
               if (!Number.isFinite(n) || n < 0) return;
-              onChange({ previewMaxHeight: Math.round(n) });
+              onChange({ embedMaxHeight: Math.round(n) });
             }}
           />
         </label>
+        <p className="export-img-field-hint">{t('studio.embedMaxHeightHint')}</p>
 
         <label className="export-img-field">
-          <span>{t('studio.previewAlign')}</span>
+          <span>{t('studio.embedAlign')}</span>
           <select
-            value={draft.previewAlign}
-            disabled={busy || draft.previewMaxHeight <= 0}
+            value={draft.embedAlign}
+            disabled={busy}
             onChange={(e) =>
-              onChange({ previewAlign: e.target.value as 'left' | 'center' })
+              onChange({ embedAlign: e.target.value as 'left' | 'center' })
             }
           >
-            <option value="center">{t('studio.previewAlign.center')}</option>
-            <option value="left">{t('studio.previewAlign.left')}</option>
+            <option value="center">{t('studio.embedAlign.center')}</option>
+            <option value="left">{t('studio.embedAlign.left')}</option>
           </select>
         </label>
 
@@ -149,29 +152,46 @@ export function FidelityPanel(props: FidelityPanelProps) {
               type="button"
               className="export-img-link-btn"
               disabled={busy}
-              onClick={onResetPadding}
+              onClick={onTogglePadding}
             >
-              {t('studio.padding.reset')}
+              {paddingMode === 'preset'
+                ? t('studio.padding.useDocument')
+                : t('studio.padding.usePreset')}
             </button>
           </div>
-          <div className="export-img-padding-grid">
-            {(['top', 'right', 'bottom', 'left'] as const).map((side) => (
-              <label key={side} className="export-img-field">
-                <span>{t(`studio.padding.${side}`)}</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={200}
-                  value={draft.padding[side]}
-                  disabled={busy}
-                  onChange={(e) =>
-                    onNestedChange('padding', {
-                      [side]: Number(e.target.value) || 0,
-                    })
-                  }
-                />
-              </label>
-            ))}
+          <div className="export-img-padding-rows">
+            <label className="export-img-field">
+              <span>{t('studio.padding.vertical')}</span>
+              <input
+                type="number"
+                min={0}
+                max={400}
+                value={draft.padding.top}
+                disabled={busy}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n) || n < 0) return;
+                  const v = Math.round(n);
+                  onNestedChange('padding', { top: v, bottom: v });
+                }}
+              />
+            </label>
+            <label className="export-img-field">
+              <span>{t('studio.padding.horizontal')}</span>
+              <input
+                type="number"
+                min={0}
+                max={400}
+                value={draft.padding.left}
+                disabled={busy}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n) || n < 0) return;
+                  const v = Math.round(n);
+                  onNestedChange('padding', { left: v, right: v });
+                }}
+              />
+            </label>
           </div>
         </div>
 
@@ -180,9 +200,17 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.split.mode}
             disabled={busy}
-            onChange={(e) =>
-              onNestedChange('split', { mode: e.target.value as SplitMode })
-            }
+            onChange={(e) => {
+              const mode = e.target.value as SplitMode;
+              if (mode === 'fixed') {
+                onNestedChange('split', {
+                  mode,
+                  height: Math.round(draft.width * 1.5),
+                });
+              } else {
+                onNestedChange('split', { mode });
+              }
+            }}
           >
             <option value="none">{t('studio.split.none')}</option>
             <option value="fixed">{t('studio.split.fixed')}</option>
@@ -208,8 +236,10 @@ export function FidelityPanel(props: FidelityPanelProps) {
           </label>
         )}
 
-        <details className="export-img-details">
-          <summary>{t('studio.decorations')}</summary>
+        <div className="export-img-section">
+          <div className="export-img-section-head">
+            <span>{t('studio.decorations')}</span>
+          </div>
           <div className="export-img-decor-block">
             <label className="export-img-check">
               <input
@@ -325,7 +355,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
               </div>
             )}
           </div>
-        </details>
+        </div>
       </div>
 
       <div className="export-img-actions">

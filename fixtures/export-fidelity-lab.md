@@ -32,7 +32,6 @@ links:
 ## 2. 列表
 
 无序列表：
-
 - 苹果
 - 香蕉
   - 子项 A
@@ -40,14 +39,12 @@ links:
 - 樱桃
 
 有序列表：
-
 1. 第一步：准备笔记
 2. 第二步：打开 Export Studio
 3. 第三步：等待 Settle → Ready
 4. 第四步：复制或保存
 
 任务列表：
-
 - [x] Callout
 - [x] 代码高亮
 - [ ] 本地图片（请替换为 vault 内真实图片）
@@ -194,15 +191,12 @@ sequenceDiagram
 请将下列占位替换为 vault 内真实资源后再测：
 
 本地 / wiki 嵌入图：
-
 ![[paste-local-image-here.png]]
 
 远程图（CORS / requestUrl）：
-
 ![Obsidian logo](https://obsidian.md/images/obsidian-logo-gradient.svg)
 
 笔记嵌入（若目标存在）：
-
 ![[Related note]]
 
 ## 11. 脚注与特殊段落
@@ -213,11 +207,9 @@ sequenceDiagram
 [^long]: 较长脚注：用于检查导出时脚注区是否被截断。
 
 HTML（部分主题支持）：
-
 <small>小号说明文字</small>
 
 注释块（若开启）：
-
 %% 这是 Obsidian 注释，阅读视图通常不显示 %%
 
 ## 12. 长文压力段
@@ -232,8 +224,10 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 
 ## 验收清单
 
-1. Studio 边距默认接近阅读视图，可手动改四边并「使用文档边距」重置  
-2. Settle 到 Ready 后再 Copy / Save  
-3. 浅色 / 深色 / 当前主题各导出一次对比  
-4. 打开装饰：水印文字 + 作者栏，确认不遮挡关键内容  
-5. 长文分页：fixed / hr / auto 各试一次  
+1. Studio 边距默认接近阅读视图，可在「文档边距 / 预设边距」间切换
+2. Settle 到 Ready 后再 Copy / Save（就绪后应直接使用缓存图）
+3. 浅色 / 深色 / 当前主题各导出一次对比
+4. 打开装饰：水印文字 + 作者栏，确认不遮挡关键内容
+5. 长文分页：fixed / hr / auto 各试一次，预览应显示分页
+6. 勾选显示 Properties，预览中应出现 frontmatter
+7. 分辨率 2×/3× 后放大预览，文字与线条应更清晰

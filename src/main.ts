@@ -22,17 +22,29 @@ export default class ExportImgPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const data = (await this.loadData()) as Partial<ExportImgSettings> | null;
+    const data = (await this.loadData()) as
+      | (Partial<ExportImgSettings> & {
+          previewMaxHeight?: number;
+          previewAlign?: 'left' | 'center';
+        })
+      | null;
+    const {
+      previewMaxHeight: legacyPreviewMaxHeight,
+      previewAlign: legacyPreviewAlign,
+      ...rest
+    } = data ?? {};
     this.settings = cloneSettings({
       ...DEFAULT_SETTINGS,
-      ...data,
-      locale: data?.locale ?? DEFAULT_SETTINGS.locale,
-      previewMaxHeight: data?.previewMaxHeight ?? DEFAULT_SETTINGS.previewMaxHeight,
-      previewAlign: data?.previewAlign ?? DEFAULT_SETTINGS.previewAlign,
-      padding: { ...DEFAULT_SETTINGS.padding, ...data?.padding },
-      split: { ...DEFAULT_SETTINGS.split, ...data?.split },
-      watermark: { ...DEFAULT_SETTINGS.watermark, ...data?.watermark },
-      author: { ...DEFAULT_SETTINGS.author, ...data?.author },
+      ...rest,
+      locale: rest.locale ?? DEFAULT_SETTINGS.locale,
+      // Migrate older preview* keys → embed* (document media, not studio viewport).
+      embedMaxHeight:
+        rest.embedMaxHeight ?? legacyPreviewMaxHeight ?? DEFAULT_SETTINGS.embedMaxHeight,
+      embedAlign: rest.embedAlign ?? legacyPreviewAlign ?? DEFAULT_SETTINGS.embedAlign,
+      padding: { ...DEFAULT_SETTINGS.padding, ...rest.padding },
+      split: { ...DEFAULT_SETTINGS.split, ...rest.split },
+      watermark: { ...DEFAULT_SETTINGS.watermark, ...rest.watermark },
+      author: { ...DEFAULT_SETTINGS.author, ...rest.author },
     });
   }
 

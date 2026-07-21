@@ -1,10 +1,10 @@
 {
-  "id": "obsidian-export-img",
+  "id": "export-img",
   "name": "Export Img",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Export notes as images with reading-view fidelity (callouts, code, embeds, Mermaid, and more).",
-  "author": "wb_hc",
-  "authorUrl": "",
+  "author": "Egoism(379949990)",
+  "authorUrl": "https://github.com/379949990",
   "isDesktopOnly": false
 }

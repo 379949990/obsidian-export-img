@@ -4,6 +4,9 @@ export type ThemeMode = 'current' | 'light' | 'dark';
 export type SplitMode = 'none' | 'fixed' | 'hr' | 'auto';
 export type WatermarkType = 'text' | 'image';
 export type SettleStatus = 'idle' | 'waiting' | 'ready' | 'timed_out';
+/** auto follows Obsidian app language (zh* → Chinese, else English). */
+export type PluginLocale = 'auto' | 'en' | 'zh';
+export type EmbedAlign = 'left' | 'center';
 
 export interface PaddingSettings {
   top: number;
@@ -46,7 +49,17 @@ export interface ExportImgSettings {
   themeMode: ThemeMode;
   settleTimeoutMs: number;
   quickExportSelection: boolean;
+  /** UI language preference. */
+  locale: PluginLocale;
+  /** Default padding used when opening Export Studio. */
   padding: PaddingSettings;
+  /**
+   * Max rendered height (px) for embedded images, Mermaid diagrams, and other
+   * wide/scrollable blocks inside the note. 0 = auto (no clamp).
+   */
+  embedMaxHeight: number;
+  /** Horizontal alignment for embedded media (always applied). */
+  embedAlign: EmbedAlign;
   split: SplitSettings;
   watermark: WatermarkSettings;
   author: AuthorSettings;

@@ -1,14 +1,17 @@
 {
   "name": "obsidian-export-img",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Export Obsidian notes as images with reading-view fidelity.",
   "main": "main.js",
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": ["obsidian", "plugin", "export", "image"],
+  "author": "Egoism(379949990)",
+  "homepage": "https://github.com/379949990",
   "license": "MIT",
   "devDependencies": {
     "@types/file-saver": "^2.0.7",

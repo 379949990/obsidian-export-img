@@ -1,7 +1,7 @@
-import type { ExportImgSettings } from './types';
+import type { ExportFormat, ExportImgSettings, PluginLocale, EmbedAlign } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
-  width: 680,
+  width: 800,
   scale: '2x',
   format: 'png',
   showFilename: true,
@@ -9,15 +9,24 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   themeMode: 'current',
   settleTimeoutMs: 8000,
   quickExportSelection: false,
+  locale: 'auto',
+  /** Default export padding — Studio opens with these values. */
   padding: {
-    top: 24,
-    right: 28,
-    bottom: 24,
-    left: 28,
+    top: 96,
+    right: 48,
+    bottom: 96,
+    left: 48,
   },
+  /**
+   * Max rendered height for embedded images, Mermaid, and other wide/scrollable blocks.
+   * 0 = auto (no height clamp).
+   */
+  embedMaxHeight: 0,
+  embedAlign: 'center',
   split: {
     mode: 'none',
-    height: 1200,
+    /** 0 = auto (width × 1.414, A4 ratio) when resolving fixed/auto pages. */
+    height: 0,
     overlap: 40,
   },
   watermark: {
@@ -39,8 +48,21 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   },
 };
 
+/** Deep-clone settings so Studio draft state cannot mutate plugin.settings in place. */
+export function cloneSettings(settings: ExportImgSettings): ExportImgSettings {
+  return {
+    ...settings,
+    padding: { ...settings.padding },
+    split: { ...settings.split },
+    watermark: { ...settings.watermark },
+    author: { ...settings.author },
+  };
+}
+
 export function scaleToNumber(scale: ExportImgSettings['scale']): number {
   if (scale === '3x') return 3;
   if (scale === '2x') return 2;
   return 1;
 }
+
+export type { PluginLocale, EmbedAlign };

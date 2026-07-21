@@ -1,7 +1,7 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
 import type ExportImgPlugin from './main';
-import { t } from './i18n';
-import type { ExportFormat, ScaleMode, ThemeMode } from './types';
+import { setLocalePreference, t } from './i18n';
+import type { ExportFormat, PluginLocale, ScaleMode, ThemeMode } from './types';
 
 export class ExportImgSettingTab extends PluginSettingTab {
   plugin: ExportImgPlugin;
@@ -14,6 +14,25 @@ export class ExportImgSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    new Setting(containerEl).setName(t('setting.heading.language')).setHeading();
+
+    new Setting(containerEl)
+      .setName(t('setting.locale'))
+      .setDesc(t('setting.localeDesc'))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('auto', t('setting.locale.auto'))
+          .addOption('en', t('setting.locale.en'))
+          .addOption('zh', t('setting.locale.zh'))
+          .setValue(this.plugin.settings.locale)
+          .onChange(async (value) => {
+            this.plugin.settings.locale = value as PluginLocale;
+            setLocalePreference(this.plugin.settings.locale);
+            await this.plugin.saveSettings();
+            this.display();
+          }),
+      );
 
     new Setting(containerEl).setName(t('setting.heading.defaults')).setHeading();
 
@@ -88,6 +107,91 @@ export class ExportImgSettingTab extends PluginSettingTab {
           this.plugin.settings.showMetadata = value;
           await this.plugin.saveSettings();
         }),
+      );
+
+    new Setting(containerEl)
+      .setName(t('setting.padding'))
+      .setDesc(t('setting.paddingDesc'))
+      .then((setting) => {
+        setting.controlEl.empty();
+        setting.controlEl.addClass('export-img-setting-padding-controls');
+
+        const pad = this.plugin.settings.padding;
+        const rows: { key: 'vertical' | 'horizontal'; value: number }[] = [
+          { key: 'vertical', value: pad.top },
+          { key: 'horizontal', value: pad.left },
+        ];
+
+        for (const row of rows) {
+          const line = setting.controlEl.createDiv({
+            cls: 'export-img-setting-padding-row',
+          });
+          line.createSpan({
+            text: t(`studio.padding.${row.key}`),
+            cls: 'export-img-setting-padding-label',
+          });
+          const input = line.createEl('input', {
+            type: 'number',
+            cls: 'export-img-setting-padding-input',
+            attr: {
+              min: '0',
+              max: '400',
+              value: String(row.value),
+            },
+          });
+          input.addEventListener('change', async () => {
+            const n = Number(input.value);
+            if (!Number.isFinite(n) || n < 0) return;
+            const v = Math.round(n);
+            if (row.key === 'vertical') {
+              this.plugin.settings.padding.top = v;
+              this.plugin.settings.padding.bottom = v;
+            } else {
+              this.plugin.settings.padding.left = v;
+              this.plugin.settings.padding.right = v;
+            }
+            await this.plugin.saveSettings();
+          });
+        }
+      });
+
+    new Setting(containerEl)
+      .setName(t('setting.embedMaxHeight'))
+      .setDesc(t('setting.embedMaxHeightDesc'))
+      .addText((text) =>
+        text
+          .setPlaceholder('auto')
+          .setValue(
+            this.plugin.settings.embedMaxHeight > 0
+              ? String(this.plugin.settings.embedMaxHeight)
+              : '',
+          )
+          .onChange(async (value) => {
+            const raw = value.trim();
+            if (raw === '') {
+              this.plugin.settings.embedMaxHeight = 0;
+              await this.plugin.saveSettings();
+              return;
+            }
+            const n = Number(raw);
+            if (!Number.isFinite(n) || n < 0) return;
+            this.plugin.settings.embedMaxHeight = Math.round(n);
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(t('setting.embedAlign'))
+      .setDesc(t('setting.embedAlignDesc'))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('center', t('studio.embedAlign.center'))
+          .addOption('left', t('studio.embedAlign.left'))
+          .setValue(this.plugin.settings.embedAlign)
+          .onChange(async (value) => {
+            this.plugin.settings.embedAlign = value as 'left' | 'center';
+            await this.plugin.saveSettings();
+          }),
       );
 
     new Setting(containerEl).setName(t('setting.heading.behavior')).setHeading();

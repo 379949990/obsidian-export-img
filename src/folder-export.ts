@@ -59,9 +59,9 @@ export async function exportFolderAsImages(
         width: settings.width,
         themeMode: settings.themeMode,
       });
-      await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
       prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
       await waitForNextPaint();
+      await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
       const blob = await captureElement(host.captureEl, {
         scale: scaleToNumber(settings.scale),
         format: settings.format,

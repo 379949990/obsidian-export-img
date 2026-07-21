@@ -1,6 +1,10 @@
 import type { ExportImgSettings, PluginLocale, EmbedAlign } from './types';
 
+/** Bump when adding a migration step that must run exactly once per install. */
+export const SETTINGS_VERSION = 1;
+
 export const DEFAULT_SETTINGS: ExportImgSettings = {
+  settingsVersion: SETTINGS_VERSION,
   width: 800,
   scale: '2x',
   format: 'png',

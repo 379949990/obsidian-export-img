@@ -211,6 +211,10 @@ function StudioApp(
 
           await waitForNextPaint();
 
+          // Layout before settle so Ready means media settled on the fitted DOM.
+          prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
+          await waitForNextPaint();
+
           const diag = await settleElement(host.captureEl, {
             timeoutMs: settings.settleTimeoutMs,
             signal: settleAbort.signal,
@@ -227,8 +231,6 @@ function StudioApp(
           });
           if (cancelled || token !== workToken.current) return;
 
-          prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
-          await waitForNextPaint();
           appliedRenderSigRef.current = renderSig;
 
           const parts = await captureStudioPages(host, settings, 'preview', {
@@ -501,9 +503,9 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
       width: settings.width,
       themeMode: settings.themeMode,
     });
-    await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
+    await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
     const blob = await captureElement(host.captureEl, {
       scale: scaleToNumber(settings.scale),
       format: settings.format,

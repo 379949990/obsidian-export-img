@@ -41,6 +41,8 @@ export interface AuthorSettings {
 }
 
 export interface ExportImgSettings {
+  /** Schema version for one-shot migrations (see settings-migrate.ts). */
+  settingsVersion: number;
   width: number;
   scale: ScaleMode;
   format: ExportFormat;

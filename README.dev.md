@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.0`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.1`.
 
 Product overview and install: [README.md](README.md).
 
@@ -33,9 +33,11 @@ pnpm run build   # tsc + production bundle → main.js
 
 ## Release flow
 
-1. Develop on `vX.Y.Z` (cut from `dev`).
-2. Bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
-3. Merge into `dev` → squash → **push `main`**.
+Branch model for this repo: **`main` + `vX.Y.Z`** (no `dev`).
+
+1. Cut `vX.Y.Z` from `main`.
+2. Develop on the version branch; bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
+3. Squash → **push `main`**.
 
 Push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): build → tag **`x.y.z`** (= `manifest.json` `version`, required by Obsidian) → GitHub Release with `main.js` / `manifest.json` / `styles.css`.
 

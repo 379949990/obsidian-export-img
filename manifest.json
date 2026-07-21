@@ -1,7 +1,7 @@
 {
   "id": "export-img",
   "name": "Export Img",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.5.0",
   "description": "Export notes as images with reading-view fidelity (callouts, code, embeds, Mermaid, and more).",
   "author": "Egoism(379949990)",

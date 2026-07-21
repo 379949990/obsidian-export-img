@@ -318,12 +318,10 @@ export async function openExportStudio(args: StudioOpenArgs): Promise<void> {
 /** Quick path: render offscreen and copy without opening studio. */
 export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   const { app, plugin, markdown, file } = args;
-  const settings: ExportImgSettings = {
-    ...cloneSettings(plugin.settings),
-    showFilename: false,
-    showMetadata: false,
-    split: { ...plugin.settings.split, mode: 'none' },
-  };
+  const settings = cloneSettings(plugin.settings);
+  settings.showFilename = false;
+  settings.showMetadata = false;
+  settings.split = { ...settings.split, mode: 'none' };
 
   const holder = document.body.createDiv({ cls: 'export-img-offscreen' });
   try {

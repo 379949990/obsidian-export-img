@@ -27,7 +27,11 @@ Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). 
 
 ```bash
 pnpm run build   # tsc + production bundle → main.js
+pnpm run test    # vitest (hard-killed if >60s)
+pnpm run verify  # tsc + test — also run by CI on PRs / version branches
 ```
+
+CI: [`.github/workflows/verify.yml`](.github/workflows/verify.yml) on `pull_request` and pushes to `main` / `v*`. Release remains [`.github/workflows/release.yml`](.github/workflows/release.yml) on `main` only.
 
 ---
 

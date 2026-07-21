@@ -177,12 +177,12 @@
   padding: 1px 8px;
 }
 
-.export-img-preview-image {
+.export-img-modal .export-img-preview-image {
   display: block;
-  width: auto !important;
-  height: auto !important;
-  max-width: none !important;
-  max-height: none !important;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   pointer-events: none;
 }
@@ -485,12 +485,12 @@
   background: var(--background-primary);
 }
 
-.export-img-page-hidden {
-  display: none !important;
+.export-img-host .export-img-page-hidden {
+  display: none;
 }
 
-.export-img-unlock-overflow,
-.export-img-capture.is-layout-prepared :is(
+.export-img-host .export-img-unlock-overflow,
+.export-img-host .export-img-capture.is-layout-prepared :is(
   .markdown-preview-view,
   .markdown-preview-sizer,
   .export-img-content,
@@ -501,41 +501,41 @@
   .internal-embed,
   .image-embed
 ) {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
+  overflow: visible;
+  overflow-x: visible;
+  overflow-y: visible;
 }
 
-.export-img-align-center {
-  margin-left: auto !important;
-  margin-right: auto !important;
+.export-img-host .export-img-align-center {
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.export-img-align-left {
-  margin-left: 0 !important;
-  margin-right: auto !important;
+.export-img-host .export-img-align-left {
+  margin-left: 0;
+  margin-right: auto;
 }
 
-.export-img-text-align-left {
-  text-align: left !important;
+.export-img-host .export-img-text-align-left {
+  text-align: left;
 }
 
-.export-img-text-align-center {
-  text-align: center !important;
+.export-img-host .export-img-text-align-center {
+  text-align: center;
 }
 
-.export-img-embed-block {
-  display: block !important;
+.export-img-host .export-img-embed-block {
+  display: block;
 }
 
-.export-img-embed-constrained {
-  max-height: var(--export-img-embed-max-h) !important;
-  width: auto !important;
-  height: auto !important;
-  object-fit: contain !important;
+.export-img-host .export-img-embed-constrained {
+  max-height: var(--export-img-embed-max-h);
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
-.export-img-fit-wrap {
+.export-img-host .export-img-fit-wrap {
   width: 100%;
   display: flex;
   overflow: visible;
@@ -543,46 +543,46 @@
   align-items: flex-start;
 }
 
-.export-img-fit-wrap.is-align-left {
+.export-img-host .export-img-fit-wrap.is-align-left {
   justify-content: flex-start;
 }
 
-.export-img-fit-wrap.is-align-center {
+.export-img-host .export-img-fit-wrap.is-align-center {
   justify-content: center;
 }
 
-.export-img-fit-wrap.is-scaled {
+.export-img-host .export-img-fit-wrap.is-scaled {
   height: var(--export-img-fit-h);
   overflow: hidden;
 }
 
-.export-img-fit-target {
-  max-width: none !important;
-  overflow: visible !important;
+.export-img-host .export-img-fit-target {
+  max-width: none;
+  overflow: visible;
 }
 
-.export-img-fit-target.is-capped {
-  max-width: 100% !important;
+.export-img-host .export-img-fit-target.is-capped {
+  max-width: 100%;
 }
 
-.export-img-fit-target.is-scaled {
-  transform: scale(var(--export-img-fit-scale)) !important;
-  transform-origin: top left !important;
-  width: var(--export-img-fit-nat-w) !important;
-  max-width: none !important;
-  flex: 0 0 auto !important;
+.export-img-host .export-img-fit-target.is-scaled {
+  transform: scale(var(--export-img-fit-scale));
+  transform-origin: top left;
+  width: var(--export-img-fit-nat-w);
+  max-width: none;
+  flex: 0 0 auto;
 }
 
-.export-img-mermaid-wrap {
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
+.export-img-host .export-img-mermaid-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
-.export-img-mermaid-svg {
-  max-width: 100% !important;
-  max-height: var(--export-img-embed-max-h, none) !important;
-  display: block !important;
+.export-img-host .export-img-mermaid-svg {
+  max-width: 100%;
+  max-height: var(--export-img-embed-max-h, none);
+  display: block;
 }
 
 .export-img-preview.markdown-preview-view {

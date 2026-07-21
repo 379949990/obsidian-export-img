@@ -1,4 +1,9 @@
-import { PluginSettingTab, Setting, type App } from 'obsidian';
+import {
+  PluginSettingTab,
+  Setting,
+  type App,
+  type SettingDefinitionItem,
+} from 'obsidian';
 import type ExportImgPlugin from './main';
 import { setLocalePreference, t } from './i18n';
 import type { ExportFormat, PluginLocale, ScaleMode, ThemeMode } from './types';
@@ -11,6 +16,142 @@ export class ExportImgSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  /**
+   * Obsidian 1.13+: declarative defs (search + render). Skips {@link display}.
+   * Older versions ignore this and call {@link display}.
+   */
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        type: 'group',
+        heading: t('setting.heading.language'),
+        items: [
+          {
+            name: t('setting.locale'),
+            desc: t('setting.localeDesc'),
+            render: (setting) => {
+              this.renderLocaleSetting(setting, () => this.update());
+            },
+          },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.defaults'),
+        items: [
+          {
+            name: t('setting.width'),
+            desc: t('setting.widthDesc'),
+            control: {
+              type: 'number',
+              key: 'width',
+              min: 240,
+              validate: (value) =>
+                Number.isFinite(value) && value >= 240
+                  ? undefined
+                  : t('setting.widthDesc'),
+            },
+          },
+          {
+            name: t('setting.scale'),
+            desc: t('setting.scaleDesc'),
+            control: {
+              type: 'dropdown',
+              key: 'scale',
+              options: { '1x': '1x', '2x': '2x', '3x': '3x' },
+            },
+          },
+          {
+            name: t('setting.format'),
+            control: {
+              type: 'dropdown',
+              key: 'format',
+              options: { png: 'PNG', jpg: 'JPEG', webp: 'WebP' },
+            },
+          },
+          {
+            name: t('setting.themeMode'),
+            control: {
+              type: 'dropdown',
+              key: 'themeMode',
+              options: {
+                current: t('studio.theme.current'),
+                light: t('studio.theme.light'),
+                dark: t('studio.theme.dark'),
+              },
+            },
+          },
+          {
+            name: t('setting.showFilename'),
+            control: { type: 'toggle', key: 'showFilename' },
+          },
+          {
+            name: t('setting.showMetadata'),
+            control: { type: 'toggle', key: 'showMetadata' },
+          },
+          {
+            name: t('setting.padding'),
+            desc: t('setting.paddingDesc'),
+            render: (setting) => {
+              this.renderPaddingSetting(setting);
+            },
+          },
+          {
+            name: t('setting.embedMaxHeight'),
+            desc: t('setting.embedMaxHeightDesc'),
+            control: {
+              type: 'number',
+              key: 'embedMaxHeight',
+              min: 0,
+              placeholder: t('studio.embedMaxHeightPlaceholder'),
+              validate: (value) =>
+                Number.isFinite(value) && value >= 0
+                  ? undefined
+                  : t('setting.embedMaxHeightDesc'),
+            },
+          },
+          {
+            name: t('setting.embedAlign'),
+            desc: t('setting.embedAlignDesc'),
+            control: {
+              type: 'dropdown',
+              key: 'embedAlign',
+              options: {
+                center: t('studio.embedAlign.center'),
+                left: t('studio.embedAlign.left'),
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.behavior'),
+        items: [
+          {
+            name: t('setting.settleTimeout'),
+            desc: t('setting.settleTimeoutDesc'),
+            control: {
+              type: 'number',
+              key: 'settleTimeoutMs',
+              min: 500,
+              validate: (value) =>
+                Number.isFinite(value) && value >= 500
+                  ? undefined
+                  : t('setting.settleTimeoutDesc'),
+            },
+          },
+          {
+            name: t('setting.quickExportSelection'),
+            desc: t('setting.quickExportSelectionDesc'),
+            control: { type: 'toggle', key: 'quickExportSelection' },
+          },
+        ],
+      },
+    ];
+  }
+
+  /** Obsidian &lt; 1.13 fallback when declarative defs are unavailable. */
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
@@ -20,19 +161,9 @@ export class ExportImgSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName(t('setting.locale'))
       .setDesc(t('setting.localeDesc'))
-      .addDropdown((dropdown) =>
-        dropdown
-          .addOption('auto', t('setting.locale.auto'))
-          .addOption('en', t('setting.locale.en'))
-          .addOption('zh', t('setting.locale.zh'))
-          .setValue(this.plugin.settings.locale)
-          .onChange(async (value) => {
-            this.plugin.settings.locale = value as PluginLocale;
-            setLocalePreference(this.plugin.settings.locale);
-            await this.plugin.saveSettings();
-            this.display();
-          }),
-      );
+      .then((setting) => {
+        this.renderLocaleSetting(setting, () => this.display());
+      });
 
     new Setting(containerEl).setName(t('setting.heading.defaults')).setHeading();
 
@@ -113,48 +244,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
       .setName(t('setting.padding'))
       .setDesc(t('setting.paddingDesc'))
       .then((setting) => {
-        setting.controlEl.empty();
-        setting.controlEl.addClass('export-img-setting-padding-controls');
-
-        const pad = this.plugin.settings.padding;
-        const rows: { key: 'vertical' | 'horizontal'; value: number }[] = [
-          { key: 'vertical', value: pad.top },
-          { key: 'horizontal', value: pad.left },
-        ];
-
-        for (const row of rows) {
-          const line = setting.controlEl.createDiv({
-            cls: 'export-img-setting-padding-row',
-          });
-          line.createSpan({
-            text: t(`studio.padding.${row.key}`),
-            cls: 'export-img-setting-padding-label',
-          });
-          const input = line.createEl('input', {
-            type: 'number',
-            cls: 'export-img-setting-padding-input',
-            attr: {
-              min: '0',
-              max: '400',
-              value: String(row.value),
-            },
-          });
-          input.addEventListener('change', () => {
-            void (async () => {
-              const n = Number(input.value);
-              if (!Number.isFinite(n) || n < 0) return;
-              const v = Math.round(n);
-              if (row.key === 'vertical') {
-                this.plugin.settings.padding.top = v;
-                this.plugin.settings.padding.bottom = v;
-              } else {
-                this.plugin.settings.padding.left = v;
-                this.plugin.settings.padding.right = v;
-              }
-              await this.plugin.saveSettings();
-            })();
-          });
-        }
+        this.renderPaddingSetting(setting);
       });
 
     new Setting(containerEl)
@@ -223,5 +313,66 @@ export class ExportImgSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+  }
+
+  private renderLocaleSetting(setting: Setting, refresh: () => void): void {
+    setting.addDropdown((dropdown) =>
+      dropdown
+        .addOption('auto', t('setting.locale.auto'))
+        .addOption('en', t('setting.locale.en'))
+        .addOption('zh', t('setting.locale.zh'))
+        .setValue(this.plugin.settings.locale)
+        .onChange(async (value) => {
+          this.plugin.settings.locale = value as PluginLocale;
+          setLocalePreference(this.plugin.settings.locale);
+          await this.plugin.saveSettings();
+          refresh();
+        }),
+    );
+  }
+
+  private renderPaddingSetting(setting: Setting): void {
+    setting.controlEl.empty();
+    setting.controlEl.addClass('export-img-setting-padding-controls');
+
+    const pad = this.plugin.settings.padding;
+    const rows: { key: 'vertical' | 'horizontal'; value: number }[] = [
+      { key: 'vertical', value: pad.top },
+      { key: 'horizontal', value: pad.left },
+    ];
+
+    for (const row of rows) {
+      const line = setting.controlEl.createDiv({
+        cls: 'export-img-setting-padding-row',
+      });
+      line.createSpan({
+        text: t(`studio.padding.${row.key}`),
+        cls: 'export-img-setting-padding-label',
+      });
+      const input = line.createEl('input', {
+        type: 'number',
+        cls: 'export-img-setting-padding-input',
+        attr: {
+          min: '0',
+          max: '400',
+          value: String(row.value),
+        },
+      });
+      input.addEventListener('change', () => {
+        void (async () => {
+          const n = Number(input.value);
+          if (!Number.isFinite(n) || n < 0) return;
+          const v = Math.round(n);
+          if (row.key === 'vertical') {
+            this.plugin.settings.padding.top = v;
+            this.plugin.settings.padding.bottom = v;
+          } else {
+            this.plugin.settings.padding.left = v;
+            this.plugin.settings.padding.right = v;
+          }
+          await this.plugin.saveSettings();
+        })();
+      });
+    }
   }
 }

@@ -225,9 +225,9 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 ## 验收清单
 
 1. Studio 边距默认接近阅读视图，可在「文档边距 / 预设边距」间切换
-2. Settle 到 Ready 后再 Copy / Save（就绪后应直接使用缓存图）
+2. Settle 到 Ready 后再 Copy / Save（预览 1×；导出用设定倍率）
 3. 浅色 / 深色 / 当前主题各导出一次对比
 4. 打开装饰：水印文字 + 作者栏，确认不遮挡关键内容
-5. 长文分页：fixed / hr / auto 各试一次，预览应显示分页
+5. 长文分页：fixed / hr / auto 各试一次；固定高度默认 = 宽度 × 1.414
 6. 勾选显示 Properties，预览中应出现 frontmatter
-7. 分辨率 2×/3× 后放大预览，文字与线条应更清晰
+7. 分辨率 2×/3× 后放大**导出图**（非预览），文字与线条应更清晰

@@ -25,7 +25,7 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   embedAlign: 'center',
   split: {
     mode: 'none',
-    /** 0 = auto (1.5 × export width) when resolving fixed/auto pages. */
+    /** 0 = auto (width × 1.414, A4 ratio) when resolving fixed/auto pages. */
     height: 0,
     overlap: 40,
   },

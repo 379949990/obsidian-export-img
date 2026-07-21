@@ -9,9 +9,17 @@ export interface SplitBlock {
   height: number;
 }
 
+/** A4 portrait ratio (height / width) ≈ √2. */
+export const SPLIT_HEIGHT_RATIO = 1.414;
+
+export function defaultSplitHeight(width: number): number {
+  return Math.max(200, Math.round(width * SPLIT_HEIGHT_RATIO));
+}
+
+/** Max content height per page (padding is applied outside this budget). */
 export function resolveSplitHeight(settings: SplitSettings, width: number): number {
   if (settings.height > 0) return Math.max(200, settings.height);
-  return Math.max(200, Math.round(width * 1.5));
+  return defaultSplitHeight(width);
 }
 
 /**

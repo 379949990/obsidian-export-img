@@ -47,6 +47,8 @@ const en: Dict = {
   'studio.embedAlign.center': 'Center',
   'studio.embedAlign.left': 'Left',
   'studio.scale': 'Resolution',
+  'studio.scaleHint':
+    'Studio preview always captures at 1× for speed. Copy / Save use this resolution multiplier.',
   'studio.format': 'Format',
   'studio.theme': 'Theme',
   'studio.theme.current': 'Current',
@@ -70,6 +72,8 @@ const en: Dict = {
   'studio.split.hr': 'Horizontal rules',
   'studio.split.auto': 'Block boundaries',
   'studio.splitHeight': 'Split height',
+  'studio.splitHeightHint':
+    'Max content height per page (px). Default = width × 1.414 (A4). Blocks are never clipped mid-element.',
   'studio.pageOf': 'Page {page}/{total}',
   'studio.decorations': 'Decorations',
   'studio.watermark': 'Watermark',
@@ -113,7 +117,7 @@ const en: Dict = {
   'setting.widthDesc': 'Default export width in pixels.',
   'setting.scale': 'Default resolution',
   'setting.scaleDesc':
-    'Default export resolution (kept at 2×). Higher multipliers look sharper when zoomed, but take longer to render.',
+    'Default export resolution (2× recommended). Studio preview stays at 1×; Copy/Save use this multiplier. Higher values are sharper when zoomed, but slower.',
   'setting.format': 'Default format',
   'setting.showFilename': 'Show note title by default',
   'setting.showMetadata': 'Show properties by default',
@@ -151,6 +155,7 @@ const zh: Dict = {
   'studio.embedAlign.center': '居中',
   'studio.embedAlign.left': '居左',
   'studio.scale': '分辨率',
+  'studio.scaleHint': '工作室预览固定按 1× 截图以加快就绪；复制 / 保存使用此处设定的分辨率倍率。',
   'studio.format': '格式',
   'studio.theme': '主题',
   'studio.theme.current': '当前',
@@ -174,6 +179,8 @@ const zh: Dict = {
   'studio.split.hr': '按分隔线',
   'studio.split.auto': '按块边界',
   'studio.splitHeight': '分页高度',
+  'studio.splitHeightHint':
+    '每页内容区最大高度（像素）。默认 = 宽度 × 1.414（A4 比例）。不会从中间切开文档块。',
   'studio.pageOf': '第 {page}/{total} 页',
   'studio.decorations': '装饰',
   'studio.watermark': '水印',
@@ -217,7 +224,7 @@ const zh: Dict = {
   'setting.widthDesc': '默认导出宽度（像素）。',
   'setting.scale': '默认分辨率',
   'setting.scaleDesc':
-    '默认导出分辨率（保持 2×）。倍率越高放大后越清晰，但渲染耗时也越长。',
+    '默认导出分辨率（推荐 2×）。工作室预览固定 1×；复制/保存使用该倍率。倍率越高放大后越清晰，但耗时更长。',
   'setting.format': '默认格式',
   'setting.showFilename': '默认显示笔记标题',
   'setting.showMetadata': '默认显示 Properties',

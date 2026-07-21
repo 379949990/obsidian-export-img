@@ -26,6 +26,7 @@ import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
 import {
   applyPageBlocks,
+  defaultSplitHeight,
   getAtomicBlocks,
   paginateBlocks,
   resetPageBlocks,
@@ -38,7 +39,7 @@ import { PreviewPane } from './preview-pane';
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
   if (draft.split.height <= 0) {
-    draft.split.height = Math.round(draft.width * 1.5);
+    draft.split.height = defaultSplitHeight(draft.width);
   }
   return draft;
 }
@@ -386,9 +387,12 @@ function StudioApp(
     setDraft((prev) => {
       const next = { ...prev, ...patch };
       if (typeof patch.width === 'number' && patch.width !== prev.width) {
-        const prevDefault = Math.round(prev.width * 1.5);
-        if (prev.split.mode === 'fixed' && prev.split.height === prevDefault) {
-          next.split = { ...prev.split, height: Math.round(patch.width * 1.5) };
+        const prevDefault = defaultSplitHeight(prev.width);
+        if (
+          (prev.split.mode === 'fixed' || prev.split.mode === 'auto') &&
+          prev.split.height === prevDefault
+        ) {
+          next.split = { ...prev.split, height: defaultSplitHeight(patch.width) };
         }
       }
       return next;
@@ -411,11 +415,14 @@ function StudioApp(
       const next = { ...prev, [key]: nextVal };
       if (key === 'split') {
         const splitPatch = patch as Partial<ExportImgSettings['split']>;
-        if (splitPatch.mode === 'fixed') {
-          next.split = {
-            ...next.split,
-            height: resolveSplitHeight(next.split, next.width),
-          };
+        if (splitPatch.mode === 'fixed' || splitPatch.mode === 'auto') {
+          // Preserve an explicit height; only fill A4 default when unset.
+          if (!(next.split.height > 0)) {
+            next.split = {
+              ...next.split,
+              height: defaultSplitHeight(next.width),
+            };
+          }
         }
       }
       return next;

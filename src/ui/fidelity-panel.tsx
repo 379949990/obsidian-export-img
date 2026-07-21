@@ -1,4 +1,5 @@
 import { t } from '../i18n';
+import { defaultSplitHeight } from '../pipeline/split';
 import type {
   ExportFormat,
   ExportImgSettings,
@@ -98,6 +99,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             <option value="3x">3x</option>
           </select>
         </label>
+        <p className="export-img-field-hint">{t('studio.scaleHint')}</p>
 
         <label className="export-img-field">
           <span>{t('studio.format')}</span>
@@ -202,10 +204,13 @@ export function FidelityPanel(props: FidelityPanelProps) {
             disabled={busy}
             onChange={(e) => {
               const mode = e.target.value as SplitMode;
-              if (mode === 'fixed') {
+              if (mode === 'fixed' || mode === 'auto') {
                 onNestedChange('split', {
                   mode,
-                  height: Math.round(draft.width * 1.5),
+                  height:
+                    draft.split.height > 0
+                      ? draft.split.height
+                      : defaultSplitHeight(draft.width),
                 });
               } else {
                 onNestedChange('split', { mode });
@@ -220,20 +225,23 @@ export function FidelityPanel(props: FidelityPanelProps) {
         </label>
 
         {draft.split.mode !== 'none' && draft.split.mode !== 'hr' && (
-          <label className="export-img-field">
-            <span>{t('studio.splitHeight')}</span>
-            <input
-              type="number"
-              min={200}
-              value={draft.split.height}
-              disabled={busy}
-              onChange={(e) =>
-                onNestedChange('split', {
-                  height: Number(e.target.value) || draft.split.height,
-                })
-              }
-            />
-          </label>
+          <>
+            <label className="export-img-field">
+              <span>{t('studio.splitHeight')}</span>
+              <input
+                type="number"
+                min={200}
+                value={draft.split.height}
+                disabled={busy}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n) || n < 200) return;
+                  onNestedChange('split', { height: Math.round(n) });
+                }}
+              />
+            </label>
+            <p className="export-img-field-hint">{t('studio.splitHeightHint')}</p>
+          </>
         )}
 
         <div className="export-img-section">

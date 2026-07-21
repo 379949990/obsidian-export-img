@@ -112,7 +112,8 @@ const en: Dict = {
   'setting.width': 'Default width',
   'setting.widthDesc': 'Default export width in pixels.',
   'setting.scale': 'Default resolution',
-  'setting.scaleDesc': 'Higher values look sharper on high-DPI screens.',
+  'setting.scaleDesc':
+    'Default export resolution (kept at 2×). Higher multipliers look sharper when zoomed, but take longer to render.',
   'setting.format': 'Default format',
   'setting.showFilename': 'Show note title by default',
   'setting.showMetadata': 'Show properties by default',
@@ -215,7 +216,8 @@ const zh: Dict = {
   'setting.width': '默认宽度',
   'setting.widthDesc': '默认导出宽度（像素）。',
   'setting.scale': '默认分辨率',
-  'setting.scaleDesc': '更高倍率在高 DPI 屏幕上更清晰。',
+  'setting.scaleDesc':
+    '默认导出分辨率（保持 2×）。倍率越高放大后越清晰，但渲染耗时也越长。',
   'setting.format': '默认格式',
   'setting.showFilename': '默认显示笔记标题',
   'setting.showMetadata': '默认显示 Properties',

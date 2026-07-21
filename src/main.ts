@@ -1,10 +1,23 @@
 import { Plugin } from 'obsidian';
 import { setLocalePreference } from './i18n';
 import { cloneSettings, DEFAULT_SETTINGS } from './settings';
-import type { ExportImgSettings } from './types';
+import type { ExportImgSettings, PaddingSettings } from './types';
 import { registerCommands } from './commands';
 import { registerMenus } from './menus';
 import { ExportImgSettingTab } from './setting-tab';
+
+function isLegacyPaddingDefault(padding: PaddingSettings): boolean {
+  return (
+    (padding.top === 128 &&
+      padding.bottom === 128 &&
+      padding.left === 64 &&
+      padding.right === 64) ||
+    (padding.top === 128 &&
+      padding.bottom === 128 &&
+      padding.left === 128 &&
+      padding.right === 128)
+  );
+}
 
 export default class ExportImgPlugin extends Plugin {
   settings: ExportImgSettings = cloneSettings(DEFAULT_SETTINGS);
@@ -33,6 +46,13 @@ export default class ExportImgPlugin extends Plugin {
       previewAlign: legacyPreviewAlign,
       ...rest
     } = data ?? {};
+
+    let padding = { ...DEFAULT_SETTINGS.padding, ...rest.padding };
+    const migratePadding = isLegacyPaddingDefault(padding);
+    if (migratePadding) {
+      padding = { ...DEFAULT_SETTINGS.padding };
+    }
+
     this.settings = cloneSettings({
       ...DEFAULT_SETTINGS,
       ...rest,
@@ -41,11 +61,15 @@ export default class ExportImgPlugin extends Plugin {
       embedMaxHeight:
         rest.embedMaxHeight ?? legacyPreviewMaxHeight ?? DEFAULT_SETTINGS.embedMaxHeight,
       embedAlign: rest.embedAlign ?? legacyPreviewAlign ?? DEFAULT_SETTINGS.embedAlign,
-      padding: { ...DEFAULT_SETTINGS.padding, ...rest.padding },
+      padding,
       split: { ...DEFAULT_SETTINGS.split, ...rest.split },
       watermark: { ...DEFAULT_SETTINGS.watermark, ...rest.watermark },
       author: { ...DEFAULT_SETTINGS.author, ...rest.author },
     });
+
+    if (migratePadding) {
+      await this.saveSettings();
+    }
   }
 
   async saveSettings(): Promise<void> {

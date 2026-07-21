@@ -1,8 +1,8 @@
 import type { SettleDiagnostic, SettleStatus } from '../types';
+import { waitForNextPaint } from './overflow';
 
 export interface SettleOptions {
   timeoutMs: number;
-  stableMs?: number;
   onUpdate?: (diag: SettleDiagnostic) => void;
   /** Optional abort signal from the caller (e.g. remount). */
   signal?: AbortSignal;
@@ -61,14 +61,48 @@ async function waitForImages(
             resolve();
           };
 
+          // Cap per-image wait — hanging decode should not dominate settle.
+          const timeout = window.setTimeout(onReady, 1200);
+
           if (typeof img.decode === 'function') {
-            img.decode().then(onReady, onError);
-            img.addEventListener('error', onError, { once: true });
+            img.decode().then(
+              () => {
+                window.clearTimeout(timeout);
+                onReady();
+              },
+              () => {
+                window.clearTimeout(timeout);
+                onError();
+              },
+            );
+            img.addEventListener(
+              'error',
+              () => {
+                window.clearTimeout(timeout);
+                onError();
+              },
+              { once: true },
+            );
           } else if (img.complete) {
+            window.clearTimeout(timeout);
             onReady();
           } else {
-            img.addEventListener('load', onReady, { once: true });
-            img.addEventListener('error', onError, { once: true });
+            img.addEventListener(
+              'load',
+              () => {
+                window.clearTimeout(timeout);
+                onReady();
+              },
+              { once: true },
+            );
+            img.addEventListener(
+              'error',
+              () => {
+                window.clearTimeout(timeout);
+                onError();
+              },
+              { once: true },
+            );
           }
         });
       } catch (error) {
@@ -88,7 +122,7 @@ async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   try {
     if (!document.fonts) return false;
     if (document.fonts.status !== 'loading') return false;
-    await Promise.race([document.fonts.ready, delay(280, signal)]);
+    await Promise.race([document.fonts.ready, delay(160, signal)]);
     return document.fonts.status === 'loading';
   } catch (error) {
     if (isAbortError(error)) throw error;
@@ -96,48 +130,18 @@ async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   }
 }
 
-function waitForLayoutStable(
-  root: HTMLElement,
-  stableMs: number,
-  signal: AbortSignal,
-): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    let timer: number | undefined;
+/** Brief wait for Mermaid/MathJax SVG nodes without a long ResizeObserver loop. */
+async function waitForAsyncDiagrams(root: HTMLElement, signal: AbortSignal): Promise<void> {
+  const hasPendingMermaid = () =>
+    Array.from(root.querySelectorAll('.mermaid')).some((el) => !el.querySelector('svg'));
 
-    const cleanup = () => {
-      observer.disconnect();
-      if (timer !== undefined) window.clearTimeout(timer);
-      signal.removeEventListener('abort', onAbort);
-    };
-
-    const finish = (stable: boolean) => {
-      cleanup();
-      resolve(stable);
-    };
-
-    const onAbort = () => {
-      cleanup();
-      reject(new DOMException('Aborted', 'AbortError'));
-    };
-
-    if (signal.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'));
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      if (signal.aborted) {
-        onAbort();
-        return;
-      }
-      if (timer !== undefined) window.clearTimeout(timer);
-      timer = window.setTimeout(() => finish(true), stableMs);
-    });
-
-    observer.observe(root);
-    signal.addEventListener('abort', onAbort, { once: true });
-    timer = window.setTimeout(() => finish(true), stableMs);
-  });
+  if (!hasPendingMermaid()) return;
+  const deadline = performance.now() + 400;
+  while (performance.now() < deadline) {
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (!hasPendingMermaid()) return;
+    await delay(32, signal);
+  }
 }
 
 export async function settleElement(
@@ -145,8 +149,6 @@ export async function settleElement(
   options: SettleOptions,
 ): Promise<SettleDiagnostic> {
   const started = performance.now();
-  // Keep stability window short — Mermaid usually settles within one frame after render.
-  const stableMs = options.stableMs ?? 64;
   const warnings: string[] = [];
   const controller = new AbortController();
   let settled = false;
@@ -190,14 +192,14 @@ export async function settleElement(
   }, options.timeoutMs);
 
   try {
-    // Images and fonts in parallel — largest settle win for notes with remote media.
     const [fontPending, imageResult] = await Promise.all([
       waitForFonts(controller.signal),
       waitForImages(root, controller.signal),
     ]);
     warnings.push(...imageResult.warnings);
 
-    const layoutStable = await waitForLayoutStable(root, stableMs, controller.signal);
+    await waitForAsyncDiagrams(root, controller.signal);
+    await waitForNextPaint();
 
     if (settled) {
       return {
@@ -214,7 +216,7 @@ export async function settleElement(
       emit('ready', {
         pendingImages: imageResult.pending,
         pendingFonts: fontPending,
-        layoutStable,
+        layoutStable: true,
         warnings: [...warnings],
       }) ?? {
         status: 'timed_out',

@@ -5,7 +5,8 @@ import { t } from '../i18n';
 import { getExtension } from './capture';
 import type { ExportFormat } from '../types';
 
-function safeFilename(title: string, format: ExportFormat, index?: number): string {
+/** Sanitize title for download / vault attachment filenames. */
+export function safeFilename(title: string, format: ExportFormat, index?: number): string {
   const base = title.replaceAll(/[\\/:*?"<>|]+/g, '_').replaceAll(/\s+/g, '_');
   const suffix = index !== undefined ? `_${index}` : '';
   return `${base}${suffix}.${getExtension(format)}`;

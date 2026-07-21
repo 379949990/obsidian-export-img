@@ -53,6 +53,7 @@ Command/menu → Studio | quickCopy | folderExport
 | Settings + migrate | `src/settings.ts`, `src/settings-migrate.ts` (`settingsVersion`) |
 | Styles | `styles.css` |
 | Manual fixture | `fixtures/export-fidelity-lab.md` |
+| Unit / DOM tests | `tests/*.test.ts` (+ `tests/helpers`, `tests/mocks/obsidian.ts`) |
 
 **Studio phases:** `resolvePreviewPhase` → rebuild DOM vs recapture-only; export uses `getExportCacheKey` (includes scale).
 
@@ -105,7 +106,7 @@ Priority leftovers from first-principles review (pick with user, don’t silent-
 4. Bundle size large (`modern-screenshot` + Preact)
 5. `obsidian` types still `"latest"` in package.json — prefer pin
 6. Watermark image / author avatar settings renderable but weak/no Studio UI
-7. More settle / Studio integration tests if pure unit coverage is not enough
+7. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks (unit suite now covers layout classes, split DOM, mobile save, migrate edges)
 
 ---
 

@@ -1,0 +1,30 @@
+{
+  "name": "obsidian-export-img",
+  "version": "0.1.0",
+  "description": "Export Obsidian notes as images with reading-view fidelity.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": ["obsidian", "plugin", "export", "image"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^22.15.17",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "builtin-modules": "4.0.0",
+    "esbuild": "0.25.5",
+    "obsidian": "latest",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "file-saver": "^2.0.5",
+    "jszip": "^3.10.1",
+    "modern-screenshot": "^4.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

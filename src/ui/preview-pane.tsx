@@ -15,57 +15,110 @@ interface PreviewPaneProps {
 const MIN_SCALE = 0.15;
 const MAX_SCALE = 6;
 
+/**
+ * Margin as a fraction of the *displayed image width*.
+ * left + image + right = viewport → imageWidth = viewport / (1 + 2 * MARGIN_RATIO)
+ * top uses the same gap length (3% of image width).
+ */
+const MARGIN_RATIO = 0.03;
+
+interface Frame {
+  scale: number;
+  x: number;
+  y: number;
+}
+
+function initialFrame(viewportW: number, naturalW: number): Frame {
+  const vw = Math.max(40, viewportW);
+  const imageW = vw / (1 + 2 * MARGIN_RATIO);
+  const gap = imageW * MARGIN_RATIO;
+  return {
+    scale: imageW / naturalW,
+    x: gap,
+    y: gap,
+  };
+}
+
+function measureStackSize(stack: HTMLElement | null, pageCount: number): { w: number; h: number } {
+  if (!stack) return { w: 0, h: 0 };
+  const images = Array.from(stack.querySelectorAll('img'));
+  const first = images[0];
+  if (!first || first.naturalWidth <= 0) return { w: 0, h: 0 };
+  const totalH =
+    images.reduce((sum, node) => sum + node.naturalHeight, 0) +
+    Math.max(0, pageCount - 1) * 16;
+  return { w: first.naturalWidth, h: totalH || first.naturalHeight };
+}
+
 export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [tx, setTx] = useState(0);
-  const [ty, setTy] = useState(0);
-  const [natural, setNatural] = useState({ w: 0, h: 0 });
+  const stackRef = useRef<HTMLDivElement>(null);
+  const [frame, setFrame] = useState<Frame>({ scale: 1, x: 0, y: 0 });
+  const userMovedRef = useRef(false);
   const dragRef = useRef<{
     active: boolean;
     startX: number;
     startY: number;
-    originTx: number;
-    originTy: number;
-  }>({ active: false, startX: 0, startY: 0, originTx: 0, originTy: 0 });
+    originX: number;
+    originY: number;
+  }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
 
   const primaryUrl = imageUrls[0] ?? null;
   const pageCount = imageUrls.length;
+  const { scale, x, y } = frame;
 
   const fitToView = useCallback(() => {
     const viewport = viewportRef.current;
-    if (!viewport || !natural.w || !natural.h) return;
+    const stack = stackRef.current;
+    if (!viewport) return;
 
-    const availW = Math.max(40, viewport.clientWidth);
-    const gap = availW * 0.03;
-    // 94% width (3% side gaps); top also uses 3% of width as gap.
-    const next = (availW * 0.94) / natural.w;
-    const scaledH = natural.h * next;
-    // Image is positioned with translate(-50%, -50%) around viewport center.
-    // Move its top edge to `gap` from the viewport top.
-    const nextTy = gap + scaledH / 2 - viewport.clientHeight / 2;
+    const apply = () => {
+      const vp = viewportRef.current;
+      const st = stackRef.current;
+      if (!vp) return;
+      if (vp.clientWidth < 80) {
+        window.requestAnimationFrame(apply);
+        return;
+      }
+      const { w } = measureStackSize(st, pageCount);
+      if (w <= 0) return;
+      userMovedRef.current = false;
+      setFrame(initialFrame(vp.clientWidth, w));
+    };
 
-    setScale(next);
-    setTx(0);
-    setTy(nextTy);
-  }, [natural.h, natural.w]);
+    apply();
+  }, [pageCount]);
 
+  // Blob/cached images often finish before onLoad is attached — poll complete on URL change.
   useEffect(() => {
-    setScale(1);
-    setTx(0);
-    setTy(0);
-    setNatural({ w: 0, h: 0 });
-  }, [primaryUrl, pageCount]);
+    if (!primaryUrl) return;
+    userMovedRef.current = false;
+    let cancelled = false;
 
-  useEffect(() => {
-    if (natural.w > 0) fitToView();
-  }, [natural.w, natural.h, fitToView]);
+    const tryFit = () => {
+      if (cancelled) return;
+      const stack = stackRef.current;
+      const img = stack?.querySelector('img');
+      if (img && img.complete && img.naturalWidth > 0) {
+        fitToView();
+        return;
+      }
+      window.requestAnimationFrame(tryFit);
+    };
+
+    const id = window.requestAnimationFrame(tryFit);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(id);
+    };
+  }, [primaryUrl, pageCount, fitToView]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      if (!dragRef.current.active) fitToView();
+      if (userMovedRef.current || dragRef.current.active) return;
+      fitToView();
     });
     observer.observe(viewport);
     return () => observer.disconnect();
@@ -74,16 +127,22 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
   const onWheel = (event: JSX.TargetedWheelEvent<HTMLDivElement>) => {
     event.preventDefault();
     const viewport = viewportRef.current;
-    if (!viewport) return;
+    if (!viewport || !primaryUrl) return;
+
     const rect = viewport.getBoundingClientRect();
-    const cx = event.clientX - rect.left - rect.width / 2;
-    const cy = event.clientY - rect.top - rect.height / 2;
+    const cx = event.clientX - rect.left;
+    const cy = event.clientY - rect.top;
     const factor = event.deltaY < 0 ? 1.1 : 1 / 1.1;
-    const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
-    const ratio = next / scale;
-    setTx(cx - (cx - tx) * ratio);
-    setTy(cy - (cy - ty) * ratio);
-    setScale(next);
+    const nextScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+    const localX = (cx - x) / scale;
+    const localY = (cy - y) / scale;
+
+    userMovedRef.current = true;
+    setFrame({
+      scale: nextScale,
+      x: cx - localX * nextScale,
+      y: cy - localY * nextScale,
+    });
   };
 
   const onPointerDown = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
@@ -93,15 +152,19 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
       active: true,
       startX: event.clientX,
       startY: event.clientY,
-      originTx: tx,
-      originTy: ty,
+      originX: x,
+      originY: y,
     };
   };
 
   const onPointerMove = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return;
-    setTx(dragRef.current.originTx + (event.clientX - dragRef.current.startX));
-    setTy(dragRef.current.originTy + (event.clientY - dragRef.current.startY));
+    userMovedRef.current = true;
+    setFrame({
+      scale,
+      x: dragRef.current.originX + (event.clientX - dragRef.current.startX),
+      y: dragRef.current.originY + (event.clientY - dragRef.current.startY),
+    });
   };
 
   const endDrag = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
@@ -123,14 +186,19 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      onDblClick={() => fitToView()}
+      onDblClick={(e) => {
+        e.preventDefault();
+        fitToView();
+      }}
     >
       <div className="export-img-checkerboard" aria-hidden="true" />
       {primaryUrl ? (
         <div
+          key={`${primaryUrl}:${pageCount}`}
           className="export-img-preview-stack"
+          ref={stackRef}
           style={{
-            transform: `translate(-50%, -50%) translate(${tx}px, ${ty}px) scale(${scale})`,
+            transform: `translate(${x}px, ${y}px) scale(${scale})`,
           }}
         >
           {imageUrls.map((url, index) => (
@@ -145,18 +213,9 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
                 src={url}
                 alt=""
                 draggable={false}
-                onLoad={(e) => {
+                onLoad={() => {
                   if (index !== 0) return;
-                  const img = e.currentTarget;
-                  // Stack height ≈ sum of pages; for fit use first page width and full stack height.
-                  const stack = e.currentTarget.closest('.export-img-preview-stack');
-                  const totalH = stack
-                    ? Array.from(stack.querySelectorAll('img')).reduce(
-                        (sum, node) => sum + node.naturalHeight,
-                        0,
-                      ) + Math.max(0, pageCount - 1) * 16
-                    : img.naturalHeight;
-                  setNatural({ w: img.naturalWidth, h: totalH || img.naturalHeight });
+                  fitToView();
                 }}
               />
             </div>

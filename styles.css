@@ -150,20 +150,21 @@
 
 .export-img-preview-stack {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform-origin: center center;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   pointer-events: none;
+  will-change: transform;
 }
 
 .export-img-preview-page {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
 
@@ -178,7 +179,10 @@
 
 .export-img-preview-image {
   display: block;
-  max-width: none;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
   pointer-events: none;
 }

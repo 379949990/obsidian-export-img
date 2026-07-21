@@ -8,6 +8,7 @@ import {
 import type { ExportImgSettings, ThemeMode } from '../types';
 import { prepareMarkdown } from './prepare';
 import { hydrateRemoteImages, revokeHydratedImages } from './remote-images';
+import { applyCapturePadding } from './overflow';
 
 export interface RenderHostOptions {
   app: App;
@@ -75,7 +76,7 @@ function resolveFrontmatter(
     const end = markdown.indexOf('\n---', 3);
     if (end !== -1) {
       try {
-        const parsed = parseYaml(markdown.slice(3, end));
+        const parsed: unknown = parseYaml(markdown.slice(3, end));
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
           return parsed as Record<string, unknown>;
         }
@@ -97,9 +98,6 @@ function renderMetadata(
   const meta = container.createDiv({
     cls: 'metadata-container export-img-metadata',
   });
-  meta.style.display = 'block';
-  meta.style.visibility = 'visible';
-  meta.style.opacity = '1';
 
   const content = meta.createDiv({ cls: 'metadata-content export-img-metadata-content' });
 
@@ -116,13 +114,13 @@ function renderMetadata(
 
 function renderAuthorBar(container: HTMLElement, settings: ExportImgSettings): void {
   if (!settings.author.show) return;
-  const bar = container.createDiv({ cls: 'export-img-author' });
-  bar.style.justifyContent =
+  const alignClass =
     settings.author.align === 'left'
-      ? 'flex-start'
+      ? 'is-align-left'
       : settings.author.align === 'center'
-        ? 'center'
-        : 'flex-end';
+        ? 'is-align-center'
+        : 'is-align-right';
+  const bar = container.createDiv({ cls: `export-img-author ${alignClass}` });
 
   if (settings.author.avatarSrc) {
     const avatar = bar.createDiv({ cls: 'export-img-author-avatar' });
@@ -140,8 +138,10 @@ function renderAuthorBar(container: HTMLElement, settings: ExportImgSettings): v
 function renderWatermark(container: HTMLElement, settings: ExportImgSettings): void {
   if (!settings.watermark.enable) return;
   const layer = container.createDiv({ cls: 'export-img-watermark' });
-  layer.style.opacity = String(settings.watermark.opacity);
-  layer.style.transform = `rotate(${settings.watermark.rotate}deg)`;
+  layer.setCssProps({
+    '--export-img-wm-opacity': String(settings.watermark.opacity),
+    '--export-img-wm-rotate': `${settings.watermark.rotate}deg`,
+  });
 
   if (settings.watermark.type === 'image' && settings.watermark.imageSrc) {
     layer.createEl('img', {
@@ -153,8 +153,10 @@ function renderWatermark(container: HTMLElement, settings: ExportImgSettings): v
       cls: 'export-img-watermark-text',
       text: settings.watermark.text,
     });
-    text.style.fontSize = `${settings.watermark.fontSize}px`;
-    text.style.color = settings.watermark.color;
+    text.setCssProps({
+      '--export-img-wm-font-size': `${settings.watermark.fontSize}px`,
+      '--export-img-wm-color': settings.watermark.color,
+    });
   }
 }
 
@@ -177,16 +179,11 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   component.load();
 
   const rootEl = mountEl.createDiv({ cls: 'export-img-host markdown-reading-view' });
-  rootEl.style.width = `${width}px`;
+  rootEl.setCssProps({ '--export-img-width': `${width}px` });
   applyThemeMode(rootEl, themeMode);
 
   const captureEl = rootEl.createDiv({ cls: 'export-img-capture' });
-  captureEl.style.position = 'relative';
-  captureEl.style.overflow = 'visible';
-  const { padding } = settings;
-  captureEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
-  captureEl.style.boxSizing = 'border-box';
-  captureEl.style.background = 'var(--background-primary)';
+  applyCapturePadding(captureEl, settings.padding);
 
   const contentEl = captureEl.createDiv({ cls: 'export-img-content' });
 

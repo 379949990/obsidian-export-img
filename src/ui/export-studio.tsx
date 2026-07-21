@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { createRoot } from 'preact/compat/client';
 import {
   Modal,
   Notice,
@@ -85,7 +85,7 @@ function getExportCacheKey(settings: ExportImgSettings): string {
   });
 }
 
-const RENDER_DEBOUNCE_MS = 120;
+const RENDER_DEBOUNCE_MS = 400;
 
 function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null): void {
   titleEl.empty();
@@ -530,7 +530,7 @@ function StudioApp(
 }
 
 export class ExportStudioModal extends Modal {
-  private root: Root | null = null;
+  private root: ReturnType<typeof createRoot> | null = null;
   private readonly args: StudioOpenArgs;
 
   constructor(args: StudioOpenArgs) {

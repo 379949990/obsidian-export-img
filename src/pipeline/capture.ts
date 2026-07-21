@@ -50,7 +50,7 @@ export async function captureElement(
 export async function detectFormats(): Promise<ExportFormat[]> {
   const formats: ExportFormat[] = ['png', 'jpg'];
   try {
-    const canvas = document.createElement('canvas');
+    const canvas = createEl('canvas');
     canvas.width = 1;
     canvas.height = 1;
     const ok = canvas.toDataURL('image/webp').startsWith('data:image/webp');

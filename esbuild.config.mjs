@@ -16,6 +16,14 @@ const context = await esbuild.context({
   },
   entryPoints: ['src/main.ts'],
   bundle: true,
+  // Preact instead of React — avoids react-dom dynamic <script> injections
+  // that fail Obsidian community "code obfuscation" checks.
+  alias: {
+    react: 'preact/compat',
+    'react-dom': 'preact/compat',
+    'react-dom/client': 'preact/compat/client',
+    'react/jsx-runtime': 'preact/jsx-runtime',
+  },
   external: [
     'obsidian',
     'electron',
@@ -39,6 +47,8 @@ const context = await esbuild.context({
   treeShaking: true,
   outfile: 'main.js',
   minify: prod,
+  jsx: 'automatic',
+  jsxImportSource: 'preact',
 });
 
 if (prod) {

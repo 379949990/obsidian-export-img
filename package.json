@@ -16,18 +16,14 @@
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.15.17",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "builtin-modules": "4.0.0",
     "esbuild": "0.25.5",
     "obsidian": "latest",
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "fflate": "^0.8.2",
     "file-saver": "^2.0.5",
-    "jszip": "^3.10.1",
     "modern-screenshot": "^4.6.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "preact": "^10.26.9"
   }
 }

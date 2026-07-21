@@ -1,4 +1,4 @@
-import type { ExportFormat, ExportImgSettings, PluginLocale, EmbedAlign } from './types';
+import type { ExportImgSettings, PluginLocale, EmbedAlign } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   width: 800,

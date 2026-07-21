@@ -14,11 +14,11 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
-    const timer = setTimeout(() => resolve(), ms);
+    const timer = window.setTimeout(() => resolve(), ms);
     signal?.addEventListener(
       'abort',
       () => {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         reject(new DOMException('Aborted', 'AbortError'));
       },
       { once: true },

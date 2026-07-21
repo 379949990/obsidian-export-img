@@ -3,9 +3,8 @@ import {
   useEffect,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
-} from 'react';
+} from 'preact/hooks';
+import type { JSX } from 'preact';
 import { t } from '../i18n';
 
 interface PreviewPaneProps {
@@ -72,7 +71,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     return () => observer.disconnect();
   }, [fitToView]);
 
-  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+  const onWheel = (event: JSX.TargetedWheelEvent<HTMLDivElement>) => {
     event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -87,7 +86,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     setScale(next);
   };
 
-  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const onPointerDown = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!primaryUrl) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
@@ -99,13 +98,13 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     };
   };
 
-  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const onPointerMove = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return;
     setTx(dragRef.current.originTx + (event.clientX - dragRef.current.startX));
     setTy(dragRef.current.originTy + (event.clientY - dragRef.current.startY));
   };
 
-  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const endDrag = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return;
     dragRef.current.active = false;
     try {
@@ -124,7 +123,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      onDoubleClick={() => fitToView()}
+      onDblClick={() => fitToView()}
     >
       <div className="export-img-checkerboard" aria-hidden="true" />
       {primaryUrl ? (
@@ -153,7 +152,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
                   const stack = e.currentTarget.closest('.export-img-preview-stack');
                   const totalH = stack
                     ? Array.from(stack.querySelectorAll('img')).reduce(
-                        (sum, node) => sum + (node as HTMLImageElement).naturalHeight,
+                        (sum, node) => sum + node.naturalHeight,
                         0,
                       ) + Math.max(0, pageCount - 1) * 16
                     : img.naturalHeight;

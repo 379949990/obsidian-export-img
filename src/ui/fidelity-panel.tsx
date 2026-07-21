@@ -47,7 +47,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             max={1600}
             value={draft.width}
             disabled={busy}
-            onChange={(e) => onChange({ width: Number(e.target.value) || draft.width })}
+            onChange={(e) => onChange({ width: Number(e.currentTarget.value) || draft.width })}
           />
         </label>
 
@@ -56,11 +56,11 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <input
             type="number"
             min={0}
-            placeholder="auto"
+            placeholder={t('studio.embedMaxHeightPlaceholder')}
             value={draft.embedMaxHeight || ''}
             disabled={busy}
             onChange={(e) => {
-              const raw = e.target.value.trim();
+              const raw = e.currentTarget.value.trim();
               if (raw === '') {
                 onChange({ embedMaxHeight: 0 });
                 return;
@@ -79,7 +79,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             value={draft.embedAlign}
             disabled={busy}
             onChange={(e) =>
-              onChange({ embedAlign: e.target.value as 'left' | 'center' })
+              onChange({ embedAlign: e.currentTarget.value as 'left' | 'center' })
             }
           >
             <option value="center">{t('studio.embedAlign.center')}</option>
@@ -92,7 +92,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.scale}
             disabled={busy}
-            onChange={(e) => onChange({ scale: e.target.value as ScaleMode })}
+            onChange={(e) => onChange({ scale: e.currentTarget.value as ScaleMode })}
           >
             <option value="1x">1x</option>
             <option value="2x">2x</option>
@@ -106,7 +106,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.format}
             disabled={busy}
-            onChange={(e) => onChange({ format: e.target.value as ExportFormat })}
+            onChange={(e) => onChange({ format: e.currentTarget.value as ExportFormat })}
           >
             <option value="png">PNG</option>
             <option value="jpg">JPEG</option>
@@ -119,7 +119,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.themeMode}
             disabled={busy}
-            onChange={(e) => onChange({ themeMode: e.target.value as ThemeMode })}
+            onChange={(e) => onChange({ themeMode: e.currentTarget.value as ThemeMode })}
           >
             <option value="current">{t('studio.theme.current')}</option>
             <option value="light">{t('studio.theme.light')}</option>
@@ -132,7 +132,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             type="checkbox"
             checked={draft.showFilename}
             disabled={busy}
-            onChange={(e) => onChange({ showFilename: e.target.checked })}
+            onChange={(e) => onChange({ showFilename: e.currentTarget.checked })}
           />
           <span>{t('studio.showTitle')}</span>
         </label>
@@ -142,7 +142,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             type="checkbox"
             checked={draft.showMetadata}
             disabled={busy}
-            onChange={(e) => onChange({ showMetadata: e.target.checked })}
+            onChange={(e) => onChange({ showMetadata: e.currentTarget.checked })}
           />
           <span>{t('studio.showMetadata')}</span>
         </label>
@@ -171,7 +171,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 value={draft.padding.top}
                 disabled={busy}
                 onChange={(e) => {
-                  const n = Number(e.target.value);
+                  const n = Number(e.currentTarget.value);
                   if (!Number.isFinite(n) || n < 0) return;
                   const v = Math.round(n);
                   onNestedChange('padding', { top: v, bottom: v });
@@ -187,7 +187,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 value={draft.padding.left}
                 disabled={busy}
                 onChange={(e) => {
-                  const n = Number(e.target.value);
+                  const n = Number(e.currentTarget.value);
                   if (!Number.isFinite(n) || n < 0) return;
                   const v = Math.round(n);
                   onNestedChange('padding', { left: v, right: v });
@@ -203,7 +203,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             value={draft.split.mode}
             disabled={busy}
             onChange={(e) => {
-              const mode = e.target.value as SplitMode;
+              const mode = e.currentTarget.value as SplitMode;
               if (mode === 'fixed' || mode === 'auto') {
                 onNestedChange('split', {
                   mode,
@@ -234,7 +234,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 value={draft.split.height}
                 disabled={busy}
                 onChange={(e) => {
-                  const n = Number(e.target.value);
+                  const n = Number(e.currentTarget.value);
                   if (!Number.isFinite(n) || n < 200) return;
                   onNestedChange('split', { height: Math.round(n) });
                 }}
@@ -254,7 +254,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 type="checkbox"
                 checked={draft.watermark.enable}
                 disabled={busy}
-                onChange={(e) => onNestedChange('watermark', { enable: e.target.checked })}
+                onChange={(e) => onNestedChange('watermark', { enable: e.currentTarget.checked })}
               />
               <span>{t('studio.watermark')}</span>
             </label>
@@ -266,7 +266,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     type="text"
                     value={draft.watermark.text}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('watermark', { text: e.target.value })}
+                    onChange={(e) => onNestedChange('watermark', { text: e.currentTarget.value })}
                   />
                 </label>
                 <label className="export-img-field">
@@ -275,7 +275,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     type="color"
                     value={draft.watermark.color}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('watermark', { color: e.target.value })}
+                    onChange={(e) => onNestedChange('watermark', { color: e.currentTarget.value })}
                   />
                 </label>
                 <label className="export-img-field">
@@ -290,7 +290,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.watermark.opacity}
                     disabled={busy}
                     onChange={(e) =>
-                      onNestedChange('watermark', { opacity: Number(e.target.value) })
+                      onNestedChange('watermark', { opacity: Number(e.currentTarget.value) })
                     }
                   />
                 </label>
@@ -306,7 +306,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.watermark.rotate}
                     disabled={busy}
                     onChange={(e) =>
-                      onNestedChange('watermark', { rotate: Number(e.target.value) })
+                      onNestedChange('watermark', { rotate: Number(e.currentTarget.value) })
                     }
                   />
                 </label>
@@ -320,7 +320,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 type="checkbox"
                 checked={draft.author.show}
                 disabled={busy}
-                onChange={(e) => onNestedChange('author', { show: e.target.checked })}
+                onChange={(e) => onNestedChange('author', { show: e.currentTarget.checked })}
               />
               <span>{t('studio.author')}</span>
             </label>
@@ -332,7 +332,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     type="text"
                     value={draft.author.name}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('author', { name: e.target.value })}
+                    onChange={(e) => onNestedChange('author', { name: e.currentTarget.value })}
                   />
                 </label>
                 <label className="export-img-field">
@@ -341,7 +341,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     type="text"
                     value={draft.author.remark}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('author', { remark: e.target.value })}
+                    onChange={(e) => onNestedChange('author', { remark: e.currentTarget.value })}
                   />
                 </label>
                 <label className="export-img-field">
@@ -351,7 +351,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     disabled={busy}
                     onChange={(e) =>
                       onNestedChange('author', {
-                        align: e.target.value as 'left' | 'center' | 'right',
+                        align: e.currentTarget.value as 'left' | 'center' | 'right',
                       })
                     }
                   >

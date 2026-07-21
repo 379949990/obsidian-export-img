@@ -2,15 +2,15 @@ import { requestUrl } from 'obsidian';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    const timer = window.setTimeout(() => reject(new Error('timeout')), ms);
     promise.then(
       (value) => {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         resolve(value);
       },
-      (error) => {
-        clearTimeout(timer);
-        reject(error);
+      (error: unknown) => {
+        window.clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
       },
     );
   });

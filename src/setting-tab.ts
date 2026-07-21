@@ -139,18 +139,20 @@ export class ExportImgSettingTab extends PluginSettingTab {
               value: String(row.value),
             },
           });
-          input.addEventListener('change', async () => {
-            const n = Number(input.value);
-            if (!Number.isFinite(n) || n < 0) return;
-            const v = Math.round(n);
-            if (row.key === 'vertical') {
-              this.plugin.settings.padding.top = v;
-              this.plugin.settings.padding.bottom = v;
-            } else {
-              this.plugin.settings.padding.left = v;
-              this.plugin.settings.padding.right = v;
-            }
-            await this.plugin.saveSettings();
+          input.addEventListener('change', () => {
+            void (async () => {
+              const n = Number(input.value);
+              if (!Number.isFinite(n) || n < 0) return;
+              const v = Math.round(n);
+              if (row.key === 'vertical') {
+                this.plugin.settings.padding.top = v;
+                this.plugin.settings.padding.bottom = v;
+              } else {
+                this.plugin.settings.padding.left = v;
+                this.plugin.settings.padding.right = v;
+              }
+              await this.plugin.saveSettings();
+            })();
           });
         }
       });
@@ -160,7 +162,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
       .setDesc(t('setting.embedMaxHeightDesc'))
       .addText((text) =>
         text
-          .setPlaceholder('auto')
+          .setPlaceholder(t('studio.embedMaxHeightPlaceholder'))
           .setValue(
             this.plugin.settings.embedMaxHeight > 0
               ? String(this.plugin.settings.embedMaxHeight)

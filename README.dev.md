@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.0`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.1`.
 
 Product overview and install: [README.md](README.md).
 
@@ -8,7 +8,7 @@ Product overview and install: [README.md](README.md).
 
 ## Develop
 
-Use a **dedicated vault** — never your daily notes vault.
+Use a **dedicated vault** — never your daily notes vault. **Desktop Obsidian** is the supported smoke environment; mobile paths exist but are not CI-covered.
 
 ```bash
 git clone https://github.com/379949990/obsidian-export-img.git
@@ -23,19 +23,25 @@ pnpm run dev
 
 Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). Prefer [Hot Reload](https://github.com/pjeby/hot-reload), or toggle the plugin after each rebuild.
 
-**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view, then Copy / Save.
+**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view as a baseline (expect close, not pixel-identical), then Copy / Save. On mobile, prefer Save (vault attachments).
 
 ```bash
 pnpm run build   # tsc + production bundle → main.js
+pnpm run test    # vitest (hard-killed if >60s)
+pnpm run verify  # tsc + test — also run by CI on PRs / version branches
 ```
+
+CI: [`.github/workflows/verify.yml`](.github/workflows/verify.yml) on `pull_request` and pushes to `main` / `v*`. Release remains [`.github/workflows/release.yml`](.github/workflows/release.yml) on `main` only.
 
 ---
 
 ## Release flow
 
-1. Develop on `vX.Y.Z` (cut from `dev`).
-2. Bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
-3. Merge into `dev` → squash → **push `main`**.
+Branch model for this repo: **`main` + `vX.Y.Z`** (no `dev`).
+
+1. Cut `vX.Y.Z` from `main`.
+2. Develop on the version branch; bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
+3. Squash → **push `main`**.
 
 Push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): build → tag **`x.y.z`** (= `manifest.json` `version`, required by Obsidian) → GitHub Release with `main.js` / `manifest.json` / `styles.css`.
 

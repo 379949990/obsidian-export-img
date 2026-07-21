@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { createRoot } from 'preact/compat/client';
 import {
   Modal,
   Notice,
+  Platform,
   type App,
   type FrontMatterCache,
   type TFile,
@@ -24,17 +25,18 @@ import {
 import { createRenderHost, type RenderHostHandle } from '../pipeline/render-host';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
-import {
-  applyPageBlocks,
-  defaultSplitHeight,
-  getAtomicBlocks,
-  paginateBlocks,
-  resetPageBlocks,
-  resolveSplitHeight,
-} from '../pipeline/split';
+import { defaultSplitHeight } from '../pipeline/split';
 import { AppContext } from './app-context';
 import { FidelityPanel } from './fidelity-panel';
 import { PreviewPane } from './preview-pane';
+import {
+  assertNonEmptyCapture,
+  captureStudioPages,
+  getExportCacheKey,
+  getWorkSignature,
+  resolvePreviewPhase,
+  type CapturePagePart,
+} from './studio-pipeline';
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
@@ -53,39 +55,7 @@ export interface StudioOpenArgs {
   type: 'file' | 'selection';
 }
 
-function getRenderSignature(settings: ExportImgSettings): string {
-  return JSON.stringify({
-    width: settings.width,
-    themeMode: settings.themeMode,
-    showFilename: settings.showFilename,
-    showMetadata: settings.showMetadata,
-    padding: settings.padding,
-    embedMaxHeight: settings.embedMaxHeight,
-    embedAlign: settings.embedAlign,
-    watermark: settings.watermark,
-    author: settings.author,
-    settleTimeoutMs: settings.settleTimeoutMs,
-  });
-}
-
-function getCaptureSignature(settings: ExportImgSettings): string {
-  // Scale is export-only — preview always captures at 1× for speed.
-  return JSON.stringify({
-    format: settings.format,
-    split: settings.split,
-  });
-}
-
-function getExportCacheKey(settings: ExportImgSettings): string {
-  return JSON.stringify({
-    render: getRenderSignature(settings),
-    format: settings.format,
-    scale: settings.scale,
-    split: settings.split,
-  });
-}
-
-const RENDER_DEBOUNCE_MS = 120;
+const RENDER_DEBOUNCE_MS = 400;
 
 function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null): void {
   titleEl.empty();
@@ -126,7 +96,7 @@ function StudioApp(
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  const workSignature = `${getRenderSignature(draft)}@@${getCaptureSignature(draft)}`;
+  const workSignature = getWorkSignature(draft);
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
 
   const hostRef = useRef<RenderHostHandle | null>(null);
@@ -135,7 +105,7 @@ function StudioApp(
   const settleAbortRef = useRef<AbortController | null>(null);
   const draftRef = useRef(draft);
   const previewUrlsRef = useRef<string[]>([]);
-  const exportBlobsRef = useRef<{ blob: Blob; index?: number }[] | null>(null);
+  const exportBlobsRef = useRef<CapturePagePart[] | null>(null);
   const exportSigRef = useRef<string | null>(null);
   const appliedRenderSigRef = useRef<string>('');
   draftRef.current = draft;
@@ -171,68 +141,17 @@ function StudioApp(
     return () => window.clearTimeout(timer);
   }, [workSignature]);
 
-  const capturePages = useCallback(
-    async (
-      kind: 'preview' | 'export',
-      opts?: { skipPrepare?: boolean },
-    ): Promise<{ blob: Blob; index?: number }[]> => {
-      const host = hostRef.current;
-      if (!host) throw new Error('Host not ready');
-      const settings = draftRef.current;
-      const { captureEl, contentEl } = host;
-
-      if (!opts?.skipPrepare) {
-        prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
-        await waitForNextPaint();
-      }
-
-      const scale = kind === 'preview' ? 1 : scaleToNumber(settings.scale);
-      const skipFontEmbed = kind === 'preview';
-      const captureOpts = { scale, format: settings.format };
-
-      if (settings.split.mode === 'none') {
-        const blob = await captureElement(captureEl, captureOpts, { skipFontEmbed });
-        return [{ blob }];
-      }
-
-      const maxH = resolveSplitHeight(settings.split, settings.width);
-      const allBlocks = getAtomicBlocks(contentEl);
-      const pages = paginateBlocks(allBlocks, maxH, settings.split.mode);
-      const results: { blob: Blob; index?: number }[] = [];
-
-      try {
-        for (let i = 0; i < pages.length; i++) {
-          const pageBlocks = pages[i]!;
-          if (pageBlocks.length === 0) continue;
-          applyPageBlocks(allBlocks, pageBlocks, captureEl, settings.padding);
-          await waitForNextPaint();
-          const blob = await captureElement(captureEl, captureOpts, { skipFontEmbed });
-          results.push({
-            blob,
-            index: pages.length > 1 ? i + 1 : undefined,
-          });
-        }
-      } finally {
-        resetPageBlocks(allBlocks, captureEl, settings.padding);
-      }
-
-      return results.length > 0
-        ? results
-        : [
-            {
-              blob: await captureElement(captureEl, captureOpts, { skipFontEmbed }),
-            },
-          ];
-    },
-    [],
-  );
-
-  const publishPreview = useCallback((parts: { blob: Blob; index?: number }[]) => {
+  const publishPreview = useCallback((parts: CapturePagePart[]) => {
     revokePreviewUrls();
     const urls = parts.map((p) => URL.createObjectURL(p.blob));
     previewUrlsRef.current = urls;
     setPreviewUrls(urls);
   }, []);
+
+  const invalidateExportCache = () => {
+    exportBlobsRef.current = null;
+    exportSigRef.current = null;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -243,15 +162,16 @@ function StudioApp(
       if (cancelled || token !== workToken.current) return;
 
       const settings = draftRef.current;
-      const renderSig = getRenderSignature(settings);
-      const needsRebuild =
-        !hostRef.current || appliedRenderSigRef.current !== renderSig;
+      const { phase, renderSig } = resolvePreviewPhase(
+        hostRef.current,
+        appliedRenderSigRef.current,
+        settings,
+      );
 
       setRendering(true);
-      if (needsRebuild) {
+      if (phase === 'rebuild') {
         setPreviewUrls([]);
-        exportBlobsRef.current = null;
-        exportSigRef.current = null;
+        invalidateExportCache();
       }
       setSettle({
         status: 'waiting',
@@ -265,7 +185,7 @@ function StudioApp(
       const startedAt = performance.now();
 
       try {
-        if (needsRebuild) {
+        if (phase === 'rebuild') {
           destroyHost();
           const slot = renderSlotRef.current;
           if (!slot) return;
@@ -292,6 +212,10 @@ function StudioApp(
 
           await waitForNextPaint();
 
+          // Layout before settle so Ready means media settled on the fitted DOM.
+          prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
+          await waitForNextPaint();
+
           const diag = await settleElement(host.captureEl, {
             timeoutMs: settings.settleTimeoutMs,
             signal: settleAbort.signal,
@@ -308,18 +232,15 @@ function StudioApp(
           });
           if (cancelled || token !== workToken.current) return;
 
-          prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
-          await waitForNextPaint();
           appliedRenderSigRef.current = renderSig;
 
-          const parts = await capturePages('preview', { skipPrepare: true });
+          const parts = await captureStudioPages(host, settings, 'preview', {
+            skipPrepare: true,
+          });
           if (cancelled || token !== workToken.current) return;
-          if (!parts[0]?.blob || parts[0].blob.size < 32) {
-            throw new Error('Preview capture returned an empty image');
-          }
+          assertNonEmptyCapture(parts, 'Preview capture');
 
-          exportBlobsRef.current = null;
-          exportSigRef.current = null;
+          invalidateExportCache();
           publishPreview(parts);
           setSettle({
             ...diag,
@@ -331,15 +252,12 @@ function StudioApp(
           return;
         }
 
-        // Capture-only path: reuse settled DOM (format / split changes).
+        // recapture: reuse settled DOM (format / split changes).
         const host = hostRef.current!;
-        const parts = await capturePages('preview');
+        const parts = await captureStudioPages(host, settings, 'preview');
         if (cancelled || token !== workToken.current) return;
-        if (!parts[0]?.blob || parts[0].blob.size < 32) {
-          throw new Error('Preview capture returned an empty image');
-        }
-        exportBlobsRef.current = null;
-        exportSigRef.current = null;
+        assertNonEmptyCapture(parts, 'Preview capture');
+        invalidateExportCache();
         publishPreview(parts);
         setSettle({
           status: 'ready',
@@ -373,7 +291,7 @@ function StudioApp(
       workToken.current++;
       settleAbortRef.current?.abort();
     };
-  }, [debouncedWorkSig, app, markdown, file, frontmatter, type, capturePages, publishPreview]);
+  }, [debouncedWorkSig, app, markdown, file, frontmatter, type, publishPreview]);
 
   useEffect(
     () => () => {
@@ -452,17 +370,24 @@ function StudioApp(
     }
   }, [draft.padding, paddingMode]);
 
+  const ensureExportParts = async (): Promise<CapturePagePart[]> => {
+    const host = hostRef.current;
+    if (!host) throw new Error('Host not ready');
+    const sig = getExportCacheKey(draft);
+    let parts = exportBlobsRef.current;
+    if (!parts || exportSigRef.current !== sig) {
+      // Export path: reuse settled DOM; capture at export scale with fonts.
+      parts = await captureStudioPages(host, draft, 'export');
+      exportBlobsRef.current = parts;
+      exportSigRef.current = sig;
+    }
+    return parts;
+  };
+
   const onCopy = async () => {
     setBusy(true);
     try {
-      const sig = getExportCacheKey(draft);
-      let parts = exportBlobsRef.current;
-      if (!parts || exportSigRef.current !== sig) {
-        // Reuse settled DOM — no Markdown re-render; capture at export scale with fonts.
-        parts = await capturePages('export');
-        exportBlobsRef.current = parts;
-        exportSigRef.current = sig;
-      }
+      const parts = await ensureExportParts();
       if (parts.length !== 1) {
         new Notice(t('notice.copyFail'));
         return;
@@ -479,13 +404,7 @@ function StudioApp(
   const onSave = async () => {
     setBusy(true);
     try {
-      const sig = getExportCacheKey(draft);
-      let parts = exportBlobsRef.current;
-      if (!parts || exportSigRef.current !== sig) {
-        parts = await capturePages('export');
-        exportBlobsRef.current = parts;
-        exportSigRef.current = sig;
-      }
+      const parts = await ensureExportParts();
       if (parts.length === 1) {
         await saveBlob(app, parts[0]!.blob, file.basename, draft.format);
       } else {
@@ -530,7 +449,7 @@ function StudioApp(
 }
 
 export class ExportStudioModal extends Modal {
-  private root: Root | null = null;
+  private root: ReturnType<typeof createRoot> | null = null;
   private readonly args: StudioOpenArgs;
 
   constructor(args: StudioOpenArgs) {
@@ -542,6 +461,9 @@ export class ExportStudioModal extends Modal {
     this.modalEl.addClass('export-img-modal');
     this.titleEl.addClass('export-img-modal-titlebar');
     updateModalTitle(this.titleEl, null);
+    if (Platform.isMobile) {
+      new Notice(t('notice.mobileHint'), 8000);
+    }
     this.root = createRoot(this.contentEl);
     this.root.render(
       <AppContext.Provider value={{ app: this.args.app, plugin: this.args.plugin }}>
@@ -585,9 +507,9 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
       width: settings.width,
       themeMode: settings.themeMode,
     });
-    await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
+    await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
     const blob = await captureElement(host.captureEl, {
       scale: scaleToNumber(settings.scale),
       format: settings.format,

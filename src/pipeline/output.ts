@@ -1,6 +1,6 @@
 import { Notice, Platform, type App } from 'obsidian';
 import { saveAs } from 'file-saver';
-import JSZip from 'jszip';
+import { zipSync } from 'fflate';
 import { t } from '../i18n';
 import { getExtension } from './capture';
 import type { ExportFormat } from '../types';
@@ -12,6 +12,12 @@ function safeFilename(title: string, format: ExportFormat, index?: number): stri
 }
 
 export async function copyBlobToClipboard(blob: Blob): Promise<void> {
+  if (
+    typeof navigator.clipboard?.write !== 'function' ||
+    typeof ClipboardItem === 'undefined'
+  ) {
+    throw new Error('clipboard image write unavailable');
+  }
   await navigator.clipboard.write([
     new ClipboardItem({
       [blob.type]: blob,
@@ -59,11 +65,15 @@ export async function saveMultipleBlobs(
     return;
   }
 
-  const zip = new JSZip();
+  const files: Record<string, Uint8Array> = {};
   for (const item of items) {
-    zip.file(safeFilename(item.title, item.format, item.index), item.blob);
+    const name = safeFilename(item.title, item.format, item.index);
+    files[name] = new Uint8Array(await item.blob.arrayBuffer());
   }
-  const zipBlob = await zip.generateAsync({ type: 'blob' });
-  saveAs(zipBlob, `${zipName.replaceAll(/\s+/g, '_')}.zip`);
+  const zipped = zipSync(files);
+  // Copy into a fresh ArrayBuffer-backed view for BlobPart typing.
+  const zipBytes = new Uint8Array(zipped.byteLength);
+  zipBytes.set(zipped);
+  saveAs(new Blob([zipBytes], { type: 'application/zip' }), `${zipName.replaceAll(/\s+/g, '_')}.zip`);
   new Notice(t('notice.saveSuccess', { path: `${zipName}.zip` }));
 }

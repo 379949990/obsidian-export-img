@@ -14,11 +14,11 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
       reject(new DOMException('Aborted', 'AbortError'));
       return;
     }
-    const timer = setTimeout(() => resolve(), ms);
+    const timer = window.setTimeout(() => resolve(), ms);
     signal?.addEventListener(
       'abort',
       () => {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         reject(new DOMException('Aborted', 'AbortError'));
       },
       { once: true },
@@ -62,7 +62,11 @@ async function waitForImages(
           };
 
           // Cap per-image wait — hanging decode should not dominate settle.
-          const timeout = window.setTimeout(onReady, 1200);
+          // Timeout is a soft failure (warning), not success.
+          const timeout = window.setTimeout(() => {
+            cleanup();
+            reject(new Error('img timeout'));
+          }, 1200);
 
           if (typeof img.decode === 'function') {
             img.decode().then(
@@ -107,7 +111,9 @@ async function waitForImages(
         });
       } catch (error) {
         if (isAbortError(error)) return;
-        warnings.push(`Image failed: ${img.getAttribute('src')?.slice(0, 80) ?? 'unknown'}`);
+        const reason =
+          error instanceof Error && error.message === 'img timeout' ? 'timed out' : 'failed';
+        warnings.push(`Image ${reason}: ${img.getAttribute('src')?.slice(0, 80) ?? 'unknown'}`);
       } finally {
         pending = Math.max(0, pending - 1);
       }
@@ -130,18 +136,26 @@ async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   }
 }
 
-/** Brief wait for Mermaid/MathJax SVG nodes without a long ResizeObserver loop. */
-async function waitForAsyncDiagrams(root: HTMLElement, signal: AbortSignal): Promise<void> {
+/** Wait for Mermaid/MathJax SVG nodes without a long ResizeObserver loop. */
+async function waitForAsyncDiagrams(
+  root: HTMLElement,
+  signal: AbortSignal,
+  budgetMs: number,
+): Promise<string[]> {
   const hasPendingMermaid = () =>
     Array.from(root.querySelectorAll('.mermaid')).some((el) => !el.querySelector('svg'));
 
-  if (!hasPendingMermaid()) return;
-  const deadline = performance.now() + 400;
+  if (!hasPendingMermaid()) return [];
+  const deadline = performance.now() + budgetMs;
   while (performance.now() < deadline) {
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    if (!hasPendingMermaid()) return;
+    if (!hasPendingMermaid()) return [];
     await delay(32, signal);
   }
+  if (hasPendingMermaid()) {
+    return ['Mermaid diagrams still pending after settle budget'];
+  }
+  return [];
 }
 
 export async function settleElement(
@@ -198,7 +212,9 @@ export async function settleElement(
     ]);
     warnings.push(...imageResult.warnings);
 
-    await waitForAsyncDiagrams(root, controller.signal);
+    const mermaidBudget = Math.min(2000, Math.max(400, Math.floor(options.timeoutMs / 4)));
+    const mermaidWarnings = await waitForAsyncDiagrams(root, controller.signal, mermaidBudget);
+    warnings.push(...mermaidWarnings);
     await waitForNextPaint();
 
     if (settled) {
@@ -212,11 +228,13 @@ export async function settleElement(
       };
     }
 
+    // layoutStable: media/diagram gate finished after a paint. Wide-block fit
+    // must run before settle (see call sites) so Ready implies layout already applied.
     return (
       emit('ready', {
         pendingImages: imageResult.pending,
         pendingFonts: fontPending,
-        layoutStable: true,
+        layoutStable: mermaidWarnings.length === 0 && imageResult.warnings.length === 0,
         warnings: [...warnings],
       }) ?? {
         status: 'timed_out',

@@ -1,4 +1,4 @@
-import type { EmbedAlign } from '../types';
+import type { EmbedAlign, PaddingSettings } from '../types';
 
 const WIDE_BLOCK_SELECTOR = [
   '.mermaid',
@@ -9,6 +9,28 @@ const WIDE_BLOCK_SELECTOR = [
   '.mjx-container',
   '.MathJax',
 ].join(',');
+
+const UNLOCK_OVERFLOW_SELECTOR = [
+  '.markdown-preview-view',
+  '.markdown-preview-sizer',
+  '.export-img-content',
+  '.export-img-capture',
+  '.table-wrapper',
+  '.cm-preview-code-block',
+  '.mermaid',
+  'pre',
+  '.internal-embed',
+  '.image-embed',
+].join(',');
+
+export function applyCapturePadding(el: HTMLElement, padding: PaddingSettings): void {
+  el.setCssProps({
+    '--export-img-pad-t': `${padding.top}px`,
+    '--export-img-pad-r': `${padding.right}px`,
+    '--export-img-pad-b': `${padding.bottom}px`,
+    '--export-img-pad-l': `${padding.left}px`,
+  });
+}
 
 function contentTargetWidth(root: HTMLElement): number {
   const sizer = root.querySelector<HTMLElement>('.markdown-preview-sizer');
@@ -24,43 +46,23 @@ function contentTargetWidth(root: HTMLElement): number {
   );
   if (measured > 1) return measured;
 
-  const styled = Number.parseInt(root.style.width, 10);
+  const styled = Number.parseInt(getComputedStyle(root).width, 10);
   return Number.isFinite(styled) && styled > 0 ? styled : 1;
 }
 
 function unlockOverflow(root: HTMLElement): void {
-  const selectors = [
-    '.markdown-preview-view',
-    '.markdown-preview-sizer',
-    '.export-img-content',
-    '.export-img-capture',
-    '.table-wrapper',
-    '.cm-preview-code-block',
-    '.mermaid',
-    'pre',
-    '.internal-embed',
-    '.image-embed',
-  ].join(',');
-
-  for (const el of Array.from(root.querySelectorAll<HTMLElement>(selectors))) {
-    el.style.setProperty('overflow', 'visible', 'important');
-    el.style.setProperty('overflow-x', 'visible', 'important');
-    el.style.setProperty('overflow-y', 'visible', 'important');
+  root.addClass('is-layout-prepared');
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>(UNLOCK_OVERFLOW_SELECTOR))) {
+    el.addClass('export-img-unlock-overflow');
   }
 }
 
-function applyAlign(el: HTMLElement | SVGElement, align: EmbedAlign): void {
-  if (align === 'center') {
-    el.style.setProperty('margin-left', 'auto', 'important');
-    el.style.setProperty('margin-right', 'auto', 'important');
-  } else {
-    el.style.setProperty('margin-left', '0', 'important');
-    el.style.setProperty('margin-right', 'auto', 'important');
-  }
+function applyAlignClass(el: Element, align: EmbedAlign): void {
+  el.classList.remove('export-img-align-left', 'export-img-align-center');
+  el.classList.add(align === 'center' ? 'export-img-align-center' : 'export-img-align-left');
 }
 
 function constrainImages(root: HTMLElement, maxHeight: number, align: EmbedAlign): void {
-  const alignValue = align === 'left' ? 'left' : 'center';
   const images = root.querySelectorAll<HTMLImageElement>(
     'img, .image-embed img, .internal-embed img, .media-embed img',
   );
@@ -69,20 +71,24 @@ function constrainImages(root: HTMLElement, maxHeight: number, align: EmbedAlign
     if (img.closest('.export-img-watermark, .export-img-author')) continue;
 
     if (maxHeight > 0) {
-      img.style.setProperty('max-height', `${maxHeight}px`, 'important');
-      img.style.setProperty('width', 'auto', 'important');
-      img.style.setProperty('height', 'auto', 'important');
-      img.style.setProperty('object-fit', 'contain', 'important');
+      img.addClass('export-img-embed-constrained');
+      img.setCssProps({ '--export-img-embed-max-h': `${maxHeight}px` });
+    } else {
+      img.removeClass('export-img-embed-constrained');
     }
 
     const wrap = img.closest<HTMLElement>(
       '.image-embed, .internal-embed, .media-embed, p, div',
     );
     if (wrap) {
-      wrap.style.textAlign = alignValue;
+      wrap.removeClass('export-img-text-align-left');
+      wrap.removeClass('export-img-text-align-center');
+      wrap.addClass(
+        align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
+      );
     }
-    applyAlign(img, align);
-    img.style.setProperty('display', 'block', 'important');
+    applyAlignClass(img, align);
+    img.addClass('export-img-embed-block');
   }
 }
 
@@ -131,34 +137,40 @@ function fitSvgToWidth(
 
   svg.setAttribute('width', String(Math.round(w)));
   svg.setAttribute('height', String(Math.round(h)));
-  svg.style.setProperty('width', `${w}px`, 'important');
-  svg.style.setProperty('height', `${h}px`, 'important');
-  svg.style.setProperty('max-width', '100%', 'important');
-  svg.style.setProperty('max-height', maxHeight > 0 ? `${maxHeight}px` : 'none', 'important');
-  svg.style.setProperty('display', 'block', 'important');
-  applyAlign(svg, align);
+  svg.classList.add('export-img-mermaid-svg');
+  applyAlignClass(svg, align);
 
-  const wrap = svg.closest<HTMLElement>('.mermaid') ?? svg.parentElement;
+  const wrap = (svg.closest('.mermaid') ?? svg.parentElement) as HTMLElement | null;
   if (wrap) {
-    wrap.style.setProperty('width', '100%', 'important');
-    wrap.style.setProperty('max-width', '100%', 'important');
-    wrap.style.setProperty('overflow', 'visible', 'important');
-    wrap.style.setProperty('text-align', align === 'left' ? 'left' : 'center', 'important');
+    wrap.addClass('export-img-mermaid-wrap');
+    wrap.removeClass('export-img-text-align-left');
+    wrap.removeClass('export-img-text-align-center');
+    wrap.addClass(
+      align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
+    );
+    wrap.setCssProps({
+      '--export-img-embed-max-h': maxHeight > 0 ? `${maxHeight}px` : 'none',
+    });
   }
 }
 
 function ensureFitWrap(el: HTMLElement): HTMLElement {
   const parent = el.parentElement;
-  if (parent?.classList.contains('export-img-fit-wrap')) {
+  if (parent?.hasClass('export-img-fit-wrap')) {
     return parent;
   }
   if (!parent) return el;
 
-  const wrap = document.createElement('div');
-  wrap.className = 'export-img-fit-wrap';
+  const wrap = createDiv({ cls: 'export-img-fit-wrap' });
   parent.insertBefore(wrap, el);
   wrap.appendChild(el);
   return wrap;
+}
+
+function setFitWrapAlign(wrap: HTMLElement, align: EmbedAlign): void {
+  wrap.removeClass('is-align-left');
+  wrap.removeClass('is-align-center');
+  wrap.addClass(align === 'left' ? 'is-align-left' : 'is-align-center');
 }
 
 function fitBlockToWidth(
@@ -181,10 +193,9 @@ function fitBlockToWidth(
     return;
   }
 
-  el.style.removeProperty('transform');
-  el.style.removeProperty('transform-origin');
-  el.style.setProperty('max-width', 'none', 'important');
-  el.style.setProperty('overflow', 'visible', 'important');
+  el.removeClass('is-scaled');
+  el.removeClass('is-capped');
+  el.addClass('export-img-fit-target');
 
   const natW = el.scrollWidth;
   const natH = el.scrollHeight;
@@ -194,14 +205,10 @@ function fitBlockToWidth(
   const needsHeightFit = maxHeight > 0 && natH > maxHeight;
 
   if (!needsWidthFit && !needsHeightFit) {
-    el.style.setProperty('max-width', '100%', 'important');
-    // Still honor alignment for blocks narrower than the content width.
+    el.addClass('is-capped');
     const wrap = ensureFitWrap(el);
-    wrap.style.width = '100%';
-    wrap.style.height = 'auto';
-    wrap.style.overflow = 'visible';
-    wrap.style.display = 'flex';
-    wrap.style.justifyContent = align === 'left' ? 'flex-start' : 'center';
+    wrap.removeClass('is-scaled');
+    setFitWrapAlign(wrap, align);
     return;
   }
 
@@ -210,28 +217,24 @@ function fitBlockToWidth(
     scale = Math.min(scale, maxHeight / natH);
   }
   if (scale >= 0.999) {
-    el.style.setProperty('max-width', '100%', 'important');
+    el.addClass('is-capped');
     const wrap = ensureFitWrap(el);
-    wrap.style.width = '100%';
-    wrap.style.display = 'flex';
-    wrap.style.justifyContent = align === 'left' ? 'flex-start' : 'center';
+    wrap.removeClass('is-scaled');
+    setFitWrapAlign(wrap, align);
     return;
   }
 
   const wrap = ensureFitWrap(el);
   const scaledH = natH * scale;
-  wrap.style.width = '100%';
-  wrap.style.height = `${scaledH}px`;
-  wrap.style.overflow = 'hidden';
-  wrap.style.display = 'flex';
-  wrap.style.justifyContent = align === 'left' ? 'flex-start' : 'center';
-  wrap.style.alignItems = 'flex-start';
+  wrap.addClass('is-scaled');
+  setFitWrapAlign(wrap, align);
+  wrap.setCssProps({ '--export-img-fit-h': `${scaledH}px` });
 
-  el.style.setProperty('transform', `scale(${scale})`, 'important');
-  el.style.setProperty('transform-origin', 'top left', 'important');
-  el.style.setProperty('width', `${natW}px`, 'important');
-  el.style.setProperty('max-width', 'none', 'important');
-  el.style.setProperty('flex', '0 0 auto', 'important');
+  el.addClass('is-scaled');
+  el.setCssProps({
+    '--export-img-fit-scale': String(scale),
+    '--export-img-fit-nat-w': `${natW}px`,
+  });
 }
 
 /**
@@ -260,8 +263,8 @@ export function prepareEmbedLayout(
 
 export function waitForNextPaint(): Promise<void> {
   return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => resolve());
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
     });
   });
 }

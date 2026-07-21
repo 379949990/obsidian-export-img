@@ -3,6 +3,7 @@ import type {
   SplitMode,
   SplitSettings,
 } from '../types';
+import { applyCapturePadding } from './overflow';
 
 export interface SplitBlock {
   el: HTMLElement;
@@ -42,7 +43,7 @@ export function getAtomicBlocks(contentEl: HTMLElement): SplitBlock[] {
   const sizer = preview.querySelector<HTMLElement>('.markdown-preview-sizer');
   if (sizer) {
     for (const child of Array.from(sizer.children)) {
-      if (!(child instanceof HTMLElement)) continue;
+      if (!child.instanceOf(HTMLElement)) continue;
       const height = child.getBoundingClientRect().height;
       if (height < 1) continue;
       blocks.push({ el: child, height });
@@ -122,16 +123,13 @@ export function applyPageBlocks(
   const visible = new Set(pageBlocks.map((b) => b.el));
   for (const block of allBlocks) {
     if (visible.has(block.el)) {
-      block.el.style.removeProperty('display');
+      block.el.removeClass('export-img-page-hidden');
     } else {
-      block.el.style.setProperty('display', 'none', 'important');
+      block.el.addClass('export-img-page-hidden');
     }
   }
 
-  captureEl.style.boxSizing = 'border-box';
-  captureEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
-  captureEl.style.height = '';
-  captureEl.style.overflow = 'visible';
+  applyCapturePadding(captureEl, padding);
 }
 
 export function resetPageBlocks(
@@ -140,9 +138,7 @@ export function resetPageBlocks(
   padding: PaddingSettings,
 ): void {
   for (const block of allBlocks) {
-    block.el.style.removeProperty('display');
+    block.el.removeClass('export-img-page-hidden');
   }
-  captureEl.style.height = '';
-  captureEl.style.overflow = 'visible';
-  captureEl.style.padding = `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`;
+  applyCapturePadding(captureEl, padding);
 }

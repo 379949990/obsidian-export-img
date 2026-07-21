@@ -1,33 +1,37 @@
 {
   "name": "obsidian-export-img",
-  "version": "1.0.0",
-  "description": "Export Obsidian notes as images with reading-view fidelity.",
+  "version": "1.0.1",
+  "description": "Export Obsidian notes as images approximating Reading view.",
   "main": "main.js",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "node scripts/run-tests.mjs",
+    "verify": "tsc -noEmit -skipLibCheck && node scripts/run-tests.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
-  "keywords": ["obsidian", "plugin", "export", "image"],
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "export",
+    "image"
+  ],
   "author": "Egoism(379949990)",
   "homepage": "https://github.com/379949990",
   "license": "MIT",
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
     "@types/node": "^22.15.17",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "builtin-modules": "4.0.0",
     "esbuild": "0.25.5",
     "obsidian": "latest",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.7"
   },
   "dependencies": {
+    "fflate": "^0.8.2",
     "file-saver": "^2.0.5",
-    "jszip": "^3.10.1",
     "modern-screenshot": "^4.6.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "preact": "^10.26.9"
   }
 }

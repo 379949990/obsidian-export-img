@@ -162,7 +162,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
       .setDesc(t('setting.embedMaxHeightDesc'))
       .addText((text) =>
         text
-          .setPlaceholder('auto')
+          .setPlaceholder(t('studio.embedMaxHeightPlaceholder'))
           .setValue(
             this.plugin.settings.embedMaxHeight > 0
               ? String(this.plugin.settings.embedMaxHeight)

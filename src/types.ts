@@ -55,7 +55,7 @@ export interface ExportImgSettings {
   padding: PaddingSettings;
   /**
    * Max rendered height (px) for embedded images, Mermaid diagrams, and other
-   * wide/scrollable blocks inside the note. 0 = auto (no clamp).
+   * wide/scrollable blocks inside the note. 0 = no clamp.
    */
   embedMaxHeight: number;
   /** Horizontal alignment for embedded media (always applied). */

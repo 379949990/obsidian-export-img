@@ -56,7 +56,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <input
             type="number"
             min={0}
-            placeholder="auto"
+            placeholder={t('studio.embedMaxHeightPlaceholder')}
             value={draft.embedMaxHeight || ''}
             disabled={busy}
             onChange={(e) => {

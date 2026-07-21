@@ -19,9 +19,9 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   },
   /**
    * Max rendered height for embedded images, Mermaid, and other wide/scrollable blocks.
-   * 0 = auto (no height clamp).
+   * 0 = no height clamp.
    */
-  embedMaxHeight: 0,
+  embedMaxHeight: 360,
   embedAlign: 'center',
   split: {
     mode: 'none',

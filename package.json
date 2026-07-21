@@ -1,7 +1,7 @@
 {
   "name": "obsidian-export-img",
   "version": "1.0.1",
-  "description": "Export Obsidian notes as images with reading-view fidelity.",
+  "description": "Export Obsidian notes as images approximating Reading view.",
   "main": "main.js",
   "packageManager": "pnpm@11.3.0",
   "scripts": {

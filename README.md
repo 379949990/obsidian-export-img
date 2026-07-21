@@ -3,13 +3,13 @@
 </p>
 
 <p align="center">
-  <strong>Export Img</strong> — reading-view fidelity, then a pixel-perfect image.<br/>
+  <strong>Export Img</strong> — a high-fidelity <em>approximation</em> of Reading view as an image.<br/>
   Theme · Callouts · Code · Math · Mermaid · Embeds · Properties
 </p>
 
 <p align="center">
   <a href="https://github.com/379949990/obsidian-export-img/releases"><img alt="release" src="https://img.shields.io/github/v/release/379949990/obsidian-export-img?include_prereleases&amp;style=flat-square" /></a>
-  <img alt="obsidian" src="https://img.shields.io/badge/Obsidian-1.5%2B-7c3aed?style=flat-square" />
+  <img alt="obsidian" src="https://img.shields.io/badge/Obsidian-1.5.7%2B-7c3aed?style=flat-square" />
   <img alt="pnpm" src="https://img.shields.io/badge/package%20manager-pnpm-f69220?style=flat-square" />
   <img alt="license" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" />
 </p>
@@ -18,14 +18,14 @@
 
 ## Why this plugin
 
-Most “export as image” tools screenshot a flattened DOM and hope for the best. **Export Img** treats the Reading view as the source of truth:
+Most “export as image” tools screenshot a flattened DOM and hope for the best. **Export Img** uses Reading view as the **visual target**, then rebuilds a capture host:
 
 1. **Render** with Obsidian’s own `MarkdownRenderer`
-2. **Settle** until images, fonts, and async diagrams are ready
+2. **Settle** until images, fonts, and async diagrams are ready (soft timeouts — see below)
 3. **Fit** wide blocks (Mermaid, tables, code) to the content width
 4. **Capture** with `modern-screenshot` at the resolution you choose for export
 
-Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use your configured multiplier (default **2×**).
+Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use your configured multiplier (default **2×**). Preview and export are intentionally not identical (scale + font embedding).
 
 ---
 
@@ -33,9 +33,9 @@ Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use you
 
 | Capability | Detail |
 | --- | --- |
-| Export Studio | Live bitmap preview with pan / zoom; WYSIWYG controls |
-| SettleGate | Waits for media & Mermaid before declaring Ready |
-| Theme modes | Current · Light · Dark |
+| Export Studio | Live bitmap preview with pan / zoom; shared controls with export |
+| SettleGate | Waits for media & Mermaid before Ready; slow assets may soft-timeout |
+| Theme modes | Current · Light · Dark (core CSS variables; community themes may diverge) |
 | Chrome | Note title, Properties, padding (preset ↔ document) |
 | Media limits | Max height + align for embeds / Mermaid / wide blocks |
 | Long notes | Split by fixed height (A4 default), HR, or block boundaries — never mid-element |
@@ -45,12 +45,26 @@ Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use you
 
 ---
 
+## Known differences vs Reading view
+
+Exports are **not** a pixel-perfect clone of the open Reading pane:
+
+- Capture uses an offscreen host, not the live Reading DOM
+- Wide blocks are scaled/fitted for the chosen export width
+- Community themes and plugin-rendered blocks may look different
+- Studio preview is 1× without font embedding; Copy/Save use your scale with fonts
+- Settle can proceed after soft timeouts (slow remote images / Mermaid)
+
+Use Reading view as the baseline for visual QA, not as a guarantee of identity.
+
+---
+
 ## Install (users)
 
 1. Community plugins → search **Export Img** *(after first publish)*, or
 2. Manual: download `main.js` + `manifest.json` + `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/export-img/`
 
-Contributors: see [README.dev.md](README.dev.md).
+Requires Obsidian **1.5.7+**. Contributors: see [README.dev.md](README.dev.md).
 
 ---
 
@@ -75,7 +89,7 @@ Higher multipliers cost more time roughly with pixel area — choose 2× for sha
 
 ## Credits
 
-Capture powered by [modern-screenshot](https://github.com/qq15725/modern-screenshot). Inspired by the broader Obsidian export-image ecosystem; this project prioritizes **reading-view fidelity** over feature sprawl.
+Capture powered by [modern-screenshot](https://github.com/qq15725/modern-screenshot). Inspired by the broader Obsidian export-image ecosystem; this project prioritizes a **faithful Reading-view-like** export over feature sprawl.
 
 ## License
 

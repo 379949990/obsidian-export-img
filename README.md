@@ -27,8 +27,6 @@ Most “export as image” tools screenshot a flattened DOM and hope for the bes
 
 Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use your configured multiplier (default **2×**).
 
-**Current development branch:** `v1.0.0` · **Package manager:** [pnpm](https://pnpm.io/) only
-
 ---
 
 ## Features
@@ -52,30 +50,7 @@ Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use you
 1. Community plugins → search **Export Img** *(after first publish)*, or
 2. Manual: download `main.js` + `manifest.json` + `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/export-img/`
 
----
-
-## Develop
-
-Use a **dedicated vault** — never your daily notes vault.
-
-```bash
-git clone https://github.com/379949990/obsidian-export-img.git
-cd obsidian-export-img
-pnpm install
-
-# Symlink into the dev vault (folder name must match manifest id)
-ln -s "$(pwd)" /path/to/DevVault/.obsidian/plugins/export-img
-
-pnpm run dev
-```
-
-Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). Prefer [Hot Reload](https://github.com/pjeby/hot-reload), or toggle the plugin after each rebuild.
-
-**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view, then Copy / Save.
-
-```bash
-pnpm run build   # tsc + production bundle → main.js
-```
+Contributors: see [README.dev.md](README.dev.md).
 
 ---
 
@@ -95,37 +70,6 @@ Higher multipliers cost more time roughly with pixel area — choose 2× for sha
 - **Fixed / Auto:** pack whole blocks into pages; default page content height = `width × 1.414` (A4).
 - **HR:** cut on horizontal rules.
 - Each page keeps its own padding; blocks are never sliced mid-element (a single oversized block may exceed the target height).
-
----
-
-## Release flow
-
-Daily work on `vX.Y.Z` → merge `dev` → tag **`Version_X.Y.Z`** (not `vX.Y.Z`) → squash to `main`.
-
-Align `package.json` / `manifest.json` / `versions.json`, then:
-
-```bash
-pnpm run build
-# Attach main.js, manifest.json, styles.css to the GitHub Release
-```
-
----
-
-## DOM hooks (custom CSS)
-
-```html
-<div class="export-img-host markdown-reading-view">
-  <div class="export-img-capture">
-    <div class="markdown-preview-view markdown-rendered export-img-preview">
-      <div class="inline-title export-img-title"></div>
-      <div class="metadata-container export-img-metadata"></div>
-      <div class="markdown-preview-sizer">…</div>
-    </div>
-    <div class="export-img-author">…</div>
-    <div class="export-img-watermark">…</div>
-  </div>
-</div>
-```
 
 ---
 

@@ -1,0 +1,60 @@
+# Export Img — Developer guide
+
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.0`.
+
+Product overview and install: [README.md](README.md).
+
+---
+
+## Develop
+
+Use a **dedicated vault** — never your daily notes vault.
+
+```bash
+git clone https://github.com/379949990/obsidian-export-img.git
+cd obsidian-export-img
+pnpm install
+
+# Symlink into the dev vault (folder name must match manifest id)
+ln -s "$(pwd)" /path/to/DevVault/.obsidian/plugins/export-img
+
+pnpm run dev
+```
+
+Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). Prefer [Hot Reload](https://github.com/pjeby/hot-reload), or toggle the plugin after each rebuild.
+
+**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view, then Copy / Save.
+
+```bash
+pnpm run build   # tsc + production bundle → main.js
+```
+
+---
+
+## Release flow
+
+1. Develop on `vX.Y.Z` (cut from `dev`).
+2. Bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
+3. Merge into `dev` → squash → **push `main`**.
+
+Push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): build → tag **`x.y.z`** (= `manifest.json` `version`, required by Obsidian) → GitHub Release with `main.js` / `manifest.json` / `styles.css`.
+
+Same version already tagged → workflow skips (no duplicate release). To rebuild a version, delete that GitHub Release + tag first.
+
+---
+
+## DOM hooks (custom CSS)
+
+```html
+<div class="export-img-host markdown-reading-view">
+  <div class="export-img-capture">
+    <div class="markdown-preview-view markdown-rendered export-img-preview">
+      <div class="inline-title export-img-title"></div>
+      <div class="metadata-container export-img-metadata"></div>
+      <div class="markdown-preview-sizer">…</div>
+    </div>
+    <div class="export-img-author">…</div>
+    <div class="export-img-watermark">…</div>
+  </div>
+</div>
+```

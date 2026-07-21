@@ -6,3 +6,7 @@ main.js
 *.map
 data.json
 .DS_Store
+
+# This repo uses pnpm
+package-lock.json
+yarn.lock

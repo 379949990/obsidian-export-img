@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'fs';
 
+// Set by both npm and pnpm when running the "version" lifecycle script.
 const targetVersion = process.env.npm_package_version;
 
 const manifest = JSON.parse(readFileSync('manifest.json', 'utf8'));

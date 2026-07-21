@@ -43,8 +43,11 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<RenderHostHandle | null>(null);
   const renderToken = useRef(0);
+  const settleAbortRef = useRef<AbortController | null>(null);
 
   const destroyHost = () => {
+    settleAbortRef.current?.abort();
+    settleAbortRef.current = null;
     hostRef.current?.destroy();
     hostRef.current = null;
   };
@@ -64,6 +67,8 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
     });
 
     destroyHost();
+    const settleAbort = new AbortController();
+    settleAbortRef.current = settleAbort;
 
     try {
       const host = await createRenderHost({
@@ -77,7 +82,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         width: draft.width,
         themeMode: draft.themeMode,
       });
-      if (token !== renderToken.current) {
+      if (token !== renderToken.current || settleAbort.signal.aborted) {
         host.destroy();
         return;
       }
@@ -85,6 +90,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
 
       const diag = await settleElement(host.captureEl, {
         timeoutMs: draft.settleTimeoutMs,
+        signal: settleAbort.signal,
         onUpdate: (d) => {
           if (token === renderToken.current) {
             setSettle({

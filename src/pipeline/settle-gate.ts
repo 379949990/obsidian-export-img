@@ -4,92 +4,139 @@ export interface SettleOptions {
   timeoutMs: number;
   stableMs?: number;
   onUpdate?: (diag: SettleDiagnostic) => void;
+  /** Optional abort signal from the caller (e.g. remount). */
+  signal?: AbortSignal;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => resolve(), ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true },
+    );
+  });
 }
 
-async function waitForImages(root: HTMLElement, signal: { timedOut: boolean }): Promise<{ pending: number; warnings: string[] }> {
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+async function waitForImages(
+  root: HTMLElement,
+  signal: AbortSignal,
+): Promise<{ pending: number; warnings: string[] }> {
   const imgs = Array.from(root.querySelectorAll('img'));
   const warnings: string[] = [];
   let pending = 0;
 
   await Promise.all(
     imgs.map(async (img) => {
+      if (signal.aborted) return;
       if (img.complete && img.naturalWidth > 0) return;
       pending++;
       try {
-        if (typeof img.decode === 'function') {
-          await Promise.race([
-            img.decode(),
-            new Promise((_, reject) => {
-              img.addEventListener('error', () => reject(new Error('img error')), { once: true });
-            }),
-          ]);
-        } else {
-          await new Promise<void>((resolve, reject) => {
-            if (img.complete) {
-              resolve();
-              return;
-            }
-            img.addEventListener('load', () => resolve(), { once: true });
-            img.addEventListener('error', () => reject(new Error('img error')), { once: true });
-          });
-        }
-      } catch {
+        await new Promise<void>((resolve, reject) => {
+          const onAbort = () => reject(new DOMException('Aborted', 'AbortError'));
+          signal.addEventListener('abort', onAbort, { once: true });
+
+          const cleanup = () => signal.removeEventListener('abort', onAbort);
+
+          const onError = () => {
+            cleanup();
+            reject(new Error('img error'));
+          };
+          const onReady = () => {
+            cleanup();
+            resolve();
+          };
+
+          if (typeof img.decode === 'function') {
+            img.decode().then(onReady, onError);
+            img.addEventListener('error', onError, { once: true });
+          } else if (img.complete) {
+            onReady();
+          } else {
+            img.addEventListener('load', onReady, { once: true });
+            img.addEventListener('error', onError, { once: true });
+          }
+        });
+      } catch (error) {
+        if (isAbortError(error)) return;
         warnings.push(`Image failed: ${img.getAttribute('src')?.slice(0, 80) ?? 'unknown'}`);
       } finally {
         pending = Math.max(0, pending - 1);
       }
-      if (signal.timedOut) return;
     }),
   );
 
   return { pending, warnings };
 }
 
-async function waitForFonts(): Promise<boolean> {
+async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   try {
     if (document.fonts?.ready) {
-      await document.fonts.ready;
+      await Promise.race([
+        document.fonts.ready,
+        delay(60_000, signal),
+      ]);
     }
     return false;
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error;
     return true;
   }
 }
 
-function waitForLayoutStable(root: HTMLElement, stableMs: number, signal: { timedOut: boolean }): Promise<boolean> {
-  return new Promise((resolve) => {
-    let lastHeight = root.scrollHeight;
+function waitForLayoutStable(
+  root: HTMLElement,
+  stableMs: number,
+  signal: AbortSignal,
+): Promise<boolean> {
+  return new Promise((resolve, reject) => {
     let timer: number | undefined;
 
-    const finish = (stable: boolean) => {
+    const cleanup = () => {
       observer.disconnect();
       if (timer !== undefined) window.clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+    };
+
+    const finish = (stable: boolean) => {
+      cleanup();
       resolve(stable);
     };
 
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+
     const observer = new ResizeObserver(() => {
-      if (signal.timedOut) {
-        finish(false);
+      if (signal.aborted) {
+        onAbort();
         return;
       }
-      lastHeight = root.scrollHeight;
       if (timer !== undefined) window.clearTimeout(timer);
       timer = window.setTimeout(() => finish(true), stableMs);
     });
 
     observer.observe(root);
+    signal.addEventListener('abort', onAbort, { once: true });
     timer = window.setTimeout(() => finish(true), stableMs);
-
-    // Also poke once after a short delay for async blocks (mermaid/math)
-    void delay(120).then(() => {
-      if (!signal.timedOut && root.scrollHeight !== lastHeight) {
-        lastHeight = root.scrollHeight;
-      }
-    });
   });
 }
 
@@ -99,10 +146,21 @@ export async function settleElement(
 ): Promise<SettleDiagnostic> {
   const started = performance.now();
   const stableMs = options.stableMs ?? 180;
-  const signal = { timedOut: false };
   const warnings: string[] = [];
+  const controller = new AbortController();
+  let settled = false;
 
-  const emit = (status: SettleStatus, extra?: Partial<SettleDiagnostic>) => {
+  const onExternalAbort = () => controller.abort();
+  options.signal?.addEventListener('abort', onExternalAbort, { once: true });
+  if (options.signal?.aborted) {
+    controller.abort();
+  }
+
+  const emit = (status: SettleStatus, extra?: Partial<SettleDiagnostic>): SettleDiagnostic | null => {
+    if (settled && status !== 'timed_out') {
+      // After a final status, ignore late "ready" updates from abandoned work.
+      return null;
+    }
     const diag: SettleDiagnostic = {
       status,
       pendingImages: 0,
@@ -112,42 +170,89 @@ export async function settleElement(
       warnings: [...warnings],
       ...extra,
     };
+    if (status === 'ready' || status === 'timed_out') {
+      settled = true;
+    }
     options.onUpdate?.(diag);
     return diag;
   };
 
   emit('waiting');
 
-  const timeoutPromise = delay(options.timeoutMs).then(() => {
-    signal.timedOut = true;
-  });
-
-  const work = (async () => {
-    const fontPending = await waitForFonts();
-    const imageResult = await waitForImages(root, signal);
-    warnings.push(...imageResult.warnings);
-
-    // Give mermaid / math / callouts a moment, then wait for layout calm
-    await delay(80);
-    const layoutStable = await waitForLayoutStable(root, stableMs, signal);
-
-    return emit(signal.timedOut ? 'timed_out' : 'ready', {
-      pendingImages: imageResult.pending,
-      pendingFonts: fontPending,
-      layoutStable,
-      warnings: [...warnings],
-    });
-  })();
-
-  const result = await Promise.race([
-    work,
-    timeoutPromise.then(() =>
+  const timeoutId = window.setTimeout(() => {
+    if (!settled) {
+      controller.abort();
       emit('timed_out', {
         layoutStable: false,
         warnings: [...warnings, 'Settle timed out'],
-      }),
-    ),
-  ]);
+      });
+    }
+  }, options.timeoutMs);
 
-  return result;
+  try {
+    const fontPending = await waitForFonts(controller.signal);
+    const imageResult = await waitForImages(root, controller.signal);
+    warnings.push(...imageResult.warnings);
+
+    await delay(80, controller.signal);
+    const layoutStable = await waitForLayoutStable(root, stableMs, controller.signal);
+
+    if (settled) {
+      // Timeout already won; do not downgrade/upgrade status.
+      return {
+        status: 'timed_out',
+        pendingImages: imageResult.pending,
+        pendingFonts: fontPending,
+        layoutStable: false,
+        elapsedMs: Math.round(performance.now() - started),
+        warnings: [...warnings, 'Settle timed out'],
+      };
+    }
+
+    return (
+      emit('ready', {
+        pendingImages: imageResult.pending,
+        pendingFonts: fontPending,
+        layoutStable,
+        warnings: [...warnings],
+      }) ?? {
+        status: 'timed_out',
+        pendingImages: imageResult.pending,
+        pendingFonts: fontPending,
+        layoutStable: false,
+        elapsedMs: Math.round(performance.now() - started),
+        warnings: [...warnings],
+      }
+    );
+  } catch (error) {
+    if (isAbortError(error)) {
+      if (settled) {
+        return {
+          status: 'timed_out',
+          pendingImages: 0,
+          pendingFonts: false,
+          layoutStable: false,
+          elapsedMs: Math.round(performance.now() - started),
+          warnings: [...warnings, 'Settle timed out'],
+        };
+      }
+      // Caller aborted (remount) — report idle-ish timeout without spamming.
+      return (
+        emit('timed_out', {
+          warnings: [...warnings],
+        }) ?? {
+          status: 'timed_out',
+          pendingImages: 0,
+          pendingFonts: false,
+          layoutStable: false,
+          elapsedMs: Math.round(performance.now() - started),
+          warnings: [...warnings],
+        }
+      );
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+    options.signal?.removeEventListener('abort', onExternalAbort);
+  }
 }

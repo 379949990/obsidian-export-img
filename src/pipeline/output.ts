@@ -12,6 +12,12 @@ function safeFilename(title: string, format: ExportFormat, index?: number): stri
 }
 
 export async function copyBlobToClipboard(blob: Blob): Promise<void> {
+  if (
+    typeof navigator.clipboard?.write !== 'function' ||
+    typeof ClipboardItem === 'undefined'
+  ) {
+    throw new Error('clipboard image write unavailable');
+  }
   await navigator.clipboard.write([
     new ClipboardItem({
       [blob.type]: blob,

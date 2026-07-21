@@ -8,7 +8,7 @@ Product overview and install: [README.md](README.md).
 
 ## Develop
 
-Use a **dedicated vault** — never your daily notes vault.
+Use a **dedicated vault** — never your daily notes vault. **Desktop Obsidian** is the supported smoke environment; mobile paths exist but are not CI-covered.
 
 ```bash
 git clone https://github.com/379949990/obsidian-export-img.git
@@ -23,7 +23,7 @@ pnpm run dev
 
 Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). Prefer [Hot Reload](https://github.com/pjeby/hot-reload), or toggle the plugin after each rebuild.
 
-**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view as a baseline (expect close, not pixel-identical), then Copy / Save.
+**Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view as a baseline (expect close, not pixel-identical), then Copy / Save. On mobile, prefer Save (vault attachments).
 
 ```bash
 pnpm run build   # tsc + production bundle → main.js

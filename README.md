@@ -68,6 +68,19 @@ Requires Obsidian **1.5.7+**. Contributors: see [README.dev.md](README.dev.md).
 
 ---
 
+## Desktop & mobile
+
+**Desktop is the primary target** (Export Studio, ZIP download, clipboard).
+
+On **mobile** (`isDesktopOnly: false`):
+
+- **Save** writes image files into the vault via `getAvailablePathForAttachment` (not a system download dialog)
+- **Copy** may fail when the clipboard image API is unavailable — prefer Save
+- Multi-page / folder exports save images individually (no ZIP)
+- Large notes and high scale multipliers are heavier; expect slower Ready and more memory use
+
+---
+
 ## Resolution & performance
 
 | Path | Scale | Fonts embedded | Intent |

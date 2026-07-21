@@ -3,6 +3,7 @@ import { createRoot } from 'preact/compat/client';
 import {
   Modal,
   Notice,
+  Platform,
   type App,
   type FrontMatterCache,
   type TFile,
@@ -460,6 +461,9 @@ export class ExportStudioModal extends Modal {
     this.modalEl.addClass('export-img-modal');
     this.titleEl.addClass('export-img-modal-titlebar');
     updateModalTitle(this.titleEl, null);
+    if (Platform.isMobile) {
+      new Notice(t('notice.mobileHint'), 8000);
+    }
     this.root = createRoot(this.contentEl);
     this.root.render(
       <AppContext.Provider value={{ app: this.args.app, plugin: this.args.plugin }}>

@@ -108,6 +108,8 @@ const en: Dict = {
   'notice.exportFail': 'Export failed',
   'notice.batchDone': 'Exported {count} notes',
   'notice.pdfNotSupported': 'PDF is not supported in this version',
+  'notice.mobileHint':
+    'Mobile: Save writes into vault attachments. Clipboard copy may be unavailable — prefer Save.',
   'setting.heading.language': 'Language',
   'setting.locale': 'Interface language',
   'setting.localeDesc':
@@ -218,6 +220,8 @@ const zh: Dict = {
   'notice.exportFail': '导出失败',
   'notice.batchDone': '已导出 {count} 篇笔记',
   'notice.pdfNotSupported': '当前版本不支持 PDF',
+  'notice.mobileHint':
+    '移动端：保存会写入库内附件目录；剪贴板复制可能不可用，请优先使用保存。',
   'setting.heading.language': '语言',
   'setting.locale': '界面语言',
   'setting.localeDesc':

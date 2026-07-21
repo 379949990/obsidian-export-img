@@ -34,16 +34,36 @@ export interface StudioOpenArgs {
   type: 'file' | 'selection';
 }
 
+/** Fields that require rebuilding the reading-view host (not capture-only options). */
+function getRenderSignature(settings: ExportImgSettings): string {
+  return JSON.stringify({
+    width: settings.width,
+    themeMode: settings.themeMode,
+    showFilename: settings.showFilename,
+    showMetadata: settings.showMetadata,
+    padding: settings.padding,
+    watermark: settings.watermark,
+    author: settings.author,
+    settleTimeoutMs: settings.settleTimeoutMs,
+  });
+}
+
+const RENDER_DEBOUNCE_MS = 280;
+
 function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
   const { app, plugin, markdown, file, frontmatter, type } = props;
   const [draft, setDraft] = useState<ExportImgSettings>({ ...plugin.settings });
   const [settle, setSettle] = useState<SettleDiagnostic | null>(null);
   const [rendering, setRendering] = useState(true);
   const [busy, setBusy] = useState(false);
+  const renderSignature = getRenderSignature(draft);
+  const [debouncedSignature, setDebouncedSignature] = useState(renderSignature);
   const mountRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<RenderHostHandle | null>(null);
   const renderToken = useRef(0);
   const settleAbortRef = useRef<AbortController | null>(null);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const destroyHost = () => {
     settleAbortRef.current?.abort();
@@ -52,9 +72,19 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
     hostRef.current = null;
   };
 
+  // Debounce preview rebuilds so typing width/watermark does not thrash MarkdownRenderer.
+  // format / scale / split are capture-only and intentionally omitted from the signature.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSignature(renderSignature);
+    }, RENDER_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [renderSignature]);
+
   const rerender = useCallback(async () => {
     const mount = mountRef.current;
     if (!mount) return;
+    const settings = draftRef.current;
     const token = ++renderToken.current;
     setRendering(true);
     setSettle({
@@ -77,10 +107,10 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         sourcePath: file.path,
         title: file.basename,
         frontmatter: type === 'selection' ? undefined : frontmatter,
-        settings: draft,
+        settings,
         mountEl: mount,
-        width: draft.width,
-        themeMode: draft.themeMode,
+        width: settings.width,
+        themeMode: settings.themeMode,
       });
       if (token !== renderToken.current || settleAbort.signal.aborted) {
         host.destroy();
@@ -89,7 +119,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
       hostRef.current = host;
 
       const diag = await settleElement(host.captureEl, {
-        timeoutMs: draft.settleTimeoutMs,
+        timeoutMs: settings.settleTimeoutMs,
         signal: settleAbort.signal,
         onUpdate: (d) => {
           if (token === renderToken.current) {
@@ -122,7 +152,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         new Notice(t('notice.exportFail'));
       }
     }
-  }, [app, markdown, file, frontmatter, type, draft]);
+  }, [app, markdown, file, frontmatter, type, debouncedSignature]);
 
   useEffect(() => {
     void rerender();

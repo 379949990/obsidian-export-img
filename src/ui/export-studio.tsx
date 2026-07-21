@@ -28,7 +28,6 @@ import { PreviewPane } from './preview-pane';
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
-  // Prefer live reading-view padding over stored fallback.
   draft.padding = readReadingViewPadding();
   return draft;
 }
@@ -42,7 +41,6 @@ export interface StudioOpenArgs {
   type: 'file' | 'selection';
 }
 
-/** Fields that require rebuilding the reading-view host (not capture-only options). */
 function getRenderSignature(settings: ExportImgSettings): string {
   return JSON.stringify({
     width: settings.width,
@@ -56,22 +54,65 @@ function getRenderSignature(settings: ExportImgSettings): string {
   });
 }
 
+/** Capture-only options that still refresh the preview bitmap. */
+function getPreviewSignature(settings: ExportImgSettings): string {
+  return JSON.stringify({
+    render: getRenderSignature(settings),
+    format: settings.format,
+    scale: settings.scale,
+    split: settings.split,
+  });
+}
+
 const RENDER_DEBOUNCE_MS = 280;
 
-function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
-  const { app, plugin, markdown, file, frontmatter, type } = props;
+function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null): void {
+  titleEl.empty();
+  titleEl.addClass('export-img-modal-titlebar');
+  titleEl.createSpan({ cls: 'export-img-modal-title-text', text: t('studio.title') });
+  const right = titleEl.createDiv({ cls: 'export-img-modal-title-status' });
+  if (!settle) {
+    right.createSpan({
+      cls: 'export-img-title-pill is-idle',
+      text: t('studio.settle.idle'),
+    });
+    return;
+  }
+  right.createSpan({
+    cls: `export-img-title-pill is-${settle.status}`,
+    text: t(`studio.settle.${settle.status}`),
+  });
+  right.createSpan({
+    cls: 'export-img-title-meta',
+    text: `${settle.elapsedMs}ms`,
+  });
+}
+
+function StudioApp(
+  props: StudioOpenArgs & { onClose: () => void; titleEl: HTMLElement },
+) {
+  const { app, plugin, markdown, file, frontmatter, type, titleEl } = props;
   const [draft, setDraft] = useState<ExportImgSettings>(() => createStudioDraft(plugin));
   const [settle, setSettle] = useState<SettleDiagnostic | null>(null);
   const [rendering, setRendering] = useState(true);
   const [busy, setBusy] = useState(false);
-  const renderSignature = getRenderSignature(draft);
-  const [debouncedSignature, setDebouncedSignature] = useState(renderSignature);
-  const mountRef = useRef<HTMLDivElement | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const previewSignature = getPreviewSignature(draft);
+  const [debouncedSignature, setDebouncedSignature] = useState(previewSignature);
   const hostRef = useRef<RenderHostHandle | null>(null);
+  const renderSlotRef = useRef<HTMLDivElement | null>(null);
   const renderToken = useRef(0);
   const settleAbortRef = useRef<AbortController | null>(null);
   const draftRef = useRef(draft);
+  const previewUrlRef = useRef<string | null>(null);
   draftRef.current = draft;
+
+  const revokePreviewUrl = () => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  };
 
   const destroyHost = () => {
     settleAbortRef.current?.abort();
@@ -80,18 +121,20 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
     hostRef.current = null;
   };
 
-  // Debounce preview rebuilds so typing width/watermark does not thrash MarkdownRenderer.
-  // format / scale / split are capture-only and intentionally omitted from the signature.
+  useEffect(() => {
+    updateModalTitle(titleEl, settle);
+  }, [titleEl, settle]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedSignature(renderSignature);
+      setDebouncedSignature(previewSignature);
     }, RENDER_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [renderSignature]);
+  }, [previewSignature]);
 
   const rerender = useCallback(async () => {
-    const mount = mountRef.current;
-    if (!mount) return;
+    const slot = renderSlotRef.current;
+    if (!slot) return;
     const settings = draftRef.current;
     const token = ++renderToken.current;
     setRendering(true);
@@ -116,7 +159,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         title: file.basename,
         frontmatter: type === 'selection' ? undefined : frontmatter,
         settings,
-        mountEl: mount,
+        mountEl: slot,
         width: settings.width,
         themeMode: settings.themeMode,
       });
@@ -138,13 +181,25 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
           }
         },
       });
-      if (token === renderToken.current) {
-        setSettle({
-          ...diag,
-          warnings: [...host.remoteWarnings, ...diag.warnings],
-        });
-        setRendering(false);
-      }
+      if (token !== renderToken.current) return;
+
+      setSettle({
+        ...diag,
+        warnings: [...host.remoteWarnings, ...diag.warnings],
+      });
+
+      // Build a real bitmap preview (PNG @ 1x for speed/clarity in the viewer).
+      const blob = await captureElement(host.captureEl, {
+        scale: 1,
+        format: 'png',
+      });
+      if (token !== renderToken.current) return;
+
+      revokePreviewUrl();
+      const url = URL.createObjectURL(blob);
+      previewUrlRef.current = url;
+      setPreviewUrl(url);
+      setRendering(false);
     } catch (error) {
       console.error(error);
       if (token === renderToken.current) {
@@ -169,6 +224,8 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
       destroyHost();
     };
   }, [rerender]);
+
+  useEffect(() => () => revokePreviewUrl(), []);
 
   const onChange = (patch: Partial<ExportImgSettings>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
@@ -270,7 +327,6 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
           file.basename,
         );
       }
-      // Persist studio choices as new defaults
       plugin.settings = cloneSettings(draft);
       await plugin.saveSettings();
     } catch (error) {
@@ -283,10 +339,10 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
 
   return (
     <div className="export-img-studio">
-      <PreviewPane mountRef={mountRef} rendering={rendering || busy} />
+      <div className="export-img-render-slot" ref={renderSlotRef} aria-hidden="true" />
+      <PreviewPane imageUrl={previewUrl} rendering={rendering || busy} />
       <FidelityPanel
         draft={draft}
-        settle={settle}
         busy={busy || rendering}
         onChange={onChange}
         onNestedChange={onNestedChange}
@@ -308,13 +364,18 @@ export class ExportStudioModal extends Modal {
   }
 
   onOpen(): void {
-    this.setTitle(t('studio.title'));
     this.modalEl.addClass('export-img-modal');
+    this.titleEl.addClass('export-img-modal-titlebar');
+    updateModalTitle(this.titleEl, null);
     this.root = createRoot(this.contentEl);
     this.root.render(
       <StrictMode>
         <AppContext.Provider value={{ app: this.args.app, plugin: this.args.plugin }}>
-          <StudioApp {...this.args} onClose={() => this.close()} />
+          <StudioApp
+            {...this.args}
+            titleEl={this.titleEl}
+            onClose={() => this.close()}
+          />
         </AppContext.Provider>
       </StrictMode>,
     );
@@ -324,6 +385,7 @@ export class ExportStudioModal extends Modal {
     this.root?.unmount();
     this.root = null;
     this.contentEl.empty();
+    this.titleEl.empty();
   }
 }
 
@@ -331,7 +393,6 @@ export async function openExportStudio(args: StudioOpenArgs): Promise<void> {
   new ExportStudioModal(args).open();
 }
 
-/** Quick path: render offscreen and copy without opening studio. */
 export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   const { app, plugin, markdown, file } = args;
   const settings = cloneSettings(plugin.settings);

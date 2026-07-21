@@ -1,7 +1,7 @@
 import type { ExportImgSettings, PluginLocale } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
-  width: 680,
+  width: 800,
   scale: '2x',
   format: 'png',
   showFilename: true,

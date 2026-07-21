@@ -3,14 +3,12 @@ import type {
   ExportFormat,
   ExportImgSettings,
   ScaleMode,
-  SettleDiagnostic,
   SplitMode,
   ThemeMode,
 } from '../types';
 
 interface FidelityPanelProps {
   draft: ExportImgSettings;
-  settle: SettleDiagnostic | null;
   busy: boolean;
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
@@ -25,7 +23,6 @@ interface FidelityPanelProps {
 export function FidelityPanel(props: FidelityPanelProps) {
   const {
     draft,
-    settle,
     busy,
     onChange,
     onNestedChange,
@@ -33,10 +30,6 @@ export function FidelityPanel(props: FidelityPanelProps) {
     onCopy,
     onSave,
   } = props;
-
-  const settleKey = settle
-    ? (`studio.settle.${settle.status}` as const)
-    : 'studio.settle.idle';
 
   return (
     <div className="export-img-panel">
@@ -179,26 +172,6 @@ export function FidelityPanel(props: FidelityPanelProps) {
             />
           </label>
         )}
-
-        <div className="export-img-settle">
-          <div className={`export-img-settle-status is-${settle?.status ?? 'idle'}`}>
-            {t(settleKey)}
-          </div>
-          {settle && settle.warnings.length > 0 && (
-            <ul className="export-img-settle-warnings">
-              {settle.warnings.slice(0, 4).map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
-          )}
-          {settle && (
-            <div className="export-img-settle-meta">
-              {settle.elapsedMs}ms
-              {!settle.layoutStable ? ' · layout unstable' : ''}
-              {settle.pendingImages > 0 ? ` · imgs ${settle.pendingImages}` : ''}
-            </div>
-          )}
-        </div>
 
         <details className="export-img-details">
           <summary>{t('studio.decorations')}</summary>

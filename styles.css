@@ -1,40 +1,106 @@
 /* Export Img — styles */
 
 .export-img-modal {
-  width: min(85vw, 1500px);
+  width: min(88vw, 1500px);
   max-width: 1500px;
+  height: min(82vh, 900px);
+  max-height: min(82vh, 900px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .export-img-modal .modal-content {
   display: flex;
   flex-direction: column;
-  max-height: min(80vh, 900px);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden !important;
+  padding-bottom: 12px;
+}
+
+.export-img-modal-titlebar {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.export-img-modal-title-text {
+  font-weight: 600;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.export-img-modal-title-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.export-img-title-pill {
+  font-size: var(--font-ui-smaller);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+}
+
+.export-img-title-pill.is-ready {
+  color: var(--text-success);
+  border-color: color-mix(in srgb, var(--text-success) 35%, var(--background-modifier-border));
+}
+
+.export-img-title-pill.is-waiting {
+  color: var(--text-muted);
+}
+
+.export-img-title-pill.is-timed_out {
+  color: var(--text-warning);
+  border-color: color-mix(in srgb, var(--text-warning) 35%, var(--background-modifier-border));
+}
+
+.export-img-title-meta {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 .export-img-studio {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
   flex: 1;
   min-height: 0;
-  max-height: min(72vh, 820px);
+  height: 100%;
+  overflow: hidden;
   align-items: stretch;
 }
 
-/* Shared thin scrollbar */
-.export-img-preview-pane,
+/* Offscreen render target — keep real layout size; do not use visibility:hidden (breaks capture). */
+.export-img-render-slot {
+  position: fixed;
+  left: -100000px;
+  top: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Shared thin scrollbar — config panel only */
 .export-img-panel-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb-bg, var(--background-modifier-border-hover)) transparent;
 }
 
-.export-img-preview-pane::-webkit-scrollbar,
 .export-img-panel-scroll::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.export-img-preview-pane::-webkit-scrollbar-thumb,
 .export-img-panel-scroll::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb-bg, var(--background-modifier-border-hover));
   border-radius: 999px;
@@ -42,24 +108,74 @@
   background-clip: content-box;
 }
 
-.export-img-preview-pane::-webkit-scrollbar-track,
 .export-img-panel-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
 .export-img-preview-pane {
   position: relative;
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
-  background: var(--background-secondary);
-  padding: 16px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
-.export-img-preview-mount {
+.export-img-preview-pane:active {
+  cursor: grabbing;
+}
+
+.export-img-checkerboard {
+  position: absolute;
+  inset: 0;
+  background-color: var(--background-secondary);
+  background-image:
+    linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--background-modifier-border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--background-modifier-border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--background-modifier-border) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.export-img-preview-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  max-width: none;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
+.export-img-preview-empty {
+  position: absolute;
+  inset: 0;
   display: flex;
+  align-items: center;
   justify-content: center;
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.export-img-preview-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--background-primary) 82%, transparent);
+  border: 1px solid var(--background-modifier-border);
+  pointer-events: none;
 }
 
 .export-img-preview-loading {
@@ -72,7 +188,7 @@
   gap: 12px;
   background: color-mix(in srgb, var(--background-primary) 72%, transparent);
   backdrop-filter: blur(2px);
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
   color: var(--text-muted);
 }
@@ -102,6 +218,7 @@
   flex-direction: column;
   min-height: 0;
   max-height: 100%;
+  height: 100%;
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   background: var(--background-primary);
@@ -111,11 +228,12 @@
 .export-img-panel-scroll {
   flex: 1;
   min-height: 0;
-  overflow: auto;
-  padding: 12px 12px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 10px 12px 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .export-img-panel-title {
@@ -126,14 +244,25 @@
 
 .export-img-field {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   font-size: var(--font-ui-small);
+  min-height: 28px;
+}
+
+.export-img-field > span {
+  flex: 0 0 42%;
+  color: var(--text-muted);
+  line-height: 1.25;
 }
 
 .export-img-field input,
 .export-img-field select {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
 }
 
 .export-img-field input[type='range'] {
@@ -141,8 +270,8 @@
 }
 
 .export-img-field input[type='color'] {
-  height: 32px;
-  padding: 2px;
+  height: 28px;
+  padding: 1px 2px;
   cursor: pointer;
 }
 
@@ -151,13 +280,14 @@
   align-items: center;
   gap: 8px;
   font-size: var(--font-ui-small);
+  min-height: 28px;
 }
 
 .export-img-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px 0 2px;
+  gap: 6px;
+  padding: 6px 0 2px;
   border-top: 1px solid var(--background-modifier-border);
 }
 
@@ -188,39 +318,7 @@
 .export-img-padding-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.export-img-settle {
-  margin-top: 2px;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  font-size: var(--font-ui-smaller);
-}
-
-.export-img-settle-status.is-ready {
-  color: var(--text-success);
-}
-
-.export-img-settle-status.is-waiting {
-  color: var(--text-muted);
-}
-
-.export-img-settle-status.is-timed_out {
-  color: var(--text-warning);
-}
-
-.export-img-settle-warnings {
-  margin: 6px 0 0;
-  padding-left: 1.1em;
-  color: var(--text-warning);
-}
-
-.export-img-settle-meta {
-  margin-top: 4px;
-  color: var(--text-faint);
+  gap: 6px 8px;
 }
 
 .export-img-details {
@@ -407,14 +505,13 @@
 @media (max-width: 800px) {
   .export-img-studio {
     grid-template-columns: 1fr;
-    max-height: none;
   }
 
   .export-img-preview-pane {
-    max-height: 45vh;
+    min-height: 40vh;
   }
 
   .export-img-panel {
-    max-height: 50vh;
+    max-height: 42vh;
   }
 }

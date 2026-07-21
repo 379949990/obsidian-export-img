@@ -10,3 +10,6 @@ data.json
 # This repo uses pnpm
 package-lock.json
 yarn.lock
+
+# Accidental vault plugin symlink
+obsidian-export-img

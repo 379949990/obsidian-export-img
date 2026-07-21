@@ -125,7 +125,7 @@ JSON：
 
 ```json
 {
-  "id": "obsidian-export-img",
+  "id": "export-img",
   "version": "1.0.0",
   "features": ["padding", "i18n", "settle"]
 }

@@ -50,7 +50,7 @@ Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use you
 ## Install (users)
 
 1. Community plugins → search **Export Img** *(after first publish)*, or
-2. Manual: download `main.js` + `manifest.json` + `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/obsidian-export-img/`
+2. Manual: download `main.js` + `manifest.json` + `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/export-img/`
 
 ---
 
@@ -63,8 +63,8 @@ git clone https://github.com/379949990/obsidian-export-img.git
 cd obsidian-export-img
 pnpm install
 
-# Symlink into the dev vault
-ln -s "$(pwd)" /path/to/DevVault/.obsidian/plugins/obsidian-export-img
+# Symlink into the dev vault (folder name must match manifest id)
+ln -s "$(pwd)" /path/to/DevVault/.obsidian/plugins/export-img
 
 pnpm run dev
 ```

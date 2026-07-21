@@ -11,5 +11,5 @@ data.json
 package-lock.json
 yarn.lock
 
-# Accidental vault plugin symlink
-obsidian-export-img
+# Accidental vault plugin symlink (folder must match manifest id)
+export-img

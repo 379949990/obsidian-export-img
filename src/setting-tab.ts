@@ -1,7 +1,7 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
 import type ExportImgPlugin from './main';
-import { t } from './i18n';
-import type { ExportFormat, ScaleMode, ThemeMode } from './types';
+import { setLocalePreference, t } from './i18n';
+import type { ExportFormat, PluginLocale, ScaleMode, ThemeMode } from './types';
 
 export class ExportImgSettingTab extends PluginSettingTab {
   plugin: ExportImgPlugin;
@@ -14,6 +14,25 @@ export class ExportImgSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    new Setting(containerEl).setName(t('setting.heading.language')).setHeading();
+
+    new Setting(containerEl)
+      .setName(t('setting.locale'))
+      .setDesc(t('setting.localeDesc'))
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption('auto', t('setting.locale.auto'))
+          .addOption('en', t('setting.locale.en'))
+          .addOption('zh', t('setting.locale.zh'))
+          .setValue(this.plugin.settings.locale)
+          .onChange(async (value) => {
+            this.plugin.settings.locale = value as PluginLocale;
+            setLocalePreference(this.plugin.settings.locale);
+            await this.plugin.saveSettings();
+            this.display();
+          }),
+      );
 
     new Setting(containerEl).setName(t('setting.heading.defaults')).setHeading();
 
@@ -89,6 +108,24 @@ export class ExportImgSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         }),
       );
+
+    new Setting(containerEl)
+      .setName(t('setting.padding'))
+      .setDesc(t('setting.paddingDesc'));
+
+    const pad = this.plugin.settings.padding;
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      new Setting(containerEl)
+        .setName(t(`studio.padding.${side}`))
+        .addText((text) =>
+          text.setValue(String(pad[side])).onChange(async (value) => {
+            const n = Number(value);
+            if (!Number.isFinite(n) || n < 0) return;
+            this.plugin.settings.padding[side] = Math.round(n);
+            await this.plugin.saveSettings();
+          }),
+        );
+    }
 
     new Setting(containerEl).setName(t('setting.heading.behavior')).setHeading();
 

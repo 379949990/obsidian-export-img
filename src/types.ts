@@ -4,6 +4,8 @@ export type ThemeMode = 'current' | 'light' | 'dark';
 export type SplitMode = 'none' | 'fixed' | 'hr' | 'auto';
 export type WatermarkType = 'text' | 'image';
 export type SettleStatus = 'idle' | 'waiting' | 'ready' | 'timed_out';
+/** auto follows Obsidian app language (zh* → Chinese, else English). */
+export type PluginLocale = 'auto' | 'en' | 'zh';
 
 export interface PaddingSettings {
   top: number;
@@ -46,6 +48,12 @@ export interface ExportImgSettings {
   themeMode: ThemeMode;
   settleTimeoutMs: number;
   quickExportSelection: boolean;
+  /** UI language preference. */
+  locale: PluginLocale;
+  /**
+   * Fallback padding stored in settings.
+   * Opening Export Studio seeds draft padding from the live reading view instead.
+   */
   padding: PaddingSettings;
   split: SplitSettings;
   watermark: WatermarkSettings;

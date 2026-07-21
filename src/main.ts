@@ -1,4 +1,5 @@
 import { Plugin } from 'obsidian';
+import { setLocalePreference } from './i18n';
 import { cloneSettings, DEFAULT_SETTINGS } from './settings';
 import type { ExportImgSettings } from './types';
 import { registerCommands } from './commands';
@@ -10,6 +11,7 @@ export default class ExportImgPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    setLocalePreference(this.settings.locale);
     registerCommands(this);
     registerMenus(this);
     this.addSettingTab(new ExportImgSettingTab(this.app, this));
@@ -24,6 +26,7 @@ export default class ExportImgPlugin extends Plugin {
     this.settings = cloneSettings({
       ...DEFAULT_SETTINGS,
       ...data,
+      locale: data?.locale ?? DEFAULT_SETTINGS.locale,
       padding: { ...DEFAULT_SETTINGS.padding, ...data?.padding },
       split: { ...DEFAULT_SETTINGS.split, ...data?.split },
       watermark: { ...DEFAULT_SETTINGS.watermark, ...data?.watermark },

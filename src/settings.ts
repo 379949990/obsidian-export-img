@@ -1,4 +1,4 @@
-import type { ExportImgSettings } from './types';
+import type { ExportImgSettings, PluginLocale } from './types';
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   width: 680,
@@ -9,11 +9,13 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   themeMode: 'current',
   settleTimeoutMs: 8000,
   quickExportSelection: false,
+  locale: 'auto',
+  // Fallback only — Studio opens with live reading-view padding.
   padding: {
-    top: 24,
-    right: 28,
-    bottom: 24,
-    left: 28,
+    top: 20,
+    right: 30,
+    bottom: 20,
+    left: 30,
   },
   split: {
     mode: 'none',
@@ -55,3 +57,5 @@ export function scaleToNumber(scale: ExportImgSettings['scale']): number {
   if (scale === '2x') return 2;
   return 1;
 }
+
+export type { PluginLocale };

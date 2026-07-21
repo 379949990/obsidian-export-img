@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { cloneSettings, scaleToNumber } from '../settings';
 import type { ExportImgSettings, SettleDiagnostic } from '../types';
 import { captureElement } from '../pipeline/capture';
+import { readReadingViewPadding } from '../pipeline/document-padding';
 import { createRenderHost, type RenderHostHandle } from '../pipeline/render-host';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
@@ -24,6 +25,13 @@ import {
 import { AppContext } from './app-context';
 import { FidelityPanel } from './fidelity-panel';
 import { PreviewPane } from './preview-pane';
+
+function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
+  const draft = cloneSettings(plugin.settings);
+  // Prefer live reading-view padding over stored fallback.
+  draft.padding = readReadingViewPadding();
+  return draft;
+}
 
 export interface StudioOpenArgs {
   app: App;
@@ -52,7 +60,7 @@ const RENDER_DEBOUNCE_MS = 280;
 
 function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
   const { app, plugin, markdown, file, frontmatter, type } = props;
-  const [draft, setDraft] = useState<ExportImgSettings>(() => cloneSettings(plugin.settings));
+  const [draft, setDraft] = useState<ExportImgSettings>(() => createStudioDraft(plugin));
   const [settle, setSettle] = useState<SettleDiagnostic | null>(null);
   const [rendering, setRendering] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -182,6 +190,13 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
     });
   };
 
+  const onResetPadding = () => {
+    setDraft((prev) => ({
+      ...prev,
+      padding: readReadingViewPadding(),
+    }));
+  };
+
   const captureAll = async (): Promise<{ blob: Blob; index?: number }[]> => {
     const host = hostRef.current;
     if (!host) throw new Error('Host not ready');
@@ -275,6 +290,7 @@ function StudioApp(props: StudioOpenArgs & { onClose: () => void }) {
         busy={busy || rendering}
         onChange={onChange}
         onNestedChange={onNestedChange}
+        onResetPadding={onResetPadding}
         onCopy={() => void onCopy()}
         onSave={() => void onSave()}
       />
@@ -322,6 +338,7 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   settings.showFilename = false;
   settings.showMetadata = false;
   settings.split = { ...settings.split, mode: 'none' };
+  settings.padding = readReadingViewPadding();
 
   const holder = document.body.createDiv({ cls: 'export-img-offscreen' });
   try {

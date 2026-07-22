@@ -67,7 +67,8 @@ export interface ExportImgSettings {
   author: AuthorSettings;
   /**
    * When true, Export Studio re-renders the preview after committed config changes.
-   * Default false — change settings, then tap title-bar refresh (avoids thrashing while dragging).
+   * Default: on for desktop, off for mobile. When off, use Update preview or Copy/Save
+   * (they refresh the host first).
    */
   autoRerenderPreview: boolean;
 }

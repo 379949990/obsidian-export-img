@@ -75,7 +75,7 @@ describe('migrateLoadedSettings', () => {
     expect(shouldSave).toBe(false);
   });
 
-  it('fills autoRerenderPreview default when upgrading from v2', () => {
+  it('fills autoRerenderPreview default when upgrading from v2 without the key', () => {
     const { settings, shouldSave } = migrateLoadedSettings({
       settingsVersion: 2,
       width: 800,
@@ -88,10 +88,20 @@ describe('migrateLoadedSettings', () => {
     expect(shouldSave).toBe(true);
   });
 
-  it('applies platform autoRerender default when upgrading to v5', () => {
+  it('preserves explicit autoRerenderPreview when upgrading to v5', () => {
     const { settings, shouldSave } = migrateLoadedSettings({
       settingsVersion: 4,
       autoRerenderPreview: false,
+    } as Parameters<typeof migrateLoadedSettings>[0]);
+    expect(settings.autoRerenderPreview).toBe(false);
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(shouldSave).toBe(true);
+  });
+
+  it('fills platform autoRerender default when upgrading to v5 without the key', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 4,
+      width: 800,
     } as Parameters<typeof migrateLoadedSettings>[0]);
     expect(settings.autoRerenderPreview).toBe(true);
     expect(settings.settingsVersion).toBe(SETTINGS_VERSION);

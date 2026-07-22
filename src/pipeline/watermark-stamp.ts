@@ -1,6 +1,14 @@
 import type { ExportFormat, WatermarkSettings } from '../types';
 import { getMime } from './capture';
 
+/** Skip stamping when the capture is huge — second full-size canvas would risk OOM. */
+export const WATERMARK_MAX_CANVAS_PIXELS = 16_000_000;
+/**
+ * Soft cap on tile draws. Kept high so normal notes keep the designed 1.5× spacing;
+ * only extreme tall/wide captures grow the step.
+ */
+export const WATERMARK_MAX_TILES = 5_000;
+
 function blobToImage(blob: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob);
@@ -26,6 +34,29 @@ function loadImageSrc(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Grow tile steps only when the diagonal AABB would exceed maxTiles. */
+export function resolveWatermarkTileStep(
+  stepX: number,
+  stepY: number,
+  diag: number,
+  maxTiles = WATERMARK_MAX_TILES,
+): { stepX: number; stepY: number } {
+  const span = 2 * Math.max(1, diag);
+  let sx = Math.max(1, stepX);
+  let sy = Math.max(1, stepY);
+
+  for (let i = 0; i < 32; i++) {
+    const nx = Math.ceil(span / sx) + 1;
+    const ny = Math.ceil(span / sy) + 1;
+    if (nx * ny <= maxTiles) return { stepX: sx, stepY: sy };
+    // Jump toward budget instead of tiny 1.2× loops (keeps normal pages untouched).
+    const grow = Math.max(1.15, Math.sqrt((nx * ny) / maxTiles));
+    sx *= grow;
+    sy *= grow;
+  }
+  return { stepX: sx, stepY: sy };
+}
+
 /**
  * Draw watermark onto a captured bitmap.
  * DOM overlays are unreliable with modern-screenshot (transform/opacity clones);
@@ -45,10 +76,17 @@ export async function stampWatermarkOnBlob(
   if (!hasImage && !hasText) return blob;
 
   const base = await blobToImage(blob);
+  const width = base.naturalWidth || base.width;
+  const height = base.naturalHeight || base.height;
+  if (!(width > 0) || !(height > 0)) return blob;
+  if (width * height > WATERMARK_MAX_CANVAS_PIXELS) {
+    // Prefer an unstamped export over exhausting device memory.
+    return blob;
+  }
+
   const canvas = document.createElement('canvas');
-  canvas.width = base.naturalWidth || base.width;
-  canvas.height = base.naturalHeight || base.height;
-  if (!(canvas.width > 0) || !(canvas.height > 0)) return blob;
+  canvas.width = width;
+  canvas.height = height;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return blob;
@@ -72,8 +110,7 @@ export async function stampWatermarkOnBlob(
       const scale = Math.min(maxW / mark.naturalWidth, maxW / mark.naturalHeight, 1);
       const w = Math.max(1, mark.naturalWidth * scale);
       const h = Math.max(1, mark.naturalHeight * scale);
-      const stepX = w * 1.8 * 1.5;
-      const stepY = h * 1.8 * 1.5;
+      const { stepX, stepY } = resolveWatermarkTileStep(w * 1.8 * 1.5, h * 1.8 * 1.5, diag);
       for (let y = -diag; y <= diag; y += stepY) {
         for (let x = -diag; x <= diag; x += stepX) {
           ctx.drawImage(mark, x - w / 2, y - h / 2, w, h);
@@ -92,8 +129,11 @@ export async function stampWatermarkOnBlob(
 
     const text = watermark.text.trim();
     const metrics = ctx.measureText(text);
-    const stepX = Math.max(metrics.width * 1.35, fontPx * 5) * 1.5;
-    const stepY = Math.max(fontPx * 3.2, 56 * pr) * 1.5;
+    const { stepX, stepY } = resolveWatermarkTileStep(
+      Math.max(metrics.width * 1.35, fontPx * 5) * 1.5,
+      Math.max(fontPx * 3.2, 56 * pr) * 1.5,
+      diag,
+    );
 
     for (let y = -diag; y <= diag; y += stepY) {
       for (let x = -diag; x <= diag; x += stepX) {

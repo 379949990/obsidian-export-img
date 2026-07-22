@@ -87,7 +87,7 @@ Latest public release on `main`: **1.0.6** (`6e73389`).
 ## Shipped in 1.0.6 (context)
 
 - Mobile: restore full Split + 3×; no forced auto-pagination / scale clamp (advisory notices only)
-- Mobile: settings changes do not auto-refresh preview — manual title-bar refresh + stale banner
+- Mobile: settings changes do not auto-refresh preview by default — Update preview / Copy-Save refresh + stale banner
 - Mobile UI: restore modal side gutters (~92vw); preview fit ~94% / 3% gutters (width-based); panel label sizes restored
 - Mobile Save: vault attachments (per page); all-or-nothing for settings persist
 - Hygiene: live `current` theme via css-change + scheme in render sig; dead mobile flags / i18n / stubs removed
@@ -95,13 +95,13 @@ Latest public release on `main`: **1.0.6** (`6e73389`).
 ## Shipped / fixed on `v1.0.7` (in progress)
 
 - Studio preview: keep pan/zoom across updates — **only** first open + double-click/tap apply 94%/3% fit (refresh does not reset)
-- Author bar: host CSS forces sizer children into normal flow (v1.0.4 sibling model); `layoutAuthorBar` extends sizer `min-height` for overflow tables
-- Watermark: canvas stamp, font-weight **400**, default size **22px**, tile across diagonal AABB; defaults text `Watermark`, rotate **30°**, opacity **15%**
+- Author bar: host CSS forces sizer children into normal flow (v1.0.4 sibling model); `layoutAuthorBar` extends sizer `min-height` for overflow media
+- Watermark: canvas stamp with tile-step / canvas-pixel caps; font-weight **400**, default size **22px**; defaults text `Watermark`, rotate **30°**, opacity **15%**
 - Author presets: name `Your Name`, remark `The Description` (toggles still off by default)
 - Refresh control: preview pane bottom-right `mod-cta`「更新预览」; hint chip shrinks to text width
-- Copy / Save: never blocked by stale preview — refresh host to current draft first, then export
+- Copy / Save: never blocked by stale preview — refresh host to current draft first, then export (`busyRef` guards double-clicks)
 - Watermark/author toggles: session-only — Studio always opens unchecked; Save does not persist checked state (migrate v4)
-- Config → preview: `autoRerenderPreview` default **desktop on / mobile off** (migrate v5); sliders on release, text on blur
+- Config → preview: `autoRerenderPreview` default **desktop on / mobile off**; migrate v5 fills only when the key is missing
 - Preview loading: phase progress bar (hydrate / settle / capture pages)
 - Settings: sliders show live `%` / `°`; **Restore defaults** button
 
@@ -111,7 +111,7 @@ Latest public release on `main`: **1.0.6** (`6e73389`).
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin
-5. Extremely large notes / 3× on low-RAM devices may still OOM — plugin warns and leaves Split/scale under user control
+5. Extremely large notes / 3× on low-RAM devices may still OOM — watermark stamp skips above pixel budget; plugin warns and leaves Split/scale under user control
 6. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---

@@ -95,8 +95,8 @@ export function migrateLoadedSettings(data: RawSettingsData | null): {
     shouldSave = true;
   }
 
-  // v5: platform-aware auto-rerender default (desktop on, mobile off).
-  if (fromVersion < 5) {
+  // v5: fill platform default only when the key was missing (do not clobber user choice).
+  if (fromVersion < 5 && typeof rest.autoRerenderPreview !== 'boolean') {
     settings.autoRerenderPreview = !Platform.isMobile;
     shouldSave = true;
   }

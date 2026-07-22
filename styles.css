@@ -653,7 +653,7 @@
   right: auto !important;
   bottom: auto !important;
   width: 100% !important;
-  transform: none !important;
+  /* Do not force transform:none — nested fit-scale lives under these sections. */
 }
 
 /*

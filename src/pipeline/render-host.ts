@@ -176,6 +176,10 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
   const sizerTop = sizer.getBoundingClientRect().top;
   let maxBottom = Math.max(sizer.scrollHeight, sizer.offsetHeight, 0);
 
+  // Prefer section boxes; only probe common overflow media (not every descendant).
+  const overflowSel =
+    'table, pre, .cm-preview-code-block, .mermaid, .internal-embed, .image-embed, img, svg';
+
   for (const child of Array.from(sizer.children)) {
     if (!(child instanceof HTMLElement)) continue;
     if (child.classList.contains('export-img-page-hidden')) continue;
@@ -189,7 +193,7 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
       (child.offsetTop || 0) + Math.max(child.scrollHeight, child.offsetHeight, 0),
     );
 
-    for (const node of Array.from(child.querySelectorAll('*'))) {
+    for (const node of Array.from(child.querySelectorAll(overflowSel))) {
       if (!(node instanceof HTMLElement)) continue;
       if (node.closest('.export-img-page-hidden')) continue;
       const r = node.getBoundingClientRect();

@@ -174,6 +174,7 @@ function StudioApp(
   const appliedRenderSigRef = useRef<string>('');
   const commitTimerRef = useRef<number | null>(null);
   const previewWaitersRef = useRef<Array<(ok: boolean) => void>>([]);
+  const busyRef = useRef(false);
   const autoRerender = plugin.settings.autoRerenderPreview;
   draftRef.current = draft;
 
@@ -233,7 +234,7 @@ function StudioApp(
         if (appliedRenderSigRef.current !== want) {
           appliedRenderSigRef.current = '';
         }
-        setPreviewStale(false);
+        // Keep previewStale until the work effect succeeds — banner stays accurate.
         setDebouncedWorkSig(getWorkSignature(draftRef.current));
         setRefreshNonce((n) => n + 1);
       }
@@ -442,7 +443,6 @@ function StudioApp(
           });
           if (cancelled || token !== workToken.current) return;
 
-          appliedRenderSigRef.current = renderSig;
           setProgress(0.75, t('studio.progress.capture'));
 
           const captured = await captureStudioPages(host, settings, 'preview', {
@@ -459,8 +459,10 @@ function StudioApp(
           assertNonEmptyCapture(captured.parts, 'Preview capture');
           notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
 
+          appliedRenderSigRef.current = renderSig;
           invalidateExportCache();
           publishPreview(captured.parts);
+          setPreviewStale(false);
           setSettle({
             ...diag,
             status: diag.status === 'timed_out' ? 'timed_out' : 'ready',
@@ -490,6 +492,7 @@ function StudioApp(
         notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
         invalidateExportCache();
         publishPreview(captured.parts);
+        setPreviewStale(false);
         setSettle({
           status: 'ready',
           pendingImages: 0,
@@ -504,6 +507,7 @@ function StudioApp(
       } catch (error) {
         console.error(error);
         if (token === workToken.current) {
+          appliedRenderSigRef.current = '';
           setRendering(false);
           setRenderProgress(null);
           setRemoteHint(null);
@@ -526,6 +530,7 @@ function StudioApp(
       cancelled = true;
       workToken.current++;
       settleAbortRef.current?.abort();
+      // Do not resolve waiters here — a successor effect (or unmount cleanup) owns them.
     };
   }, [
     debouncedWorkSig,
@@ -637,6 +642,8 @@ function StudioApp(
   };
 
   const onCopy = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try {
       const ready = await ensureHostMatchesDraft();
@@ -654,11 +661,14 @@ function StudioApp(
       console.error(error);
       new Notice(t('notice.copyFail'));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
 
   const onSave = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try {
       const ready = await ensureHostMatchesDraft();
@@ -692,6 +702,7 @@ function StudioApp(
       console.error(error);
       new Notice(t('notice.saveFail'));
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };

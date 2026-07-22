@@ -5,9 +5,9 @@ import {
   waitForNextPaint,
 } from '../pipeline/overflow';
 import {
-  clampMobileExportScale,
   hasMobileMegaBlock,
-  resolveBudgetedCaptureScale,
+  isMobileCanvasRisk,
+  MOBILE_ADVISORY_PAGE_HEIGHT,
   resolveCaptureScale,
   resolveMobileSplitPlan,
 } from '../pipeline/mobile-limits';
@@ -18,7 +18,6 @@ import {
   paginateBlocks,
   resetPageBlocks,
   resolveSplitHeight,
-  type SplitBlock,
 } from '../pipeline/split';
 
 /** Preview work: rebuild offscreen DOM, or only re-capture an existing host. */
@@ -51,7 +50,7 @@ export function getExportCacheKey(settings: ExportImgSettings): string {
   return JSON.stringify({
     render: getRenderSignature(settings),
     format: settings.format,
-    scale: clampMobileExportScale(settings.scale),
+    scale: settings.scale,
     split: settings.split,
   });
 }
@@ -82,29 +81,22 @@ export interface CapturePagePart {
 
 export interface CaptureStudioResult {
   parts: CapturePagePart[];
-  /** Tall note was auto-paginated on mobile for memory safety. */
+  /** @deprecated Always false — auto-split removed. */
   mobileAutoSplit: boolean;
-  /** User asked for 3× but mobile capped to 2×. */
+  /** @deprecated Always false — scale is never capped. */
   mobileScaleCapped: boolean;
-  /** Scale further reduced to fit canvas pixel budget. */
+  /** @deprecated Always false — scale is never auto-reduced. */
   mobileScaleBudgeted: boolean;
-  /** At least one atomic block exceeds a single safe page height. */
+  /** At least one atomic block is extremely tall (advisory). */
   mobileMegaBlock: boolean;
-}
-
-function tallestPageHeight(pages: SplitBlock[][], fallback: number): number {
-  let max = 0;
-  for (const page of pages) {
-    const h = page.reduce((sum, b) => sum + b.height, 0);
-    if (h > max) max = h;
-  }
-  return max > 0 ? max : fallback;
+  /** Capture canvas likely heavy on mobile (advisory). */
+  mobileCanvasRisk: boolean;
 }
 
 /**
  * Capture the current host as preview (1×, no fonts) or export (configured scale).
  * Callers own settle / layout timing; pass skipPrepare when layout already ran.
- * On mobile: auto-paginate tall notes, cap scale, and budget canvas pixels.
+ * Mobile keeps full split / scale capability; risks are reported, not forced away.
  */
 export async function captureStudioPages(
   host: RenderHostHandle,
@@ -119,16 +111,10 @@ export async function captureStudioPages(
     await waitForNextPaint();
   }
 
-  let preferredScale = resolveCaptureScale(settings, kind);
-  const mobileScaleCapped =
-    kind === 'export' && settings.scale === '3x' && preferredScale < 3;
+  const preferredScale = resolveCaptureScale(settings, kind);
   const skipFontEmbed = kind === 'preview';
 
-  const splitPlan = resolveMobileSplitPlan(
-    settings,
-    captureEl.scrollHeight,
-    preferredScale,
-  );
+  const splitPlan = resolveMobileSplitPlan(settings);
   const effectiveSplit = {
     mode: splitPlan.mode,
     height: splitPlan.height,
@@ -136,19 +122,9 @@ export async function captureStudioPages(
 
   const allBlocks =
     effectiveSplit.mode === 'none' ? [] : getAtomicBlocks(contentEl);
-  const mobileMegaBlock = hasMobileMegaBlock(
-    allBlocks.map((b) => b.height),
-    resolveSplitHeight(effectiveSplit, settings.width),
-  );
 
   if (effectiveSplit.mode === 'none') {
     const contentH = Math.max(1, captureEl.scrollHeight);
-    const budgeted = resolveBudgetedCaptureScale(
-      settings.width,
-      contentH,
-      preferredScale,
-    );
-    preferredScale = budgeted.scale;
     const blob = await captureElement(
       captureEl,
       { scale: preferredScale, format: settings.format },
@@ -157,21 +133,30 @@ export async function captureStudioPages(
     return {
       parts: [{ blob }],
       mobileAutoSplit: false,
-      mobileScaleCapped,
-      mobileScaleBudgeted: budgeted.reduced,
-      mobileMegaBlock: hasMobileMegaBlock([contentH], splitPlan.height || 2400),
+      mobileScaleCapped: false,
+      mobileScaleBudgeted: false,
+      mobileMegaBlock: hasMobileMegaBlock([contentH], MOBILE_ADVISORY_PAGE_HEIGHT),
+      mobileCanvasRisk: isMobileCanvasRisk(
+        settings.width,
+        contentH,
+        preferredScale,
+      ),
     };
   }
 
   const maxH = resolveSplitHeight(effectiveSplit, settings.width);
   const pages = paginateBlocks(allBlocks, maxH, effectiveSplit.mode);
-  const tallest = tallestPageHeight(pages, maxH);
-  const budgeted = resolveBudgetedCaptureScale(
-    settings.width,
-    tallest,
-    preferredScale,
+  const mobileMegaBlock = hasMobileMegaBlock(
+    allBlocks.map((b) => b.height),
+    maxH,
   );
-  preferredScale = budgeted.scale;
+
+  let tallest = 0;
+  for (const page of pages) {
+    const h = page.reduce((sum, b) => sum + b.height, 0);
+    if (h > tallest) tallest = h;
+  }
+  if (tallest <= 0) tallest = maxH;
 
   const captureOpts = { scale: preferredScale, format: settings.format };
   const results: CapturePagePart[] = [];
@@ -203,10 +188,11 @@ export async function captureStudioPages(
 
   return {
     parts,
-    mobileAutoSplit: splitPlan.autoSplit,
-    mobileScaleCapped,
-    mobileScaleBudgeted: budgeted.reduced,
+    mobileAutoSplit: false,
+    mobileScaleCapped: false,
+    mobileScaleBudgeted: false,
     mobileMegaBlock,
+    mobileCanvasRisk: isMobileCanvasRisk(settings.width, tallest, preferredScale),
   };
 }
 

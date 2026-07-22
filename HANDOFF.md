@@ -95,7 +95,9 @@ Latest public release on `main`: **1.0.5** (`40a4fbf`). Push `main` if the relea
 
 ## Shipped / fixed on `v1.0.6` (in progress)
 
-_(none yet)_
+- Mobile: restore full Split + 3×; no forced auto-pagination / scale clamp (advisory notices only)
+- Mobile: settings changes do not auto-refresh preview — manual title-bar refresh + stale banner
+- Mobile UI: restore modal side gutters (~92vw); preview fit back to ~94% / 3% gutters; panel label sizes restored (compact inputs only)
 
 ## Known risks / good next work (not committed as plan)
 
@@ -103,7 +105,7 @@ _(none yet)_
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin
-5. Extremely large atomic blocks on low-RAM devices may still OOM despite auto-split
+5. Extremely large notes / 3× on low-RAM devices may still OOM — plugin warns and leaves Split/scale under user control
 6. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---

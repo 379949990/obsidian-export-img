@@ -27,7 +27,7 @@ import type { RemoteHydrateProgress } from '../pipeline/remote-images';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
 import { defaultSplitHeight } from '../pipeline/split';
-import { resolveSettleTimeoutMs, clampMobileExportScale } from '../pipeline/mobile-limits';
+import { resolveSettleTimeoutMs } from '../pipeline/mobile-limits';
 import { AppContext } from './app-context';
 import { FidelityPanel } from './fidelity-panel';
 import { PreviewPane } from './preview-pane';
@@ -45,9 +45,6 @@ function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
   if (draft.split.height <= 0) {
     draft.split.height = defaultSplitHeight(draft.width);
-  }
-  if (Platform.isMobile) {
-    draft.scale = clampMobileExportScale(draft.scale);
   }
   return draft;
 }
@@ -73,27 +70,17 @@ interface TitlebarState {
 function notifyMobileCaptureFlags(
   result: CaptureStudioResult,
   flags: {
-    autoSplit: boolean;
-    scaleCapped: boolean;
-    scaleBudgeted: boolean;
     megaBlock: boolean;
+    canvasRisk: boolean;
   },
 ): void {
-  if (result.mobileAutoSplit && !flags.autoSplit) {
-    flags.autoSplit = true;
-    new Notice(t('notice.mobileAutoSplit'), 7000);
-  }
-  if (result.mobileScaleCapped && !flags.scaleCapped) {
-    flags.scaleCapped = true;
-    new Notice(t('notice.mobileScaleCapped'), 6000);
-  }
-  if (result.mobileScaleBudgeted && !flags.scaleBudgeted) {
-    flags.scaleBudgeted = true;
-    new Notice(t('notice.mobileScaleBudgeted'), 7000);
-  }
   if (result.mobileMegaBlock && !flags.megaBlock) {
     flags.megaBlock = true;
     new Notice(t('notice.mobileMegaBlock'), 8000);
+  }
+  if (result.mobileCanvasRisk && !flags.canvasRisk) {
+    flags.canvasRisk = true;
+    new Notice(t('notice.mobileCanvasRisk'), 8000);
   }
 }
 
@@ -176,12 +163,10 @@ function StudioApp(
   const exportBlobsRef = useRef<CapturePagePart[] | null>(null);
   const exportSigRef = useRef<string | null>(null);
   const mobileNoticeFlagsRef = useRef({
-    autoSplit: false,
-    scaleCapped: false,
-    scaleBudgeted: false,
     megaBlock: false,
+    canvasRisk: false,
   });
-  const [mobileAutoSplitActive, setMobileAutoSplitActive] = useState(false);
+  const [previewStale, setPreviewStale] = useState(false);
   const appliedRenderSigRef = useRef<string>('');
   draftRef.current = draft;
 
@@ -202,6 +187,8 @@ function StudioApp(
   const onRefreshPreview = useCallback(() => {
     if (rendering) return;
     appliedRenderSigRef.current = '';
+    setPreviewStale(false);
+    setDebouncedWorkSig(getWorkSignature(draftRef.current));
     setViewResetNonce((n) => n + 1);
     setRefreshNonce((n) => n + 1);
   }, [rendering]);
@@ -215,19 +202,6 @@ function StudioApp(
     });
   }, [titleEl, settle, remoteHint, rendering, onRefreshPreview]);
 
-  const firstWorkPass = useRef(true);
-  useEffect(() => {
-    if (firstWorkPass.current) {
-      firstWorkPass.current = false;
-      setDebouncedWorkSig(workSignature);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setDebouncedWorkSig(workSignature);
-    }, RENDER_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [workSignature]);
-
   const publishPreview = useCallback((parts: CapturePagePart[]) => {
     revokePreviewUrls();
     const urls = parts.map((p) => URL.createObjectURL(p.blob));
@@ -239,6 +213,26 @@ function StudioApp(
     exportBlobsRef.current = null;
     exportSigRef.current = null;
   };
+
+  const firstWorkPass = useRef(true);
+  useEffect(() => {
+    if (firstWorkPass.current) {
+      firstWorkPass.current = false;
+      setDebouncedWorkSig(workSignature);
+      return;
+    }
+    // Mobile: config changes do not auto-rerender — user taps refresh.
+    if (Platform.isMobile) {
+      setPreviewStale(true);
+      exportBlobsRef.current = null;
+      exportSigRef.current = null;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setDebouncedWorkSig(workSignature);
+    }, RENDER_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [workSignature]);
 
   useEffect(() => {
     let cancelled = false;
@@ -363,7 +357,6 @@ function StudioApp(
           if (cancelled || token !== workToken.current) return;
           assertNonEmptyCapture(captured.parts, 'Preview capture');
           notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
-          setMobileAutoSplitActive(captured.mobileAutoSplit);
 
           invalidateExportCache();
           publishPreview(captured.parts);
@@ -383,7 +376,6 @@ function StudioApp(
         if (cancelled || token !== workToken.current) return;
         assertNonEmptyCapture(captured.parts, 'Preview capture');
         notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
-        setMobileAutoSplitActive(captured.mobileAutoSplit);
         invalidateExportCache();
         publishPreview(captured.parts);
         setSettle({
@@ -516,7 +508,6 @@ function StudioApp(
       // Export path: reuse settled DOM; capture at export scale with fonts.
       const captured = await captureStudioPages(host, draft, 'export');
       notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
-      setMobileAutoSplitActive(captured.mobileAutoSplit);
       parts = captured.parts;
       exportBlobsRef.current = parts;
       exportSigRef.current = sig;
@@ -525,6 +516,10 @@ function StudioApp(
   };
 
   const onCopy = async () => {
+    if (previewStale) {
+      new Notice(t('notice.mobileRefreshFirst'));
+      return;
+    }
     setBusy(true);
     try {
       const parts = await ensureExportParts();
@@ -542,6 +537,10 @@ function StudioApp(
   };
 
   const onSave = async () => {
+    if (previewStale) {
+      new Notice(t('notice.mobileRefreshFirst'));
+      return;
+    }
     setBusy(true);
     try {
       const parts = await ensureExportParts();
@@ -587,7 +586,7 @@ function StudioApp(
         settleStatus={settle?.status ?? null}
         exportDespiteTimeout={exportDespiteTimeout}
         onExportDespiteTimeout={setExportDespiteTimeout}
-        mobileAutoSplitActive={mobileAutoSplitActive}
+        previewStale={previewStale}
         paddingMode={paddingMode}
         onChange={onChange}
         onNestedChange={onNestedChange}

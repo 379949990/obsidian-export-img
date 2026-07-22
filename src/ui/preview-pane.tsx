@@ -20,8 +20,8 @@ const MAX_SCALE = 6;
 
 /**
  * Margin as a fraction of the *displayed image width*.
- * left + image + right = viewport → imageWidth = viewport / (1 + 2 * MARGIN_RATIO)
- * top uses the same gap length (3% of image width).
+ * left + image + right = viewport → imageWidth = viewport / (1 + 2 * MARGIN_RATIO) ≈ 94%
+ * top / left / right use the same gap length (3% of image width).
  */
 const MARGIN_RATIO = 0.03;
 
@@ -39,25 +39,12 @@ interface PointerSample {
   y: number;
 }
 
-function initialFrame(
-  viewportW: number,
-  viewportH: number,
-  naturalW: number,
-  naturalH: number,
-  pageCount: number,
-): Frame {
+function initialFrame(viewportW: number, naturalW: number): Frame {
   const vw = Math.max(40, viewportW);
-  const vh = Math.max(40, viewportH);
   const imageW = vw / (1 + 2 * MARGIN_RATIO);
   const gap = imageW * MARGIN_RATIO;
-  let scale = imageW / Math.max(1, naturalW);
-  // Multi-page stacks: also fit height so the first pages stay on-screen.
-  if (pageCount > 1 && naturalH > 0) {
-    const maxH = Math.max(40, vh - gap * 2);
-    scale = Math.min(scale, maxH / naturalH);
-  }
   return {
-    scale,
+    scale: imageW / Math.max(1, naturalW),
     x: gap,
     y: gap,
   };
@@ -72,6 +59,13 @@ function measureStackSize(stack: HTMLElement | null, pageCount: number): { w: nu
     images.reduce((sum, node) => sum + node.naturalHeight, 0) +
     Math.max(0, pageCount - 1) * 16;
   return { w: first.naturalWidth, h: totalH || first.naturalHeight };
+}
+
+function stackImagesReady(stack: HTMLElement | null, expectedCount: number): boolean {
+  if (!stack || expectedCount <= 0) return false;
+  const images = Array.from(stack.querySelectorAll('img'));
+  if (images.length < expectedCount) return false;
+  return images.every((img) => img.complete && img.naturalWidth > 0);
 }
 
 function pointerDistance(a: PointerSample, b: PointerSample): number {
@@ -131,12 +125,13 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
         window.requestAnimationFrame(apply);
         return;
       }
-      const { w, h } = measureStackSize(st, pageCount);
+      if (!stackImagesReady(st, pageCount)) return;
+      const { w } = measureStackSize(st, pageCount);
       if (w <= 0) return;
       userMovedRef.current = false;
       pendingResetRef.current = false;
       fittedOnceRef.current = true;
-      setFrame(initialFrame(vp.clientWidth, vp.clientHeight, w, h, pageCount));
+      setFrame(initialFrame(vp.clientWidth, w));
     };
 
     apply();
@@ -149,10 +144,18 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     lastResetNonceRef.current = viewResetNonce;
     if (viewResetNonce === 0) return;
     pendingResetRef.current = true;
+    fittedOnceRef.current = false;
     if (primaryUrl) {
       fitToView();
     }
   }, [viewResetNonce, primaryUrl, fitToView]);
+
+  // New preview content: always re-fit to 94% width / 3% gutters.
+  useEffect(() => {
+    fittedOnceRef.current = false;
+    pendingResetRef.current = true;
+    userMovedRef.current = false;
+  }, [primaryUrl, pageCount]);
 
   useEffect(() => {
     if (!primaryUrl) return;
@@ -161,9 +164,7 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     let cancelled = false;
     const tryFit = () => {
       if (cancelled) return;
-      const stack = stackRef.current;
-      const img = stack?.querySelector('img');
-      if (img && img.complete && img.naturalWidth > 0) {
+      if (stackImagesReady(stackRef.current, pageCount)) {
         fitToView();
         return;
       }

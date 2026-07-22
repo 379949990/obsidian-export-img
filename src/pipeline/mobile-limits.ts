@@ -3,14 +3,12 @@ import type { ExportImgSettings, ScaleMode, SplitMode } from '../types';
 import { scaleToNumber } from '../settings';
 import { defaultSplitHeight } from './split';
 
-/** Soft cap for a single capture canvas height on phones (CSS px). */
-export const MOBILE_MAX_PAGE_HEIGHT = 2400;
-
 /**
- * Soft pixel budget for one capture canvas (width × height × scale²).
- * ~8M keeps RGBA backing stores near ~32MB before encoder overhead.
+ * Advisory soft caps for mobile memory risk notices (do not force-reduce
+ * user scale or auto-split — capabilities stay intact).
  */
-export const MOBILE_MAX_CANVAS_PIXELS = 8_000_000;
+export const MOBILE_ADVISORY_PAGE_HEIGHT = 2400;
+export const MOBILE_ADVISORY_CANVAS_PIXELS = 8_000_000;
 
 /** Prefer shorter settle waits on mobile to reduce hangs before OOM. */
 export function resolveSettleTimeoutMs(settingsTimeoutMs: number): number {
@@ -18,19 +16,9 @@ export function resolveSettleTimeoutMs(settingsTimeoutMs: number): number {
   return Math.min(settingsTimeoutMs, 5000);
 }
 
-/** Export scale on mobile: never above 2× (3× canvases OOM easily). */
+/** Kept for call-site clarity; mobile no longer clamps export scale. */
 export function clampMobileExportScale(scale: ScaleMode): ScaleMode {
-  if (!Platform.isMobile) return scale;
-  if (scale === '3x') return '2x';
   return scale;
-}
-
-/** Max CSS height that fits the canvas pixel budget at the given width/scale. */
-export function maxHeightForCanvasBudget(width: number, scale: number): number {
-  const w = Math.max(1, width);
-  const s = Math.max(1, scale);
-  const raw = Math.floor(MOBILE_MAX_CANVAS_PIXELS / (w * s * s));
-  return Math.max(200, Math.min(MOBILE_MAX_PAGE_HEIGHT, raw));
 }
 
 export function canvasPixelCount(width: number, height: number, scale: number): number {
@@ -42,88 +30,56 @@ export function resolveCaptureScale(
   kind: 'preview' | 'export',
 ): number {
   if (kind === 'preview') return 1;
-  return scaleToNumber(clampMobileExportScale(settings.scale));
+  return scaleToNumber(settings.scale);
 }
 
-/**
- * Drop export scale until the tallest page fits the pixel budget (mobile only).
- * Returns the numeric scale to use for capture.
- */
-export function resolveBudgetedCaptureScale(
+/** True when a capture is likely heavy on mobile (advisory only). */
+export function isMobileCanvasRisk(
   width: number,
-  tallestPageHeight: number,
-  preferredScale: number,
-): { scale: number; reduced: boolean } {
-  if (!Platform.isMobile) {
-    return { scale: preferredScale, reduced: false };
-  }
-  let scale = Math.max(1, preferredScale);
-  while (
-    scale > 1 &&
-    canvasPixelCount(width, tallestPageHeight, scale) > MOBILE_MAX_CANVAS_PIXELS
-  ) {
-    scale -= 1;
-  }
-  return { scale, reduced: scale < preferredScale };
+  height: number,
+  scale: number,
+): boolean {
+  if (!Platform.isMobile) return false;
+  return (
+    height > MOBILE_ADVISORY_PAGE_HEIGHT ||
+    canvasPixelCount(width, height, scale) > MOBILE_ADVISORY_CANVAS_PIXELS
+  );
 }
 
 export interface MobileSplitPlan {
   mode: SplitMode;
   height: number;
+  /** Always false — split mode is user-controlled. */
   autoSplit: boolean;
 }
 
 /**
- * For tall notes with split off, force fixed-height pages on mobile so
- * capture never builds one giant canvas (common crash on iPhone).
- * Page height is also capped by the canvas pixel budget at the preferred scale.
+ * Resolve split settings for capture. Mobile does not force pagination;
+ * honors the user's Split mode / height.
  */
 export function resolveMobileSplitPlan(
   settings: ExportImgSettings,
-  contentHeightPx: number,
-  preferredScale = 1,
+  _contentHeightPx = 0,
+  _preferredScale = 1,
 ): MobileSplitPlan {
-  const budgetH = maxHeightForCanvasBudget(settings.width, preferredScale);
-
-  if (!Platform.isMobile || settings.split.mode !== 'none') {
-    const baseH =
-      settings.split.height > 0
-        ? settings.split.height
-        : defaultSplitHeight(settings.width);
-    return {
-      mode: settings.split.mode,
-      height: Platform.isMobile ? Math.min(baseH, budgetH) : baseH,
-      autoSplit: false,
-    };
-  }
-
-  if (contentHeightPx <= budgetH) {
-    return {
-      mode: 'none',
-      height: settings.split.height,
-      autoSplit: false,
-    };
-  }
-
-  const height = Math.min(
-    budgetH,
+  const baseH =
     settings.split.height > 0
       ? settings.split.height
-      : defaultSplitHeight(settings.width),
-  );
-
+      : defaultSplitHeight(settings.width);
   return {
-    mode: 'fixed',
-    height: Math.max(200, height),
-    autoSplit: true,
+    mode: settings.split.mode,
+    height: baseH,
+    autoSplit: false,
   };
 }
 
-/** True when any atomic block alone exceeds the mobile page budget. */
+/** True when any atomic block alone exceeds an advisory page height. */
 export function hasMobileMegaBlock(
   blockHeights: number[],
   maxPageHeight: number,
 ): boolean {
   if (!Platform.isMobile) return false;
-  return blockHeights.some((h) => h > maxPageHeight + 0.5);
+  const limit =
+    maxPageHeight > 0 ? maxPageHeight : MOBILE_ADVISORY_PAGE_HEIGHT;
+  return blockHeights.some((h) => h > limit + 0.5);
 }

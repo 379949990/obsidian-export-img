@@ -127,8 +127,10 @@ Exports approximate Reading view; they are not a screenshot of the open pane:
 - Offscreen render host, not the live Reading DOM
 - Wide blocks are fitted to the chosen width
 - “Frontmatter” is a simplified property table, not the Obsidian Properties UI
+- Forced light/dark copies app theme CSS variables onto the export host; community themes that style via `body.theme-*` descendant selectors (not variables) may still partially follow the shell
 - Math settles when MathJax containers are present; complex equations may still soft-timeout
 - Community themes and plugin widgets may differ
+- Code blocks and tables keep Reading column width (not shrink-to-fit); very long lines may extend the bitmap
 - Preview is 1× without fonts; export uses your scale with fonts
 - Slow assets may soft-timeout (status: Timed out — export blocked until confirmed)
 

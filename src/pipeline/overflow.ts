@@ -2,10 +2,6 @@ import type { EmbedAlign, PaddingSettings } from '../types';
 
 const WIDE_BLOCK_SELECTOR = [
   '.mermaid',
-  'pre',
-  'table',
-  '.table-wrapper',
-  '.cm-preview-code-block',
   '.mjx-container',
   '.MathJax',
 ].join(',');
@@ -19,6 +15,7 @@ const UNLOCK_OVERFLOW_SELECTOR = [
   '.cm-preview-code-block',
   '.mermaid',
   'pre',
+  'table',
   '.internal-embed',
   '.image-embed',
 ].join(',');
@@ -297,9 +294,9 @@ function fitBlockToWidth(
 
 /**
  * Prepare embeds for capture:
- * - Wide / horizontally scrollable blocks fit to content width (100%).
- * - Height optionally clamped by embedMaxHeight.
- * - embedAlign applies only to media that reaches that height cap.
+ * - Mermaid / Math fit to content width (optional height clamp).
+ * - Code blocks and tables keep Reading-view column width (no transform scale).
+ * - embedAlign applies only to media that reaches the height cap.
  */
 export function prepareEmbedLayout(
   root: HTMLElement,

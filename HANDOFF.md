@@ -110,7 +110,7 @@ Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/
 
 ## Known risks / good next work (not committed as plan)
 
-1. Theme fidelity still limited — community themes diverge beyond body class + a few vars
+1. Theme fidelity: forced light/dark copies CSS variables from a brief body scheme swap; rules keyed only as `body.theme-* …` descendants (not variables) may still partially follow the shell
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin

@@ -492,22 +492,10 @@
 
 .export-img-host.theme-light {
   color-scheme: light;
-  --background-primary: #ffffff;
-  --background-secondary: #f6f6f6;
-  --text-normal: #222222;
-  --text-muted: #666666;
-  background: var(--background-primary);
-  color: var(--text-normal);
 }
 
 .export-img-host.theme-dark {
   color-scheme: dark;
-  --background-primary: #1e1e1e;
-  --background-secondary: #2a2a2a;
-  --text-normal: #dadada;
-  --text-muted: #aaaaaa;
-  background: var(--background-primary);
-  color: var(--text-normal);
 }
 
 .export-img-capture {
@@ -631,6 +619,27 @@
   padding: 0;
   overflow: visible;
   background: transparent;
+}
+
+/*
+ * Reading view keeps code / tables at the note column width (scroll inside).
+ * Do not transform-scale them — that shrinks glyphs and changes the “region”
+ * vs Reading. Unlock overflow so long lines still paint for capture.
+ */
+.export-img-host .cm-preview-code-block,
+.export-img-host .markdown-preview-view pre,
+.export-img-host .table-wrapper,
+.export-img-host .markdown-preview-view table {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.export-img-host .cm-preview-code-block {
+  width: 100%;
+}
+
+.export-img-host .markdown-preview-view pre {
+  width: 100%;
 }
 
 .export-img-title.inline-title {

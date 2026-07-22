@@ -72,8 +72,8 @@ export async function stampWatermarkOnBlob(
       const scale = Math.min(maxW / mark.naturalWidth, maxW / mark.naturalHeight, 1);
       const w = Math.max(1, mark.naturalWidth * scale);
       const h = Math.max(1, mark.naturalHeight * scale);
-      const stepX = w * 1.8;
-      const stepY = h * 1.8;
+      const stepX = w * 1.8 * 1.5;
+      const stepY = h * 1.8 * 1.5;
       for (let y = -diag; y <= diag; y += stepY) {
         for (let x = -diag; x <= diag; x += stepX) {
           ctx.drawImage(mark, x - w / 2, y - h / 2, w, h);
@@ -92,8 +92,8 @@ export async function stampWatermarkOnBlob(
 
     const text = watermark.text.trim();
     const metrics = ctx.measureText(text);
-    const stepX = Math.max(metrics.width * 1.35, fontPx * 5);
-    const stepY = Math.max(fontPx * 3.2, 56 * pr);
+    const stepX = Math.max(metrics.width * 1.35, fontPx * 5) * 1.5;
+    const stepY = Math.max(fontPx * 3.2, 56 * pr) * 1.5;
 
     for (let y = -diag; y <= diag; y += stepY) {
       for (let x = -diag; x <= diag; x += stepX) {

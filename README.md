@@ -38,7 +38,7 @@ Requires Obsidian **1.5.7+**. Plugin id: `export-img`.
 
 Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HANDOFF.md).
 
-**Current development branch:** `v1.0.5`
+**Current development branch:** `v1.0.6`
 
 ---
 

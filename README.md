@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <strong>Export Img</strong> — a high-fidelity <em>approximation</em> of Reading view as an image.<br/>
-  Theme · Callouts · Code · Math · Mermaid · Embeds · Properties
+  <strong>Export Img</strong> — export Markdown notes as images that approximate Obsidian Reading view.<br/>
+  Themes · Callouts · Code · Math · Mermaid · Embeds · Frontmatter · Author · Watermark
 </p>
 
 <p align="center">
@@ -16,93 +16,129 @@
 
 ---
 
-## Why this plugin
+## What it does
 
-Most “export as image” tools screenshot a flattened DOM and hope for the best. **Export Img** uses Reading view as the **visual target**, then rebuilds a capture host:
+Export Img opens an **Export Studio** that:
 
-1. **Render** with Obsidian’s own `MarkdownRenderer`
-2. **Settle** until images, fonts, and async diagrams are ready (soft timeouts — see below)
-3. **Fit** wide blocks (Mermaid, tables, code) to the content width
-4. **Capture** with `modern-screenshot` at the resolution you choose for export
+1. Renders the note with Obsidian’s `MarkdownRenderer`
+2. Loads remote images through Obsidian `requestUrl` into a **session cache** (status shows progress; first preview waits until they are ready)
+3. Fits wide blocks to the export width and optionally clamps media height
+4. Settles images, fonts, and diagrams, then captures with [modern-screenshot](https://github.com/qq15725/modern-screenshot)
 
-Studio preview stays at **1×** so iteration stays fast. **Copy / Save** use your configured multiplier (default **2×**). Preview and export are intentionally not identical (scale + font embedding).
+Studio **preview** stays at **1×** for speed. **Copy / Save** use your export scale (default **2×**) with font embedding.
+
+---
+
+## Install
+
+1. Community plugins → search **Export Img** *(after publish)*, or
+2. Manual: put `main.js`, `manifest.json`, and `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/export-img/`
+
+Requires Obsidian **1.5.7+**. Plugin id: `export-img`.
+
+Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HANDOFF.md).
+
+**Current development branch:** `v1.0.4`
+
+---
+
+## Usage
+
+| Action | How |
+| --- | --- |
+| Export note | Command / file menu → Export Img |
+| Export selection | Command / editor menu (optional quick-copy skips Studio) |
+| Export folder | Folder menu → ZIP of images (desktop) |
+| Refresh preview | Title-bar refresh control when status is idle / ready |
+
+Settings open from **Settings → Export Img**. Author/watermark fields there are **prefill only** — enable them with the toggles inside Export Studio. **Save** writes the studio draft back to plugin settings (Copy does not).
 
 ---
 
 ## Features
 
-| Capability | Detail |
+### Export Studio
+
+- Live bitmap preview with pan / zoom
+- Shared controls for width, theme, padding, split, media limits, decorations
+- Settle status (idle / rendering / ready / timed out) plus remote-image loading progress
+- On timeout, Copy/Save stay disabled until you confirm **Export anyway**
+- Manual **refresh** rebuilds the capture host and resets preview pan/zoom
+
+### Media layout
+
+| Setting | Behavior |
 | --- | --- |
-| Export Studio | Live bitmap preview with pan / zoom; shared controls with export |
-| SettleGate | Waits for media & Mermaid before Ready; slow assets may soft-timeout |
-| Theme modes | Current · Light · Dark (core CSS variables; community themes may diverge) |
-| Chrome | Note title, Properties, padding (preset ↔ document) |
-| Media limits | Max height + align for embeds / Mermaid / wide blocks |
-| Long notes | Split by fixed height (A4 default), HR, or block boundaries — never mid-element |
-| Decorations | Text / image watermark, author bar |
-| Batch | Folder → ZIP of images |
-| Selection | Export selection; optional quick copy |
+| **Max media height** | Caps embeds, Mermaid, and other wide blocks after width fit. `0` / empty = no limit |
+| **Media alignment** | **Left** or **Center**, applied only to media that **reaches** that height cap. Shorter media keeps the note’s own layout |
 
----
+HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** — only Obsidian embed images use block layout.
 
-## Known differences vs Reading view
+### Remote images
 
-Exports are **not** a pixel-perfect clone of the open Reading pane:
+- Network `http(s)` images are fetched once per plugin session and reused from an in-memory blob cache
+- Rejects non-image MIME types and payloads over ~12 MB; failures show a notice
+- Title bar shows loading progress until hydrate finishes, then the first preview is captured
+- Cache is cleared when the plugin unloads
 
-- Capture uses an offscreen host, not the live Reading DOM
-- Wide blocks are scaled/fitted for the chosen export width
-- Community themes and plugin-rendered blocks may look different
-- Studio preview is 1× without font embedding; Copy/Save use your scale with fonts
-- Settle can proceed after soft timeouts (slow remote images / Mermaid)
+### Decorations
 
-Use Reading view as the baseline for visual QA, not as a guarantee of identity.
+- **Author bar** — toggle (Studio only), name, bio, alignment, **avatar** (upload / vault file as data URL / remote URL)
+- **Watermark** — toggle (Studio only), text or image, opacity and rotation
 
----
+### Long notes
 
-## Install (users)
+- Split: off · fixed height · horizontal rules
+- Default fixed page height ≈ `width × 1.414` (A4). Blocks are never cut mid-element.
 
-1. Community plugins → search **Export Img** *(after first publish)*, or
-2. Manual: download `main.js` + `manifest.json` + `styles.css` from [Releases](https://github.com/379949990/obsidian-export-img/releases) into `.obsidian/plugins/export-img/`
+### Batch & selection
 
-Requires Obsidian **1.5.7+**. Contributors: see [README.dev.md](README.dev.md).
+- Folder export → ZIP on desktop; individual vault saves on mobile
+- Selection export; optional quick copy without opening Studio
 
 ---
 
 ## Desktop & mobile
 
-**Desktop is the primary target** (Export Studio, ZIP download, clipboard).
+**Desktop** is the primary target (Studio, clipboard, ZIP).
 
-On **mobile** (`isDesktopOnly: false`):
+On **mobile**:
 
-- **Save** writes image files into the vault via `getAvailablePathForAttachment` (not a system download dialog)
-- **Copy** may fail when the clipboard image API is unavailable — prefer Save
-- Multi-page / folder exports save images individually (no ZIP)
-- Large notes and high scale multipliers are heavier; expect slower Ready and more memory use
+- **Save** writes into the vault via `getAvailablePathForAttachment`
+- **Copy** may be unavailable — prefer Save
+- Multi-page / folder exports save files individually (no ZIP)
+- Large notes and 3× scale use more memory and take longer to settle
 
 ---
 
-## Resolution & performance
+## Resolution
 
-| Path | Scale | Fonts embedded | Intent |
+| Path | Scale | Fonts | Intent |
 | --- | ---: | --- | --- |
-| Studio preview | **1×** | No | Fast Ready feedback |
-| Copy / Save | **1× / 2× / 3×** | Yes (WOFF2 preferred) | Export sharpness |
-
-Higher multipliers cost more time roughly with pixel area — choose 2× for sharing, 3× when you will crop/zoom.
+| Studio preview | 1× | No | Fast feedback |
+| Copy / Save | 1× / 2× / 3× | Yes | Shareable sharpness |
 
 ---
 
-## Long-note split
+## Limits vs Reading view
 
-- **Fixed / Auto:** pack whole blocks into pages; default page content height = `width × 1.414` (A4).
-- **HR:** cut on horizontal rules.
-- Each page keeps its own padding; blocks are never sliced mid-element (a single oversized block may exceed the target height).
+Exports approximate Reading view; they are not a screenshot of the open pane:
+
+- Offscreen render host, not the live Reading DOM
+- Wide blocks are fitted to the chosen width
+- “Frontmatter” is a simplified property table, not the Obsidian Properties UI
+- Math settles when MathJax containers are present; complex equations may still soft-timeout
+- Community themes and plugin widgets may differ
+- Preview is 1× without fonts; export uses your scale with fonts
+- Slow assets may soft-timeout (status: Timed out — export blocked until confirmed)
 
 ---
 
 ## Credits
 
-Capture powered by [modern-screenshot](https://github.com/qq15725/modern-screenshot). Inspired by the broader Obsidian export-image ecosystem; this project prioritizes a **faithful Reading-view-like** export over feature sprawl.
+Inspired by the community [Export Image](https://community.obsidian.md/plugins/obsidian-export-image) plugin — this project is a **full rewrite and enhancement**, focused on Reading-view fidelity.
+
+Capture: [modern-screenshot](https://github.com/qq15725/modern-screenshot).
 
 ## License
 

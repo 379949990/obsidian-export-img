@@ -46,3 +46,15 @@ export type App = {
 export function getLanguage(): string {
   return 'en';
 }
+
+export function setIcon(_el: HTMLElement, _icon: string): void {}
+
+export async function requestUrl(_opts: {
+  url: string;
+  method?: string;
+}): Promise<{ arrayBuffer: ArrayBuffer; headers: Record<string, string> }> {
+  return {
+    arrayBuffer: new ArrayBuffer(8),
+    headers: { 'content-type': 'image/png' },
+  };
+}

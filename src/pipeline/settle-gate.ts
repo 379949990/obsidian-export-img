@@ -136,7 +136,7 @@ async function waitForFonts(signal: AbortSignal): Promise<boolean> {
   }
 }
 
-/** Wait for Mermaid/MathJax SVG nodes without a long ResizeObserver loop. */
+/** Wait for Mermaid / MathJax nodes without a long ResizeObserver loop. */
 async function waitForAsyncDiagrams(
   root: HTMLElement,
   signal: AbortSignal,
@@ -145,17 +145,30 @@ async function waitForAsyncDiagrams(
   const hasPendingMermaid = () =>
     Array.from(root.querySelectorAll('.mermaid')).some((el) => !el.querySelector('svg'));
 
-  if (!hasPendingMermaid()) return [];
+  const hasPendingMath = () =>
+    Array.from(root.querySelectorAll('.mjx-container, .MathJax')).some((el) => {
+      if (el.querySelector('svg, mjx-assistive-mml, .MathJax_SVG')) return false;
+      // Empty container still rendering.
+      return el.childElementCount === 0 || !el.textContent?.trim();
+    });
+
+  const hasPending = () => hasPendingMermaid() || hasPendingMath();
+
+  if (!hasPending()) return [];
   const deadline = performance.now() + budgetMs;
   while (performance.now() < deadline) {
     if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-    if (!hasPendingMermaid()) return [];
+    if (!hasPending()) return [];
     await delay(32, signal);
   }
+  const warnings: string[] = [];
   if (hasPendingMermaid()) {
-    return ['Mermaid diagrams still pending after settle budget'];
+    warnings.push('Mermaid diagrams still pending after settle budget');
   }
-  return [];
+  if (hasPendingMath()) {
+    warnings.push('Math still pending after settle budget');
+  }
+  return warnings;
 }
 
 export async function settleElement(

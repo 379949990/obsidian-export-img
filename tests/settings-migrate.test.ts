@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS } from '../src/settings';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION } from '../src/settings';
 import { migrateLoadedSettings } from '../src/settings-migrate';
 
 describe('migrateLoadedSettings', () => {
@@ -7,7 +7,7 @@ describe('migrateLoadedSettings', () => {
     const { settings, shouldSave } = migrateLoadedSettings({
       padding: { top: 10, right: 10, bottom: 10, left: 10 },
     });
-    expect(settings.settingsVersion).toBe(1);
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
     expect(settings.padding).toEqual({ top: 10, right: 10, bottom: 10, left: 10 });
     expect(shouldSave).toBe(true);
   });
@@ -27,10 +27,10 @@ describe('migrateLoadedSettings', () => {
     expect(shouldSave).toBe(true);
   });
 
-  it('does not rewrite legacy-looking padding once versioned', () => {
+  it('does not rewrite legacy-looking padding once at current version', () => {
     const intentional = { top: 128, right: 64, bottom: 128, left: 64 };
     const { settings, shouldSave } = migrateLoadedSettings({
-      settingsVersion: 1,
+      settingsVersion: SETTINGS_VERSION,
       padding: intentional,
     });
     expect(settings.padding).toEqual(intentional);
@@ -55,7 +55,7 @@ describe('migrateLoadedSettings', () => {
 
   it('merges partial nested watermark and author without dropping defaults', () => {
     const { settings } = migrateLoadedSettings({
-      settingsVersion: 1,
+      settingsVersion: SETTINGS_VERSION,
       watermark: { enable: true, text: 'WM' },
       author: { show: true, name: 'Ada' },
     } as Parameters<typeof migrateLoadedSettings>[0]);
@@ -67,11 +67,22 @@ describe('migrateLoadedSettings', () => {
     expect(settings.author.align).toBe(DEFAULT_SETTINGS.author.align);
   });
 
-  it('does not require save when already migrated without legacy keys', () => {
+  it('does not require save when already at current version without legacy keys', () => {
     const { shouldSave } = migrateLoadedSettings({
       ...DEFAULT_SETTINGS,
-      settingsVersion: 1,
+      settingsVersion: SETTINGS_VERSION,
     });
     expect(shouldSave).toBe(false);
+  });
+
+  it('maps legacy split.auto to fixed and drops overlap', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 1,
+      split: { mode: 'auto', height: 900, overlap: 40 } as never,
+    });
+    expect(settings.split.mode).toBe('fixed');
+    expect(settings.split.height).toBe(900);
+    expect('overlap' in settings.split).toBe(false);
+    expect(shouldSave).toBe(true);
   });
 });

@@ -10,6 +10,8 @@ import { t } from '../i18n';
 interface PreviewPaneProps {
   imageUrls: string[];
   rendering: boolean;
+  /** Bump to force fit-to-view (title-bar refresh). */
+  viewResetNonce?: number;
 }
 
 const MIN_SCALE = 0.15;
@@ -50,11 +52,14 @@ function measureStackSize(stack: HTMLElement | null, pageCount: number): { w: nu
   return { w: first.naturalWidth, h: totalH || first.naturalHeight };
 }
 
-export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
+export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState<Frame>({ scale: 1, x: 0, y: 0 });
+  const fittedOnceRef = useRef(false);
   const userMovedRef = useRef(false);
+  const pendingResetRef = useRef(false);
+  const lastResetNonceRef = useRef(viewResetNonce);
   const dragRef = useRef<{
     active: boolean;
     startX: number;
@@ -82,18 +87,33 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
       const { w } = measureStackSize(st, pageCount);
       if (w <= 0) return;
       userMovedRef.current = false;
+      pendingResetRef.current = false;
+      fittedOnceRef.current = true;
       setFrame(initialFrame(vp.clientWidth, w));
     };
 
     apply();
   }, [pageCount]);
 
-  // Blob/cached images often finish before onLoad is attached — poll complete on URL change.
+  const shouldFit = () => !fittedOnceRef.current || pendingResetRef.current;
+
+  // Title-bar refresh: reset view on next available image.
+  useEffect(() => {
+    if (viewResetNonce === lastResetNonceRef.current) return;
+    lastResetNonceRef.current = viewResetNonce;
+    if (viewResetNonce === 0) return;
+    pendingResetRef.current = true;
+    if (primaryUrl) {
+      fitToView();
+    }
+  }, [viewResetNonce, primaryUrl, fitToView]);
+
+  // First image only — later URL swaps keep pan/zoom.
   useEffect(() => {
     if (!primaryUrl) return;
-    userMovedRef.current = false;
-    let cancelled = false;
+    if (!shouldFit()) return;
 
+    let cancelled = false;
     const tryFit = () => {
       if (cancelled) return;
       const stack = stackRef.current;
@@ -117,7 +137,14 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
       if (userMovedRef.current || dragRef.current.active) return;
-      fitToView();
+      if (!fittedOnceRef.current) {
+        fitToView();
+        return;
+      }
+      // After the user has a frame, viewport resize re-fits only if they never panned/zoomed.
+      if (!userMovedRef.current) {
+        fitToView();
+      }
     });
     observer.observe(viewport);
     return () => observer.disconnect();
@@ -214,7 +241,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
                 draggable={false}
                 onLoad={() => {
                   if (index !== 0) return;
-                  fitToView();
+                  if (shouldFit()) fitToView();
                 }}
               />
             </div>

@@ -1,7 +1,7 @@
 import type { ExportImgSettings, PluginLocale, EmbedAlign } from './types';
 
 /** Bump when adding a migration step that must run exactly once per install. */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   settingsVersion: SETTINGS_VERSION,
@@ -26,12 +26,11 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
    * 0 = no height clamp.
    */
   embedMaxHeight: 360,
-  embedAlign: 'center',
+  embedAlign: 'left',
   split: {
     mode: 'none',
-    /** 0 = auto (width × 1.414, A4 ratio) when resolving fixed/auto pages. */
+    /** 0 = auto (width × 1.414, A4 ratio) when resolving fixed pages. */
     height: 0,
-    overlap: 40,
   },
   watermark: {
     enable: false,

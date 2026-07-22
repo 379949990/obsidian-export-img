@@ -62,10 +62,51 @@ function applyAlignClass(el: Element, align: EmbedAlign): void {
   el.classList.add(align === 'center' ? 'export-img-align-center' : 'export-img-align-left');
 }
 
+function clearAlignClasses(el: Element): void {
+  el.classList.remove(
+    'export-img-align-left',
+    'export-img-align-center',
+    'export-img-text-align-left',
+    'export-img-text-align-center',
+  );
+}
+
+/** True Obsidian embeds get block layout; raw HTML / badge rows stay inline. */
+function isObsidianEmbedImage(img: HTMLImageElement): boolean {
+  return !!img.closest('.image-embed, .internal-embed, .media-embed');
+}
+
+function applyTextAlign(wrap: HTMLElement | null, align: EmbedAlign): void {
+  if (!wrap) return;
+  wrap.removeClass('export-img-text-align-left');
+  wrap.removeClass('export-img-text-align-center');
+  wrap.addClass(
+    align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
+  );
+}
+
+/** Whether an image would exceed maxHeight when fitted to content width. */
+function imageReachesMaxHeight(
+  img: HTMLImageElement,
+  maxHeight: number,
+  contentWidth: number,
+): boolean {
+  if (!(maxHeight > 0)) return false;
+  const natW = img.naturalWidth || img.width || 0;
+  const natH = img.naturalHeight || img.height || 0;
+  if (natW > 0 && natH > 0) {
+    const fitW = contentWidth > 0 ? Math.min(natW, contentWidth) : natW;
+    const fittedH = (natH / natW) * fitW;
+    return fittedH >= maxHeight - 0.5;
+  }
+  return img.clientHeight >= maxHeight - 1;
+}
+
 function constrainImages(root: HTMLElement, maxHeight: number, align: EmbedAlign): void {
   const images = root.querySelectorAll<HTMLImageElement>(
     'img, .image-embed img, .internal-embed img, .media-embed img',
   );
+  const contentWidth = contentTargetWidth(root);
 
   for (const img of Array.from(images)) {
     if (img.closest('.export-img-watermark, .export-img-author')) continue;
@@ -77,18 +118,29 @@ function constrainImages(root: HTMLElement, maxHeight: number, align: EmbedAlign
       img.removeClass('export-img-embed-constrained');
     }
 
+    const embed = isObsidianEmbedImage(img);
+    if (embed) {
+      img.addClass('export-img-embed-block');
+    } else {
+      img.removeClass('export-img-embed-block');
+    }
+
     const wrap = img.closest<HTMLElement>(
       '.image-embed, .internal-embed, .media-embed, p, div',
     );
+    clearAlignClasses(img);
     if (wrap) {
       wrap.removeClass('export-img-text-align-left');
       wrap.removeClass('export-img-text-align-center');
-      wrap.addClass(
-        align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
-      );
     }
-    applyAlignClass(img, align);
-    img.addClass('export-img-embed-block');
+
+    // Align only media that hits the height cap.
+    if (!imageReachesMaxHeight(img, maxHeight, contentWidth)) continue;
+
+    applyTextAlign(wrap, align);
+    if (embed) {
+      applyAlignClass(img, align);
+    }
   }
 }
 
@@ -130,24 +182,29 @@ function fitSvgToWidth(
 
   let w = targetWidth;
   let h = (natH / natW) * w;
+  let heightCapped = false;
   if (maxHeight > 0 && h > maxHeight) {
     h = maxHeight;
     w = (natW / natH) * h;
+    heightCapped = true;
   }
 
   svg.setAttribute('width', String(Math.round(w)));
   svg.setAttribute('height', String(Math.round(h)));
   svg.classList.add('export-img-mermaid-svg');
-  applyAlignClass(svg, align);
+  clearAlignClasses(svg);
+  if (heightCapped) {
+    applyAlignClass(svg, align);
+  }
 
   const wrapEl = svg.closest('.mermaid') ?? svg.parentElement;
   if (!(wrapEl instanceof HTMLElement)) return;
   wrapEl.addClass('export-img-mermaid-wrap');
   wrapEl.removeClass('export-img-text-align-left');
   wrapEl.removeClass('export-img-text-align-center');
-  wrapEl.addClass(
-    align === 'left' ? 'export-img-text-align-left' : 'export-img-text-align-center',
-  );
+  if (heightCapped) {
+    applyTextAlign(wrapEl, align);
+  }
   wrapEl.setCssProps({
     '--export-img-embed-max-h': maxHeight > 0 ? `${maxHeight}px` : 'none',
   });
@@ -166,9 +223,10 @@ function ensureFitWrap(el: HTMLElement): HTMLElement {
   return wrap;
 }
 
-function setFitWrapAlign(wrap: HTMLElement, align: EmbedAlign): void {
+function setFitWrapAlign(wrap: HTMLElement, align: EmbedAlign, apply: boolean): void {
   wrap.removeClass('is-align-left');
   wrap.removeClass('is-align-center');
+  if (!apply) return;
   wrap.addClass(align === 'left' ? 'is-align-left' : 'is-align-center');
 }
 
@@ -207,7 +265,7 @@ function fitBlockToWidth(
     el.addClass('is-capped');
     const wrap = ensureFitWrap(el);
     wrap.removeClass('is-scaled');
-    setFitWrapAlign(wrap, align);
+    setFitWrapAlign(wrap, align, false);
     return;
   }
 
@@ -215,18 +273,19 @@ function fitBlockToWidth(
   if (maxHeight > 0) {
     scale = Math.min(scale, maxHeight / natH);
   }
+  const heightCapped = maxHeight > 0 && natH * scale <= maxHeight + 0.5 && natH > maxHeight;
   if (scale >= 0.999) {
     el.addClass('is-capped');
     const wrap = ensureFitWrap(el);
     wrap.removeClass('is-scaled');
-    setFitWrapAlign(wrap, align);
+    setFitWrapAlign(wrap, align, heightCapped || needsHeightFit);
     return;
   }
 
   const wrap = ensureFitWrap(el);
   const scaledH = natH * scale;
   wrap.addClass('is-scaled');
-  setFitWrapAlign(wrap, align);
+  setFitWrapAlign(wrap, align, maxHeight > 0 && scaledH <= maxHeight + 0.5 && natH > maxHeight);
   wrap.setCssProps({ '--export-img-fit-h': `${scaledH}px` });
 
   el.addClass('is-scaled');
@@ -240,7 +299,7 @@ function fitBlockToWidth(
  * Prepare embeds for capture:
  * - Wide / horizontally scrollable blocks fit to content width (100%).
  * - Height optionally clamped by embedMaxHeight.
- * - embedAlign always applies (even when below max height).
+ * - embedAlign applies only to media that reaches that height cap.
  */
 export function prepareEmbedLayout(
   root: HTMLElement,

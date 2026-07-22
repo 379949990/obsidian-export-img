@@ -4,16 +4,55 @@ import {
   type App,
   type SettingDefinitionItem,
 } from 'obsidian';
+import { createRoot } from 'preact/compat/client';
 import type ExportImgPlugin from './main';
 import { setLocalePreference, t } from './i18n';
-import type { ExportFormat, PluginLocale, ScaleMode, ThemeMode } from './types';
+import type {
+  ExportFormat,
+  PluginLocale,
+  ScaleMode,
+  ThemeMode,
+  WatermarkType,
+} from './types';
+import { ImageSourceField } from './ui/image-source-field';
 
 export class ExportImgSettingTab extends PluginSettingTab {
   plugin: ExportImgPlugin;
+  private imageRoots: ReturnType<typeof createRoot>[] = [];
 
   constructor(app: App, plugin: ExportImgPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  private clearImageRoots(): void {
+    for (const root of this.imageRoots) {
+      root.unmount();
+    }
+    this.imageRoots = [];
+  }
+
+  private mountImageField(
+    setting: Setting,
+    value: string,
+    onChange: (next: string) => void | Promise<void>,
+    opts?: { avatar?: boolean },
+  ): void {
+    setting.controlEl.empty();
+    setting.controlEl.addClass('export-img-setting-image-source');
+    if (opts?.avatar) setting.controlEl.addClass('is-avatar');
+    const root = createRoot(setting.controlEl);
+    this.imageRoots.push(root);
+    root.render(
+      <ImageSourceField
+        app={this.app}
+        value={value}
+        avatar={opts?.avatar}
+        onChange={(next) => {
+          void onChange(next);
+        }}
+      />,
+    );
   }
 
   /**
@@ -30,9 +69,6 @@ export class ExportImgSettingTab extends PluginSettingTab {
             name: t('setting.locale'),
             desc: t('setting.localeDesc'),
             render: (setting) => {
-              // Avoid a typed `this.update()` call: SettingTab.update is 1.13+ and
-              // trips obsidianmd/no-unsupported-api while minAppVersion stays 1.5.7
-              // (1.13 is still Catalyst). Runtime refresh still works on 1.13+.
               this.renderLocaleSetting(setting, () => this.refreshSettingsUi());
             },
           },
@@ -99,6 +135,12 @@ export class ExportImgSettingTab extends PluginSettingTab {
               this.renderPaddingSetting(setting);
             },
           },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.media'),
+        items: [
           {
             name: t('setting.embedMaxHeight'),
             desc: t('setting.embedMaxHeightDesc'),
@@ -120,10 +162,64 @@ export class ExportImgSettingTab extends PluginSettingTab {
               type: 'dropdown',
               key: 'embedAlign',
               options: {
-                center: t('studio.embedAlign.center'),
                 left: t('studio.embedAlign.left'),
+                center: t('studio.embedAlign.center'),
               },
             },
+          },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.author'),
+        items: [
+          {
+            name: t('setting.authorAvatar'),
+            desc: t('setting.authorPreconfigDesc'),
+            render: (setting) => this.renderAuthorAvatar(setting),
+          },
+          {
+            name: t('setting.authorName'),
+            render: (setting) => this.renderAuthorName(setting),
+          },
+          {
+            name: t('setting.authorRemark'),
+            render: (setting) => this.renderAuthorRemark(setting),
+          },
+          {
+            name: t('setting.authorAlign'),
+            render: (setting) => this.renderAuthorAlign(setting),
+          },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.watermark'),
+        items: [
+          {
+            name: t('setting.watermarkType'),
+            desc: t('setting.watermarkPreconfigDesc'),
+            render: (setting) => this.renderWatermarkType(setting),
+          },
+          {
+            name: t('setting.watermarkText'),
+            render: (setting) => this.renderWatermarkText(setting),
+          },
+          {
+            name: t('setting.watermarkImage'),
+            render: (setting) => this.renderWatermarkImage(setting),
+          },
+          {
+            name: t('setting.watermarkColor'),
+            render: (setting) => this.renderWatermarkColor(setting),
+          },
+          {
+            name: t('setting.watermarkOpacity'),
+            render: (setting) => this.renderWatermarkOpacity(setting),
+          },
+          {
+            name: t('setting.watermarkRotate'),
+            render: (setting) => this.renderWatermarkRotate(setting),
           },
         ],
       },
@@ -154,8 +250,13 @@ export class ExportImgSettingTab extends PluginSettingTab {
     ];
   }
 
-  /** Obsidian &lt; 1.13 fallback when declarative defs are unavailable. */
+  /**
+   * Obsidian &lt; 1.13 fallback when declarative defs are unavailable.
+   * Path B: keep `display()` while minAppVersion is 1.5.7 (1.13 SettingTab APIs
+   * are still Catalyst). Prefer {@link getSettingDefinitions} on 1.13+.
+   */
   display(): void {
+    this.clearImageRoots();
     const { containerEl } = this;
     containerEl.empty();
 
@@ -250,6 +351,8 @@ export class ExportImgSettingTab extends PluginSettingTab {
         this.renderPaddingSetting(setting);
       });
 
+    new Setting(containerEl).setName(t('setting.heading.media')).setHeading();
+
     new Setting(containerEl)
       .setName(t('setting.embedMaxHeight'))
       .setDesc(t('setting.embedMaxHeightDesc'))
@@ -280,14 +383,20 @@ export class ExportImgSettingTab extends PluginSettingTab {
       .setDesc(t('setting.embedAlignDesc'))
       .addDropdown((dropdown) =>
         dropdown
-          .addOption('center', t('studio.embedAlign.center'))
           .addOption('left', t('studio.embedAlign.left'))
+          .addOption('center', t('studio.embedAlign.center'))
           .setValue(this.plugin.settings.embedAlign)
           .onChange(async (value) => {
             this.plugin.settings.embedAlign = value as 'left' | 'center';
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl).setName(t('setting.heading.author')).setHeading();
+    this.renderAuthorBlock(containerEl);
+
+    new Setting(containerEl).setName(t('setting.heading.watermark')).setHeading();
+    this.renderWatermarkBlock(containerEl);
 
     new Setting(containerEl).setName(t('setting.heading.behavior')).setHeading();
 
@@ -324,6 +433,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
    * (1.13+ API; blocked by no-unsupported-api at minAppVersion 1.5.7).
    */
   private refreshSettingsUi(): void {
+    this.clearImageRoots();
     const updateFn = Reflect.get(this, 'update');
     if (typeof updateFn === 'function') {
       (updateFn as () => void).call(this);
@@ -391,5 +501,163 @@ export class ExportImgSettingTab extends PluginSettingTab {
         })();
       });
     }
+  }
+
+  private renderAuthorBlock(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName(t('setting.authorAvatar'))
+      .setDesc(t('setting.authorPreconfigDesc'))
+      .then((setting) => this.renderAuthorAvatar(setting));
+    new Setting(containerEl)
+      .setName(t('setting.authorName'))
+      .then((setting) => this.renderAuthorName(setting));
+    new Setting(containerEl)
+      .setName(t('setting.authorRemark'))
+      .then((setting) => this.renderAuthorRemark(setting));
+    new Setting(containerEl)
+      .setName(t('setting.authorAlign'))
+      .then((setting) => this.renderAuthorAlign(setting));
+  }
+
+  private renderWatermarkBlock(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName(t('setting.watermarkType'))
+      .setDesc(t('setting.watermarkPreconfigDesc'))
+      .then((setting) => this.renderWatermarkType(setting));
+
+    if (this.plugin.settings.watermark.type === 'image') {
+      new Setting(containerEl)
+        .setName(t('setting.watermarkImage'))
+        .then((setting) => this.renderWatermarkImage(setting));
+    } else {
+      new Setting(containerEl)
+        .setName(t('setting.watermarkText'))
+        .then((setting) => this.renderWatermarkText(setting));
+      new Setting(containerEl)
+        .setName(t('setting.watermarkColor'))
+        .then((setting) => this.renderWatermarkColor(setting));
+    }
+
+    new Setting(containerEl)
+      .setName(t('setting.watermarkOpacity'))
+      .then((setting) => this.renderWatermarkOpacity(setting));
+    new Setting(containerEl)
+      .setName(t('setting.watermarkRotate'))
+      .then((setting) => this.renderWatermarkRotate(setting));
+  }
+
+  private renderAuthorAvatar(setting: Setting): void {
+    this.mountImageField(
+      setting,
+      this.plugin.settings.author.avatarSrc,
+      async (next) => {
+        this.plugin.settings.author.avatarSrc = next;
+        await this.plugin.saveSettings();
+        this.refreshSettingsUi();
+      },
+      { avatar: true },
+    );
+  }
+
+  private renderAuthorName(setting: Setting): void {
+    setting.addText((text) =>
+      text.setValue(this.plugin.settings.author.name).onChange(async (value) => {
+        this.plugin.settings.author.name = value;
+        await this.plugin.saveSettings();
+      }),
+    );
+  }
+
+  private renderAuthorRemark(setting: Setting): void {
+    setting.addText((text) =>
+      text.setValue(this.plugin.settings.author.remark).onChange(async (value) => {
+        this.plugin.settings.author.remark = value;
+        await this.plugin.saveSettings();
+      }),
+    );
+  }
+
+  private renderAuthorAlign(setting: Setting): void {
+    setting.addDropdown((dropdown) =>
+      dropdown
+        .addOption('left', t('studio.authorAlign.left'))
+        .addOption('center', t('studio.authorAlign.center'))
+        .addOption('right', t('studio.authorAlign.right'))
+        .setValue(this.plugin.settings.author.align)
+        .onChange(async (value) => {
+          this.plugin.settings.author.align = value as 'left' | 'center' | 'right';
+          await this.plugin.saveSettings();
+        }),
+    );
+  }
+
+  private renderWatermarkType(setting: Setting): void {
+    setting.addDropdown((dropdown) =>
+      dropdown
+        .addOption('text', t('setting.watermarkType.text'))
+        .addOption('image', t('setting.watermarkType.image'))
+        .setValue(this.plugin.settings.watermark.type)
+        .onChange(async (value) => {
+          this.plugin.settings.watermark.type = value as WatermarkType;
+          await this.plugin.saveSettings();
+          this.refreshSettingsUi();
+        }),
+    );
+  }
+
+  private renderWatermarkText(setting: Setting): void {
+    setting.addText((text) =>
+      text.setValue(this.plugin.settings.watermark.text).onChange(async (value) => {
+        this.plugin.settings.watermark.text = value;
+        await this.plugin.saveSettings();
+      }),
+    );
+  }
+
+  private renderWatermarkImage(setting: Setting): void {
+    this.mountImageField(setting, this.plugin.settings.watermark.imageSrc, async (next) => {
+      this.plugin.settings.watermark.imageSrc = next;
+      await this.plugin.saveSettings();
+      this.refreshSettingsUi();
+    });
+  }
+
+  private renderWatermarkColor(setting: Setting): void {
+    setting.controlEl.empty();
+    const input = setting.controlEl.createEl('input', {
+      type: 'color',
+      attr: { value: this.plugin.settings.watermark.color },
+    });
+    input.value = this.plugin.settings.watermark.color;
+    input.addEventListener('change', () => {
+      void (async () => {
+        this.plugin.settings.watermark.color = input.value;
+        await this.plugin.saveSettings();
+      })();
+    });
+  }
+
+  private renderWatermarkOpacity(setting: Setting): void {
+    setting.addSlider((slider) =>
+      slider
+        .setLimits(0.05, 0.6, 0.01)
+        .setValue(this.plugin.settings.watermark.opacity)
+        .onChange(async (value) => {
+          this.plugin.settings.watermark.opacity = value;
+          await this.plugin.saveSettings();
+        }),
+    );
+  }
+
+  private renderWatermarkRotate(setting: Setting): void {
+    setting.addSlider((slider) =>
+      slider
+        .setLimits(-60, 60, 1)
+        .setValue(this.plugin.settings.watermark.rotate)
+        .onChange(async (value) => {
+          this.plugin.settings.watermark.rotate = value;
+          await this.plugin.saveSettings();
+        }),
+    );
   }
 }

@@ -4,6 +4,7 @@ import {
   Modal,
   Notice,
   Platform,
+  setIcon,
   type App,
   type FrontMatterCache,
   type TFile,
@@ -23,6 +24,7 @@ import {
   waitForNextPaint,
 } from '../pipeline/overflow';
 import { createRenderHost, type RenderHostHandle } from '../pipeline/render-host';
+import type { RemoteHydrateProgress } from '../pipeline/remote-images';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
 import { defaultSplitHeight } from '../pipeline/split';
@@ -57,7 +59,14 @@ export interface StudioOpenArgs {
 
 const RENDER_DEBOUNCE_MS = 400;
 
-function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null): void {
+interface TitlebarState {
+  settle: SettleDiagnostic | null;
+  remoteHint: string | null;
+  rendering: boolean;
+  onRefresh: () => void;
+}
+
+function updateModalTitle(titleEl: HTMLElement, state: TitlebarState): void {
   titleEl.empty();
   titleEl.addClass('export-img-modal-titlebar');
 
@@ -65,23 +74,47 @@ function updateModalTitle(titleEl: HTMLElement, settle: SettleDiagnostic | null)
   left.createSpan({ cls: 'export-img-modal-title-text', text: t('studio.title') });
 
   const status = left.createDiv({ cls: 'export-img-modal-title-status' });
-  if (!settle) {
+  if (!state.settle) {
     status.createSpan({
       cls: 'export-img-title-pill is-idle',
       text: t('studio.settle.idle'),
     });
   } else {
     status.createSpan({
-      cls: `export-img-title-pill is-${settle.status}`,
-      text: t(`studio.settle.${settle.status}`),
+      cls: `export-img-title-pill is-${state.settle.status}`,
+      text: t(`studio.settle.${state.settle.status}`),
     });
-    if (settle.status === 'ready' || settle.status === 'timed_out') {
+    if (state.settle.status === 'ready' || state.settle.status === 'timed_out') {
       status.createSpan({
         cls: 'export-img-title-meta',
-        text: `${settle.elapsedMs}ms`,
+        text: `${state.settle.elapsedMs}ms`,
       });
     }
   }
+
+  if (state.remoteHint) {
+    status.createSpan({
+      cls: 'export-img-title-meta is-remote-loading',
+      text: state.remoteHint,
+    });
+  }
+
+  const refreshBtn = status.createEl('button', {
+    cls: 'export-img-title-refresh clickable-icon',
+    attr: {
+      type: 'button',
+      'aria-label': t('studio.refreshPreview'),
+      title: t('studio.refreshPreview'),
+    },
+  });
+  setIcon(refreshBtn, 'refresh-cw');
+  refreshBtn.disabled = state.rendering;
+  if (state.rendering) {
+    refreshBtn.addClass('is-disabled');
+  }
+  refreshBtn.addEventListener('click', () => {
+    if (!state.rendering) state.onRefresh();
+  });
 }
 
 function StudioApp(
@@ -95,6 +128,10 @@ function StudioApp(
   const [rendering, setRendering] = useState(true);
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [remoteHint, setRemoteHint] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const [viewResetNonce, setViewResetNonce] = useState(0);
+  const [exportDespiteTimeout, setExportDespiteTimeout] = useState(false);
 
   const workSignature = getWorkSignature(draft);
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
@@ -124,9 +161,21 @@ function StudioApp(
     hostRef.current = null;
   };
 
+  const onRefreshPreview = useCallback(() => {
+    if (rendering) return;
+    appliedRenderSigRef.current = '';
+    setViewResetNonce((n) => n + 1);
+    setRefreshNonce((n) => n + 1);
+  }, [rendering]);
+
   useEffect(() => {
-    updateModalTitle(titleEl, settle);
-  }, [titleEl, settle]);
+    updateModalTitle(titleEl, {
+      settle,
+      remoteHint,
+      rendering,
+      onRefresh: onRefreshPreview,
+    });
+  }, [titleEl, settle, remoteHint, rendering, onRefreshPreview]);
 
   const firstWorkPass = useRef(true);
   useEffect(() => {
@@ -169,8 +218,9 @@ function StudioApp(
       );
 
       setRendering(true);
+      setRemoteHint(null);
+      setExportDespiteTimeout(false);
       if (phase === 'rebuild') {
-        setPreviewUrls([]);
         invalidateExportCache();
       }
       setSettle({
@@ -212,7 +262,42 @@ function StudioApp(
 
           await waitForNextPaint();
 
-          // Layout before settle so Ready means media settled on the fitted DOM.
+          const onRemoteProgress = (progress: RemoteHydrateProgress) => {
+            if (token !== workToken.current) return;
+            if (progress.loading && progress.total > 0) {
+              setRemoteHint(
+                t('studio.remote.loading', {
+                  done: progress.done,
+                  total: progress.total,
+                }),
+              );
+            } else {
+              setRemoteHint(null);
+            }
+          };
+
+          // Hydrate remotes (session-cached) before the first preview capture.
+          if (host.remotePending > 0) {
+            setRemoteHint(
+              t('studio.remote.loading', {
+                done: 0,
+                total: host.remotePending,
+              }),
+            );
+          }
+          const hydrateResult = await host.hydrateRemotes({
+            onProgress: onRemoteProgress,
+          });
+          if (cancelled || token !== workToken.current || settleAbort.signal.aborted) {
+            return;
+          }
+          setRemoteHint(null);
+          if (hydrateResult.warnings.length > 0) {
+            new Notice(
+              t('notice.remotePartial', { count: hydrateResult.warnings.length }),
+            );
+          }
+
           prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
           await waitForNextPaint();
 
@@ -272,6 +357,7 @@ function StudioApp(
         console.error(error);
         if (token === workToken.current) {
           setRendering(false);
+          setRemoteHint(null);
           setSettle({
             status: 'timed_out',
             pendingImages: 0,
@@ -291,7 +377,16 @@ function StudioApp(
       workToken.current++;
       settleAbortRef.current?.abort();
     };
-  }, [debouncedWorkSig, app, markdown, file, frontmatter, type, publishPreview]);
+  }, [
+    debouncedWorkSig,
+    refreshNonce,
+    app,
+    markdown,
+    file,
+    frontmatter,
+    type,
+    publishPreview,
+  ]);
 
   useEffect(
     () => () => {
@@ -307,7 +402,7 @@ function StudioApp(
       if (typeof patch.width === 'number' && patch.width !== prev.width) {
         const prevDefault = defaultSplitHeight(prev.width);
         if (
-          (prev.split.mode === 'fixed' || prev.split.mode === 'auto') &&
+          (prev.split.mode === 'fixed') &&
           prev.split.height === prevDefault
         ) {
           next.split = { ...prev.split, height: defaultSplitHeight(patch.width) };
@@ -333,7 +428,7 @@ function StudioApp(
       const next = { ...prev, [key]: nextVal };
       if (key === 'split') {
         const splitPatch = patch as Partial<ExportImgSettings['split']>;
-        if (splitPatch.mode === 'fixed' || splitPatch.mode === 'auto') {
+        if (splitPatch.mode === 'fixed') {
           // Preserve an explicit height; only fill A4 default when unset.
           if (!(next.split.height > 0)) {
             next.split = {
@@ -433,10 +528,17 @@ function StudioApp(
   return (
     <div className="export-img-studio">
       <div className="export-img-render-slot" ref={renderSlotRef} aria-hidden="true" />
-      <PreviewPane imageUrls={previewUrls} rendering={rendering || busy} />
+      <PreviewPane
+        imageUrls={previewUrls}
+        rendering={rendering || busy}
+        viewResetNonce={viewResetNonce}
+      />
       <FidelityPanel
         draft={draft}
         busy={busy || rendering}
+        settleStatus={settle?.status ?? null}
+        exportDespiteTimeout={exportDespiteTimeout}
+        onExportDespiteTimeout={setExportDespiteTimeout}
         paddingMode={paddingMode}
         onChange={onChange}
         onNestedChange={onNestedChange}
@@ -460,7 +562,12 @@ export class ExportStudioModal extends Modal {
   onOpen(): void {
     this.modalEl.addClass('export-img-modal');
     this.titleEl.addClass('export-img-modal-titlebar');
-    updateModalTitle(this.titleEl, null);
+    updateModalTitle(this.titleEl, {
+      settle: null,
+      remoteHint: null,
+      rendering: true,
+      onRefresh: () => undefined,
+    });
     if (Platform.isMobile) {
       new Notice(t('notice.mobileHint'), 8000);
     }
@@ -507,6 +614,7 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
       width: settings.width,
       themeMode: settings.themeMode,
     });
+    await host.hydrateRemotes();
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
     await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });

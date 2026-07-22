@@ -6,6 +6,7 @@ import type { ExportImgSettings } from './types';
 import { registerCommands } from './commands';
 import { registerMenus } from './menus';
 import { ExportImgSettingTab } from './setting-tab';
+import { clearRemoteImageCache } from './pipeline/remote-images';
 
 export default class ExportImgPlugin extends Plugin {
   settings: ExportImgSettings = cloneSettings(DEFAULT_SETTINGS);
@@ -19,7 +20,7 @@ export default class ExportImgPlugin extends Plugin {
   }
 
   onunload(): void {
-    // Preact roots are cleaned up when modals close.
+    clearRemoteImageCache();
   }
 
   async loadSettings(): Promise<void> {

@@ -134,7 +134,9 @@ Exports approximate Reading view; they are not a screenshot of the open pane:
 
 ## Credits
 
-Capture: [modern-screenshot](https://github.com/qq15725/modern-screenshot). Inspired by the Obsidian export-image ecosystem; this plugin prioritizes Reading-view fidelity over feature sprawl.
+Inspired by the community [Export Image](https://community.obsidian.md/plugins/obsidian-export-image) plugin — this project is a **full rewrite and enhancement**, focused on Reading-view fidelity.
+
+Capture: [modern-screenshot](https://github.com/qq15725/modern-screenshot).
 
 ## License
 

@@ -717,6 +717,128 @@
   color: var(--text-muted);
 }
 
+.export-img-image-source {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-img-image-source-label {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}
+
+.export-img-image-source-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.export-img-image-source-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.export-img-image-source-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.export-img-image-source-empty {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  text-align: center;
+  padding: 4px;
+}
+
+.export-img-image-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.export-img-image-source-actions button {
+  font-size: var(--font-ui-smaller);
+}
+
+.export-img-image-source-file {
+  display: none;
+}
+
+.export-img-vault-image-modal .export-img-vault-image-search {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.export-img-vault-image-main {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 10px;
+  min-height: 240px;
+}
+
+.export-img-vault-image-list {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  overflow: auto;
+  max-height: 280px;
+}
+
+.export-img-vault-image-row {
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.export-img-vault-image-row.is-selected,
+.export-img-vault-image-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.export-img-vault-image-preview {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--background-secondary);
+}
+
+.export-img-vault-image-preview img {
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+}
+
+.export-img-vault-image-empty {
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.export-img-vault-image-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-img-image-url-input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
 .export-img-watermark {
   position: absolute;
   inset: 0;

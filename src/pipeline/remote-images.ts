@@ -40,7 +40,6 @@ export interface RemoteHydrateResult {
 
 function collectRemoteImages(root: HTMLElement): HTMLImageElement[] {
   return Array.from(root.querySelectorAll('img')).filter((img) => {
-    if (img.closest('.export-img-watermark, .export-img-author')) return false;
     const src = img.getAttribute('src') ?? '';
     return /^https?:\/\//i.test(src);
   });

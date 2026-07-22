@@ -7,6 +7,8 @@ import type {
   SplitMode,
   ThemeMode,
 } from '../types';
+import { useAppContext } from './app-context';
+import { ImageSourceField } from './image-source-field';
 
 interface FidelityPanelProps {
   draft: ExportImgSettings;
@@ -33,6 +35,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
     onCopy,
     onSave,
   } = props;
+  const { app } = useAppContext();
 
   return (
     <div className="export-img-panel">
@@ -329,6 +332,13 @@ export function FidelityPanel(props: FidelityPanelProps) {
             </label>
             {draft.author.show && (
               <div className="export-img-decor-fields">
+                <ImageSourceField
+                  app={app}
+                  label={t('studio.authorAvatar')}
+                  value={draft.author.avatarSrc}
+                  disabled={busy}
+                  onChange={(avatarSrc) => onNestedChange('author', { avatarSrc })}
+                />
                 <label className="export-img-field">
                   <span>{t('studio.authorName')}</span>
                   <input

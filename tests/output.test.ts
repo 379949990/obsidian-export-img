@@ -60,6 +60,7 @@ describe('saveBlob', () => {
     noticeMock.mockClear();
     saveAsMock.mockClear();
     platform.isMobile = false;
+    vi.unstubAllGlobals();
   });
 
   it('downloads via file-saver on desktop', async () => {
@@ -71,8 +72,40 @@ describe('saveBlob', () => {
     expect(app.fileManager.getAvailablePathForAttachment).not.toHaveBeenCalled();
   });
 
-  it('writes vault attachment on mobile', async () => {
+  it('shares an image file on mobile when Web Share is available', async () => {
     platform.isMobile = true;
+    const share = vi.fn(async () => undefined);
+    const canShare = vi.fn(() => true);
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share,
+      canShare,
+    });
+
+    const createBinary = vi.fn(async () => undefined);
+    const app = mockApp({ createBinary });
+    const blob = new Blob([new Uint8Array(64)], { type: 'image/png' });
+    const path = await saveBlob(app, blob, 'Note/Title', 'png');
+
+    expect(path).toBe('Note_Title.png');
+    expect(canShare).toHaveBeenCalled();
+    expect(share).toHaveBeenCalledOnce();
+    expect(createBinary).not.toHaveBeenCalled();
+    expect(saveAsMock).not.toHaveBeenCalled();
+    expect(noticeMock).toHaveBeenCalled();
+  });
+
+  it('falls back to download then vault when share is unavailable', async () => {
+    platform.isMobile = true;
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      canShare: undefined,
+      share: undefined,
+    });
+    saveAsMock.mockImplementationOnce(() => {
+      throw new Error('download blocked');
+    });
+
     const createBinary = vi.fn(async () => undefined);
     const getPath = vi.fn(async (name: string) => `Attachments/${name}`);
     const app = mockApp({
@@ -84,6 +117,24 @@ describe('saveBlob', () => {
     expect(path).toBe('Attachments/Note_Title.png');
     expect(getPath).toHaveBeenCalledWith('Note_Title.png');
     expect(createBinary).toHaveBeenCalledOnce();
+  });
+
+  it('treats share abort as cancellation', async () => {
+    platform.isMobile = true;
+    const share = vi.fn(async () => {
+      throw new DOMException('Aborted', 'AbortError');
+    });
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share,
+      canShare: () => true,
+    });
+    const createBinary = vi.fn(async () => undefined);
+    const app = mockApp({ createBinary });
+    const blob = new Blob([new Uint8Array(64)], { type: 'image/png' });
+    const path = await saveBlob(app, blob, 'Note', 'png');
+    expect(path).toBeUndefined();
+    expect(createBinary).not.toHaveBeenCalled();
     expect(saveAsMock).not.toHaveBeenCalled();
   });
 });
@@ -93,6 +144,7 @@ describe('saveMultipleBlobs', () => {
     noticeMock.mockClear();
     saveAsMock.mockClear();
     platform.isMobile = false;
+    vi.unstubAllGlobals();
   });
 
   it('saves individually when only one item on desktop', async () => {
@@ -123,6 +175,12 @@ describe('saveMultipleBlobs', () => {
 
   it('never zips on mobile even with multiple items', async () => {
     platform.isMobile = true;
+    const share = vi.fn(async () => undefined);
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share,
+      canShare: () => true,
+    });
     const createBinary = vi.fn(async () => undefined);
     const app = mockApp({ createBinary });
     const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
@@ -135,7 +193,8 @@ describe('saveMultipleBlobs', () => {
       ],
       'batch',
     );
-    expect(createBinary).toHaveBeenCalledTimes(2);
+    expect(share).toHaveBeenCalledTimes(2);
+    expect(createBinary).not.toHaveBeenCalled();
     expect(saveAsMock).not.toHaveBeenCalled();
   });
 });

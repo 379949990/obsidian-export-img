@@ -909,8 +909,8 @@
 
   .export-img-preview-pane {
     min-height: 0;
-    height: 28vh;
-    max-height: 28vh;
+    height: 32vh;
+    max-height: 32vh;
     flex: 0 0 auto;
   }
 
@@ -957,9 +957,9 @@ body.is-mobile .export-img-studio,
 
 body.is-mobile .export-img-preview-pane,
 .export-img-modal.is-mobile .export-img-preview-pane {
-  height: 26vh;
-  max-height: 26vh;
-  min-height: 140px;
+  height: 32vh;
+  max-height: 32vh;
+  min-height: 160px;
   flex: 0 0 auto;
 }
 

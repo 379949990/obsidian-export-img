@@ -27,6 +27,58 @@ export async function copyBlobToClipboard(blob: Blob): Promise<void> {
   new Notice(t('notice.copySuccess'));
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
+/**
+ * Mobile: prefer the system share sheet with an image file so the user can
+ * save to Photos / Gallery. Fall back to download, then vault attachment.
+ */
+async function saveBlobOnMobile(
+  app: App,
+  blob: Blob,
+  filename: string,
+): Promise<string | undefined> {
+  const type = blob.type || 'image/png';
+  const file = new File([blob], filename, { type });
+
+  const canShareFiles =
+    typeof navigator.canShare === 'function' &&
+    typeof navigator.share === 'function' &&
+    navigator.canShare({ files: [file] });
+
+  if (canShareFiles) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      new Notice(t('notice.saveToPhotos'));
+      return filename;
+    } catch (error) {
+      if (isAbortError(error)) {
+        // User dismissed the sheet — not a failure.
+        return undefined;
+      }
+      console.error(error);
+    }
+  }
+
+  try {
+    saveAs(blob, filename);
+    new Notice(t('notice.saveToPhotosFallback'));
+    return filename;
+  } catch (error) {
+    console.error(error);
+  }
+
+  const filePath = await app.fileManager.getAvailablePathForAttachment(filename);
+  await app.vault.createBinary(filePath, await blob.arrayBuffer());
+  new Notice(t('notice.saveSuccess', { path: filePath }));
+  return filePath;
+}
+
 export async function saveBlob(
   app: App,
   blob: Blob,
@@ -36,10 +88,7 @@ export async function saveBlob(
   const filename = safeFilename(title, format);
   try {
     if (Platform.isMobile) {
-      const filePath = await app.fileManager.getAvailablePathForAttachment(filename);
-      await app.vault.createBinary(filePath, await blob.arrayBuffer());
-      new Notice(t('notice.saveSuccess', { path: filePath }));
-      return filePath;
+      return await saveBlobOnMobile(app, blob, filename);
     }
     saveAs(blob, filename);
     new Notice(t('notice.saveSuccess', { path: filename }));

@@ -124,12 +124,16 @@ const en: Dict = {
   'notice.copyFail': 'Could not copy the image',
   'notice.saveSuccess': 'Saved: {path}',
   'notice.saveFail': 'Could not save the image',
+  'notice.saveToPhotos':
+    'Shared — choose Save Image / Save to Photos in the system sheet to add it to your album.',
+  'notice.saveToPhotosFallback':
+    'Download started. On some devices open the file and save it to Photos / Gallery.',
   'notice.exportFail': 'Export failed',
   'notice.batchDone': 'Exported {count} notes',
   'notice.pdfNotSupported': 'PDF is not supported in this version',
   'notice.remotePartial': 'Some remote images failed ({count}). Preview may be incomplete.',
   'notice.mobileHint':
-    'Mobile: Save writes into vault attachments. Clipboard copy may be unavailable — prefer Save.',
+    'Mobile: Save opens the system share sheet so you can add the image to Photos / Gallery. Clipboard copy may be unavailable.',
   'notice.mobileAutoSplit':
     'Long note: auto-split into pages on mobile to avoid running out of memory.',
   'notice.mobileScaleCapped': 'Export scale is limited to 2× on mobile.',
@@ -279,12 +283,15 @@ const zh: Dict = {
   'notice.copyFail': '复制图片失败',
   'notice.saveSuccess': '已保存：{path}',
   'notice.saveFail': '保存图片失败',
+  'notice.saveToPhotos': '已打开系统分享：请选择「存储图像 / 保存到照片」写入相册。',
+  'notice.saveToPhotosFallback':
+    '已开始下载。部分机型需在文件中打开图片后再存入相册。',
   'notice.exportFail': '导出失败',
   'notice.batchDone': '已导出 {count} 篇笔记',
   'notice.pdfNotSupported': '当前版本不支持 PDF',
   'notice.remotePartial': '部分网络图片加载失败（{count}）。预览可能不完整。',
   'notice.mobileHint':
-    '移动端：保存会写入库内附件目录；剪贴板复制可能不可用，请优先使用保存。',
+    '移动端：保存会打开系统分享，可选择存入相册；剪贴板复制可能不可用。',
   'notice.mobileAutoSplit': '长文已在移动端自动分页，避免内存不足导致闪退。',
   'notice.mobileScaleCapped': '移动端导出倍率上限为 2×。',
   'setting.heading.language': '语言',

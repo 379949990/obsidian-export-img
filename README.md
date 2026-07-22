@@ -104,10 +104,10 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 On **mobile**:
 
-- **Save** writes into the vault via `getAvailablePathForAttachment`
+- **Save** opens the system share sheet so you can add the image to Photos / Gallery (falls back to download, then vault attachment)
 - **Copy** may be unavailable — prefer Save
 - Multi-page / folder exports save files individually (no ZIP)
-- Studio: smaller preview, larger refresh control, pinch-zoom / double-tap fit, compact controls
+- Studio: compact controls, pinch-zoom / double-tap fit
 - Long notes auto-split into pages; export scale capped at **2×** to reduce out-of-memory crashes
 - Large notes and higher scale still use more memory and take longer to settle
 

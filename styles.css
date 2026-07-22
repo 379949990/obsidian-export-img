@@ -81,6 +81,41 @@
   font-variant-numeric: tabular-nums;
 }
 
+.export-img-title-meta.is-remote-loading {
+  color: var(--text-muted);
+}
+
+.export-img-title-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-s);
+}
+
+.export-img-title-refresh:hover:not(:disabled) {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.export-img-title-refresh:disabled,
+.export-img-title-refresh.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.export-img-title-refresh svg {
+  width: 14px;
+  height: 14px;
+}
+
 .export-img-studio {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

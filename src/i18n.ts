@@ -45,6 +45,7 @@ const en: Dict = {
     'Caps how tall embedded images, Mermaid, and other wide blocks can be (they are first fitted to the content width). Does not change the studio preview size. Leave empty or 0 for no limit.',
   'studio.embedMaxHeightPlaceholder': 'No limit',
   'studio.embedAlign': 'Media alignment',
+  'studio.embedAlign.default': 'Default',
   'studio.embedAlign.center': 'Center',
   'studio.embedAlign.left': 'Left',
   'studio.scale': 'Export scale',
@@ -93,6 +94,8 @@ const en: Dict = {
   'studio.settle.waiting': 'Rendering…',
   'studio.settle.ready': 'Ready',
   'studio.settle.timed_out': 'Timed out — export may be incomplete',
+  'studio.remote.loading': 'Loading remote images {done}/{total}',
+  'studio.refreshPreview': 'Refresh preview',
   'studio.copy': 'Copy',
   'studio.save': 'Save',
   'studio.rendering': 'Updating preview…',
@@ -133,7 +136,8 @@ const en: Dict = {
   'setting.embedMaxHeightDesc':
     'Default height cap for embedded images, Mermaid, and other wide blocks (fitted to content width first). Empty or 0 = no limit. Does not change the studio preview size.',
   'setting.embedAlign': 'Default media alignment',
-  'setting.embedAlignDesc': 'Applied even when media is shorter than the max height.',
+  'setting.embedAlignDesc':
+    'Default keeps each block as aligned in the note. Left/Center force alignment even when media is shorter than the max height.',
   'setting.settleTimeout': 'Render wait timeout (ms)',
   'setting.settleTimeoutDesc':
     'How long to wait for images, fonts, and diagrams before treating the note as ready.',
@@ -158,6 +162,7 @@ const zh: Dict = {
     '限制笔记中图片、Mermaid 等宽内容块的高度（会先按内容区宽度适配）。不影响左侧预览窗口大小。留空或填 0 表示不限制。',
   'studio.embedMaxHeightPlaceholder': '不限制',
   'studio.embedAlign': '媒体对齐',
+  'studio.embedAlign.default': '默认',
   'studio.embedAlign.center': '居中',
   'studio.embedAlign.left': '居左',
   'studio.scale': '导出倍率',
@@ -205,6 +210,8 @@ const zh: Dict = {
   'studio.settle.waiting': '渲染中…',
   'studio.settle.ready': '就绪',
   'studio.settle.timed_out': '等待超时 — 导出结果可能不完整',
+  'studio.remote.loading': '网络图片资源加载中 {done}/{total}',
+  'studio.refreshPreview': '刷新预览',
   'studio.copy': '复制',
   'studio.save': '保存',
   'studio.rendering': '正在更新预览…',
@@ -245,7 +252,8 @@ const zh: Dict = {
   'setting.embedMaxHeightDesc':
     '图片、Mermaid 等宽内容块的默认高度上限（会先按内容区宽度适配）。留空或 0 表示不限制。不影响工作室预览窗口大小。',
   'setting.embedAlign': '默认媒体对齐',
-  'setting.embedAlignDesc': '即使媒体未达到高度上限也会应用。',
+  'setting.embedAlignDesc':
+    '「默认」保持文档中的对齐方式；「居左 / 居中」会强制对齐，即使媒体未达到高度上限。',
   'setting.settleTimeout': '渲染等待超时（毫秒）',
   'setting.settleTimeoutDesc': '等待图片、字体、图表等就绪的最长时间。',
   'setting.quickExportSelection': '快速导出选区',

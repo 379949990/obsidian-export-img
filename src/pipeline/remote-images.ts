@@ -1,5 +1,14 @@
 import { requestUrl } from 'obsidian';
 
+const REMOTE_FETCH_MS = 10_000;
+
+/**
+ * Session-scoped remote image cache (URL → object URL).
+ * Survives Studio rebuilds so repeat previews skip the network.
+ * Blob URLs are owned by the cache — do not revoke per-host destroy.
+ */
+const remoteImageCache = new Map<string, string>();
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => reject(new Error('timeout')), ms);
@@ -16,42 +25,123 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+export interface RemoteHydrateProgress {
+  total: number;
+  done: number;
+  loading: boolean;
+}
+
+export interface RemoteHydrateResult {
+  warnings: string[];
+  total: number;
+  hydrated: number;
+  cacheHits: number;
+}
+
+function collectRemoteImages(root: HTMLElement): HTMLImageElement[] {
+  return Array.from(root.querySelectorAll('img')).filter((img) => {
+    if (img.closest('.export-img-watermark, .export-img-author')) return false;
+    const src = img.getAttribute('src') ?? '';
+    return /^https?:\/\//i.test(src);
+  });
+}
+
+export function countRemoteImages(root: HTMLElement): number {
+  return collectRemoteImages(root).length;
+}
+
+async function resolveRemoteObjectUrl(
+  src: string,
+  timeoutMs: number,
+): Promise<{ objectUrl: string; fromCache: boolean }> {
+  const cached = remoteImageCache.get(src);
+  if (cached) {
+    return { objectUrl: cached, fromCache: true };
+  }
+
+  const response = await withTimeout(
+    requestUrl({ url: src, method: 'GET' }),
+    timeoutMs,
+  );
+  const mime = response.headers['content-type'] || 'image/png';
+  const blob = new Blob([response.arrayBuffer], { type: mime });
+  const objectUrl = URL.createObjectURL(blob);
+  remoteImageCache.set(src, objectUrl);
+  return { objectUrl, fromCache: false };
+}
+
 /**
- * Rewrite remote <img src="http(s):..."> to blob URLs via Obsidian requestUrl
- * so screenshot capture is not blocked by canvas CORS.
+ * Rewrite remote <img src="http(s):..."> to cached blob URLs via Obsidian
+ * requestUrl so screenshot capture is not blocked by canvas CORS.
+ * Does not use visual placeholders — callers should wait for this before
+ * the first preview capture.
  */
-export async function hydrateRemoteImages(root: HTMLElement): Promise<string[]> {
+export async function hydrateRemoteImages(
+  root: HTMLElement,
+  opts?: {
+    onProgress?: (progress: RemoteHydrateProgress) => void;
+    timeoutMs?: number;
+  },
+): Promise<RemoteHydrateResult> {
   const warnings: string[] = [];
-  const imgs = Array.from(root.querySelectorAll('img'));
+  const imgs = collectRemoteImages(root);
+  const total = imgs.length;
+  const timeoutMs = opts?.timeoutMs ?? REMOTE_FETCH_MS;
+  let done = 0;
+  let cacheHits = 0;
+
+  const report = (loading: boolean) => {
+    opts?.onProgress?.({ total, done, loading });
+  };
+
+  if (total === 0) {
+    report(false);
+    return { warnings, total: 0, hydrated: 0, cacheHits: 0 };
+  }
+
+  report(true);
 
   await Promise.all(
     imgs.map(async (img) => {
-      const src = img.getAttribute('src');
-      if (!src || !/^https?:\/\//i.test(src)) return;
+      const src = img.getAttribute('src') ?? '';
       try {
-        const response = await withTimeout(
-          requestUrl({ url: src, method: 'GET' }),
-          1500,
-        );
-        const mime = response.headers['content-type'] || 'image/png';
-        const blob = new Blob([response.arrayBuffer], { type: mime });
-        const objectUrl = URL.createObjectURL(blob);
+        const { objectUrl, fromCache } = await resolveRemoteObjectUrl(src, timeoutMs);
+        if (fromCache) cacheHits += 1;
         img.setAttribute('src', objectUrl);
-        img.dataset.exportImgBlob = '1';
+        img.dataset.exportImgRemoteUrl = src;
+        img.dataset.exportImgCached = '1';
       } catch {
         warnings.push(`Remote image failed: ${src.slice(0, 80)}`);
+      } finally {
+        done += 1;
+        report(done < total);
       }
     }),
   );
 
-  return warnings;
+  report(false);
+  return {
+    warnings,
+    total,
+    hydrated: total - warnings.length,
+    cacheHits,
+  };
 }
 
-export function revokeHydratedImages(root: HTMLElement): void {
-  for (const img of Array.from(root.querySelectorAll('img[data-export-img-blob="1"]'))) {
-    const src = img.getAttribute('src');
-    if (src?.startsWith('blob:')) {
-      URL.revokeObjectURL(src);
-    }
+/** Host destroy must not revoke cache-owned blob URLs. */
+export function revokeHydratedImages(_root: HTMLElement): void {
+  // Session cache owns object URLs for remote images.
+}
+
+/** Drop the session cache (e.g. plugin unload). */
+export function clearRemoteImageCache(): void {
+  for (const objectUrl of remoteImageCache.values()) {
+    URL.revokeObjectURL(objectUrl);
   }
+  remoteImageCache.clear();
+}
+
+/** Test helper — current cache size. */
+export function remoteImageCacheSize(): number {
+  return remoteImageCache.size;
 }

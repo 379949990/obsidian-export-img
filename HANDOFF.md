@@ -38,7 +38,8 @@ Obsidian community plugin **id `export-img`** (folder must match; GitHub repo ma
 ```text
 Command/menu → Studio | quickCopy | folderExport
   → createRenderHost (MarkdownRenderer)
-  → prepareEmbedLayout (fit wide blocks)   ← before settle
+  → hydrateRemotes (session-cached blob URLs; status before first capture)
+  → prepareEmbedLayout (fit wide blocks; embedAlign default = document)
   → settleElement (images / fonts / Mermaid)
   → capture (preview 1× no fonts | export N× + fonts)
   → clipboard / saveAs / vault binary / ZIP

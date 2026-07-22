@@ -7,7 +7,13 @@ import {
 } from 'obsidian';
 import type { ExportImgSettings, ThemeMode } from '../types';
 import { prepareMarkdown } from './prepare';
-import { hydrateRemoteImages, revokeHydratedImages } from './remote-images';
+import {
+  hydrateRemoteImages,
+  countRemoteImages,
+  revokeHydratedImages,
+  type RemoteHydrateProgress,
+  type RemoteHydrateResult,
+} from './remote-images';
 import { applyCapturePadding } from './overflow';
 
 export interface RenderHostOptions {
@@ -27,7 +33,14 @@ export interface RenderHostHandle {
   captureEl: HTMLElement;
   contentEl: HTMLElement;
   component: Component;
+  /** Populated after hydrateRemotes(); empty until then. */
   remoteWarnings: string[];
+  /** Count of http(s) images present after Markdown render. */
+  remotePending: number;
+  hydrateRemotes: (opts?: {
+    onProgress?: (progress: RemoteHydrateProgress) => void;
+    timeoutMs?: number;
+  }) => Promise<RemoteHydrateResult>;
   destroy: () => void;
 }
 
@@ -204,9 +217,11 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   await MarkdownRenderer.render(app, content, sizer, sourcePath, component);
 
   renderAuthorBar(contentEl, settings);
-
-  const remoteWarnings = await hydrateRemoteImages(captureEl);
   renderWatermark(captureEl, settings);
+
+  const remotePending = countRemoteImages(captureEl);
+  const remoteWarnings: string[] = [];
+  const defaultTimeout = Math.max(10_000, Math.min(settings.settleTimeoutMs, 30_000));
 
   return {
     rootEl,
@@ -214,6 +229,15 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
     contentEl,
     component,
     remoteWarnings,
+    remotePending,
+    hydrateRemotes: async (opts) => {
+      const result = await hydrateRemoteImages(captureEl, {
+        onProgress: opts?.onProgress,
+        timeoutMs: opts?.timeoutMs ?? defaultTimeout,
+      });
+      remoteWarnings.splice(0, remoteWarnings.length, ...result.warnings);
+      return result;
+    },
     destroy: () => {
       revokeHydratedImages(captureEl);
       component.unload();

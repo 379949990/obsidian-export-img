@@ -59,6 +59,7 @@ export async function exportFolderAsImages(
         width: settings.width,
         themeMode: settings.themeMode,
       });
+      await host.hydrateRemotes();
       prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
       await waitForNextPaint();
       await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });

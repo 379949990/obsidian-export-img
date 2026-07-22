@@ -28,6 +28,7 @@ import type { RemoteHydrateProgress } from '../pipeline/remote-images';
 import { settleElement } from '../pipeline/settle-gate';
 import { copyBlobToClipboard, saveBlob, saveMultipleBlobs } from '../pipeline/output';
 import { defaultSplitHeight } from '../pipeline/split';
+import { resolveSettleTimeoutMs, clampMobileExportScale } from '../pipeline/mobile-limits';
 import { AppContext } from './app-context';
 import { FidelityPanel } from './fidelity-panel';
 import { PreviewPane } from './preview-pane';
@@ -38,12 +39,16 @@ import {
   getWorkSignature,
   resolvePreviewPhase,
   type CapturePagePart,
+  type CaptureStudioResult,
 } from './studio-pipeline';
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
   if (draft.split.height <= 0) {
     draft.split.height = defaultSplitHeight(draft.width);
+  }
+  if (Platform.isMobile) {
+    draft.scale = clampMobileExportScale(draft.scale);
   }
   return draft;
 }
@@ -64,6 +69,20 @@ interface TitlebarState {
   remoteHint: string | null;
   rendering: boolean;
   onRefresh: () => void;
+}
+
+function notifyMobileCaptureFlags(
+  result: CaptureStudioResult,
+  flags: { autoSplit: boolean; scaleCapped: boolean },
+): void {
+  if (result.mobileAutoSplit && !flags.autoSplit) {
+    flags.autoSplit = true;
+    new Notice(t('notice.mobileAutoSplit'), 7000);
+  }
+  if (result.mobileScaleCapped && !flags.scaleCapped) {
+    flags.scaleCapped = true;
+    new Notice(t('notice.mobileScaleCapped'), 6000);
+  }
 }
 
 function updateModalTitle(titleEl: HTMLElement, state: TitlebarState): void {
@@ -144,6 +163,7 @@ function StudioApp(
   const previewUrlsRef = useRef<string[]>([]);
   const exportBlobsRef = useRef<CapturePagePart[] | null>(null);
   const exportSigRef = useRef<string | null>(null);
+  const mobileNoticeFlagsRef = useRef({ autoSplit: false, scaleCapped: false });
   const appliedRenderSigRef = useRef<string>('');
   draftRef.current = draft;
 
@@ -302,7 +322,7 @@ function StudioApp(
           await waitForNextPaint();
 
           const diag = await settleElement(host.captureEl, {
-            timeoutMs: settings.settleTimeoutMs,
+            timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
             signal: settleAbort.signal,
             onUpdate: (d) => {
               if (token === workToken.current) {
@@ -319,14 +339,15 @@ function StudioApp(
 
           appliedRenderSigRef.current = renderSig;
 
-          const parts = await captureStudioPages(host, settings, 'preview', {
+          const captured = await captureStudioPages(host, settings, 'preview', {
             skipPrepare: true,
           });
           if (cancelled || token !== workToken.current) return;
-          assertNonEmptyCapture(parts, 'Preview capture');
+          assertNonEmptyCapture(captured.parts, 'Preview capture');
+          notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
 
           invalidateExportCache();
-          publishPreview(parts);
+          publishPreview(captured.parts);
           setSettle({
             ...diag,
             status: diag.status === 'timed_out' ? 'timed_out' : 'ready',
@@ -339,11 +360,12 @@ function StudioApp(
 
         // recapture: reuse settled DOM (format / split changes).
         const host = hostRef.current!;
-        const parts = await captureStudioPages(host, settings, 'preview');
+        const captured = await captureStudioPages(host, settings, 'preview');
         if (cancelled || token !== workToken.current) return;
-        assertNonEmptyCapture(parts, 'Preview capture');
+        assertNonEmptyCapture(captured.parts, 'Preview capture');
+        notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
         invalidateExportCache();
-        publishPreview(parts);
+        publishPreview(captured.parts);
         setSettle({
           status: 'ready',
           pendingImages: 0,
@@ -472,7 +494,9 @@ function StudioApp(
     let parts = exportBlobsRef.current;
     if (!parts || exportSigRef.current !== sig) {
       // Export path: reuse settled DOM; capture at export scale with fonts.
-      parts = await captureStudioPages(host, draft, 'export');
+      const captured = await captureStudioPages(host, draft, 'export');
+      notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
+      parts = captured.parts;
       exportBlobsRef.current = parts;
       exportSigRef.current = sig;
     }
@@ -561,6 +585,9 @@ export class ExportStudioModal extends Modal {
 
   onOpen(): void {
     this.modalEl.addClass('export-img-modal');
+    if (Platform.isMobile) {
+      this.modalEl.addClass('is-mobile');
+    }
     this.titleEl.addClass('export-img-modal-titlebar');
     updateModalTitle(this.titleEl, {
       settle: null,
@@ -617,9 +644,11 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
     await host.hydrateRemotes();
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
-    await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
+    await settleElement(host.captureEl, {
+      timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
+    });
     const blob = await captureElement(host.captureEl, {
-      scale: scaleToNumber(settings.scale),
+      scale: scaleToNumber(clampMobileExportScale(settings.scale)),
       format: settings.format,
     });
     await copyBlobToClipboard(blob);

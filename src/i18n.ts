@@ -117,6 +117,7 @@ const en: Dict = {
   'studio.exporting': 'Exporting…',
   'studio.previewEmpty': 'No preview yet',
   'studio.previewHint': 'Drag to pan · Scroll to zoom · Double-click to fit',
+  'studio.previewHintMobile': 'Drag to pan · Pinch to zoom · Double-tap to fit',
   'notice.noActiveFile': 'Open a Markdown note first',
   'notice.noSelection': 'Select some text first',
   'notice.copySuccess': 'Copied to clipboard',
@@ -129,6 +130,9 @@ const en: Dict = {
   'notice.remotePartial': 'Some remote images failed ({count}). Preview may be incomplete.',
   'notice.mobileHint':
     'Mobile: Save writes into vault attachments. Clipboard copy may be unavailable — prefer Save.',
+  'notice.mobileAutoSplit':
+    'Long note: auto-split into pages on mobile to avoid running out of memory.',
+  'notice.mobileScaleCapped': 'Export scale is limited to 2× on mobile.',
   'setting.heading.language': 'Language',
   'setting.locale': 'Interface language',
   'setting.localeDesc':
@@ -268,6 +272,7 @@ const zh: Dict = {
   'studio.exporting': '正在导出…',
   'studio.previewEmpty': '暂无预览',
   'studio.previewHint': '拖拽平移 · 滚轮缩放 · 双击适应窗口',
+  'studio.previewHintMobile': '拖拽平移 · 双指缩放 · 双击适应窗口',
   'notice.noActiveFile': '请先打开一篇 Markdown 笔记',
   'notice.noSelection': '请先选中文本',
   'notice.copySuccess': '已复制到剪贴板',
@@ -280,6 +285,8 @@ const zh: Dict = {
   'notice.remotePartial': '部分网络图片加载失败（{count}）。预览可能不完整。',
   'notice.mobileHint':
     '移动端：保存会写入库内附件目录；剪贴板复制可能不可用，请优先使用保存。',
+  'notice.mobileAutoSplit': '长文已在移动端自动分页，避免内存不足导致闪退。',
+  'notice.mobileScaleCapped': '移动端导出倍率上限为 2×。',
   'setting.heading.language': '语言',
   'setting.locale': '界面语言',
   'setting.localeDesc':

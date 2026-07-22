@@ -1,10 +1,14 @@
 import type { ExportImgSettings } from '../types';
-import { scaleToNumber } from '../settings';
 import { captureElement } from '../pipeline/capture';
 import {
   prepareEmbedLayout,
   waitForNextPaint,
 } from '../pipeline/overflow';
+import {
+  clampMobileExportScale,
+  resolveCaptureScale,
+  resolveMobileSplitPlan,
+} from '../pipeline/mobile-limits';
 import type { RenderHostHandle } from '../pipeline/render-host';
 import {
   applyPageBlocks,
@@ -44,7 +48,7 @@ export function getExportCacheKey(settings: ExportImgSettings): string {
   return JSON.stringify({
     render: getRenderSignature(settings),
     format: settings.format,
-    scale: settings.scale,
+    scale: clampMobileExportScale(settings.scale),
     split: settings.split,
   });
 }
@@ -73,16 +77,25 @@ export interface CapturePagePart {
   index?: number;
 }
 
+export interface CaptureStudioResult {
+  parts: CapturePagePart[];
+  /** Tall note was auto-paginated on mobile for memory safety. */
+  mobileAutoSplit: boolean;
+  /** User asked for 3× but mobile capped to 2×. */
+  mobileScaleCapped: boolean;
+}
+
 /**
  * Capture the current host as preview (1×, no fonts) or export (configured scale).
  * Callers own settle / layout timing; pass skipPrepare when layout already ran.
+ * On mobile, tall unsplit notes are auto-paginated and export scale is capped at 2×.
  */
 export async function captureStudioPages(
   host: RenderHostHandle,
   settings: ExportImgSettings,
   kind: CaptureKind,
   opts?: { skipPrepare?: boolean },
-): Promise<CapturePagePart[]> {
+): Promise<CaptureStudioResult> {
   const { captureEl, contentEl } = host;
 
   if (!opts?.skipPrepare) {
@@ -90,18 +103,30 @@ export async function captureStudioPages(
     await waitForNextPaint();
   }
 
-  const scale = kind === 'preview' ? 1 : scaleToNumber(settings.scale);
+  const scale = resolveCaptureScale(settings, kind);
+  const mobileScaleCapped =
+    kind === 'export' && settings.scale === '3x' && scale < 3;
   const skipFontEmbed = kind === 'preview';
   const captureOpts = { scale, format: settings.format };
 
-  if (settings.split.mode === 'none') {
+  const splitPlan = resolveMobileSplitPlan(settings, captureEl.scrollHeight);
+  const effectiveSplit = {
+    mode: splitPlan.mode,
+    height: splitPlan.height,
+  };
+
+  if (effectiveSplit.mode === 'none') {
     const blob = await captureElement(captureEl, captureOpts, { skipFontEmbed });
-    return [{ blob }];
+    return {
+      parts: [{ blob }],
+      mobileAutoSplit: false,
+      mobileScaleCapped,
+    };
   }
 
-  const maxH = resolveSplitHeight(settings.split, settings.width);
+  const maxH = resolveSplitHeight(effectiveSplit, settings.width);
   const allBlocks = getAtomicBlocks(contentEl);
-  const pages = paginateBlocks(allBlocks, maxH, settings.split.mode);
+  const pages = paginateBlocks(allBlocks, maxH, effectiveSplit.mode);
   const results: CapturePagePart[] = [];
 
   try {
@@ -120,13 +145,20 @@ export async function captureStudioPages(
     resetPageBlocks(allBlocks, captureEl, settings.padding);
   }
 
-  return results.length > 0
-    ? results
-    : [
-        {
-          blob: await captureElement(captureEl, captureOpts, { skipFontEmbed }),
-        },
-      ];
+  const parts =
+    results.length > 0
+      ? results
+      : [
+          {
+            blob: await captureElement(captureEl, captureOpts, { skipFontEmbed }),
+          },
+        ];
+
+  return {
+    parts,
+    mobileAutoSplit: splitPlan.autoSplit,
+    mobileScaleCapped,
+  };
 }
 
 export function assertNonEmptyCapture(parts: CapturePagePart[], label: string): void {

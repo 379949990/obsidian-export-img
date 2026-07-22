@@ -107,7 +107,9 @@ On **mobile**:
 - **Save** writes into the vault via `getAvailablePathForAttachment`
 - **Copy** may be unavailable — prefer Save
 - Multi-page / folder exports save files individually (no ZIP)
-- Large notes and 3× scale use more memory and take longer to settle
+- Studio: smaller preview, larger refresh control, pinch-zoom / double-tap fit, compact controls
+- Long notes auto-split into pages; export scale capped at **2×** to reduce out-of-memory crashes
+- Large notes and higher scale still use more memory and take longer to settle
 
 ---
 

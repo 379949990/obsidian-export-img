@@ -9,6 +9,7 @@ import type {
   ThemeMode,
   WatermarkType,
 } from '../types';
+import { Platform } from 'obsidian';
 import { useAppContext } from './app-context';
 import { ImageSourceField } from './image-source-field';
 
@@ -112,7 +113,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           >
             <option value="1x">1x</option>
             <option value="2x">2x</option>
-            <option value="3x">3x</option>
+            {!Platform.isMobile && <option value="3x">3x</option>}
           </select>
         </label>
         <p className="export-img-field-hint">{t('studio.scaleHint')}</p>

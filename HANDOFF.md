@@ -98,15 +98,12 @@ Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/
 
 ---
 
-## Shipped / fixed on `v1.0.4` (review batch)
+## Shipped / fixed on `v1.0.5` (in progress)
 
-- Settings migrate **v2**: drop `split.overlap`; map legacy `split.mode: auto` → `fixed`
-- Community lint: migrate union warning; remove `setDynamicTooltip`; keep Path B `display()` for minApp **1.5.7**
-- Unified Preact `ImageSourceField` for settings + Studio (avatar / watermark image)
-- Remote hydrate: image MIME + 12MB cap + `notice.remotePartial`
-- `themeMode: current` mirrors `document.body` dark/light
-- Studio: watermark type text/image; timed_out blocks Copy/Save unless confirmed
-- README honesty: frontmatter ≠ Properties UI; Save persists settings (Copy does not); no fake split modes
+- Theme: copy body CSS variables for forced light/dark; code/tables keep Reading column width
+- Mobile Studio: larger refresh hit target, shorter preview, compact panel, avatar 2×2 actions
+- Preview: pinch-zoom + double-tap fit on touch
+- Mobile capture safety: auto-split tall notes; export scale capped at 2×; shorter settle timeout
 
 ## Known risks / good next work (not committed as plan)
 
@@ -114,7 +111,8 @@ Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin
-5. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
+5. Extremely large notes on low-RAM devices may still struggle even with auto-split
+6. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---
 

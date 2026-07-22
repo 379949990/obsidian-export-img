@@ -11,6 +11,10 @@ import { createRenderHost } from './pipeline/render-host';
 import { prepareEmbedLayout, waitForNextPaint } from './pipeline/overflow';
 import { settleElement } from './pipeline/settle-gate';
 import { captureElement } from './pipeline/capture';
+import {
+  clampMobileExportScale,
+  resolveSettleTimeoutMs,
+} from './pipeline/mobile-limits';
 import { saveMultipleBlobs } from './pipeline/output';
 
 function isMarkdownFile(file: TFile): boolean {
@@ -62,9 +66,11 @@ export async function exportFolderAsImages(
       await host.hydrateRemotes();
       prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
       await waitForNextPaint();
-      await settleElement(host.captureEl, { timeoutMs: settings.settleTimeoutMs });
+      await settleElement(host.captureEl, {
+        timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
+      });
       const blob = await captureElement(host.captureEl, {
-        scale: scaleToNumber(settings.scale),
+        scale: scaleToNumber(clampMobileExportScale(settings.scale)),
         format: settings.format,
       });
       items.push({ blob, title: file.basename, format: settings.format });

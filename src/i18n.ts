@@ -130,24 +130,18 @@ const en: Dict = {
   'notice.copyFail': 'Could not copy the image',
   'notice.saveSuccess': 'Saved: {path}',
   'notice.saveFail': 'Could not save the image',
-  'notice.saveToPhotos':
-    'Shared — choose Save Image / Save to Photos in the system sheet to add it to your album.',
-  'notice.saveToPhotosFallback':
-    'Download started. On some devices open the file and save it to Photos / Gallery.',
   'notice.exportFail': 'Export failed',
   'notice.batchDone': 'Exported {count} notes',
   'notice.pdfNotSupported': 'PDF is not supported in this version',
   'notice.remotePartial': 'Some remote images failed ({count}). Preview may be incomplete.',
   'notice.mobileHint':
-    'Mobile: Save opens the system share sheet so you can add the image to Photos / Gallery. Clipboard copy may be unavailable. Change settings, then tap refresh to update the preview.',
+    'Mobile: Save writes images into your vault as attachments (path shown in the notice). Clipboard copy may be unavailable. Change settings, then tap refresh to update the preview.',
   'notice.mobileRefreshFirst':
     'Tap the title-bar refresh button to apply your settings before Copy / Save.',
   'notice.mobileMegaBlock':
     'A single block (e.g. a tall image or code fence) is very tall — consider Split or a lower scale if capture fails.',
   'notice.mobileCanvasRisk':
     'This export is large for mobile memory. If the app struggles, enable Split or lower the export scale.',
-  'notice.saveZipShared':
-    'Shared a ZIP of all pages — open it and save images, or extract in Files.',
   'notice.settleTimeout': 'Render wait timed out — export may be incomplete.',
   'setting.heading.language': 'Language',
   'setting.locale': 'Interface language',
@@ -301,21 +295,17 @@ const zh: Dict = {
   'notice.copyFail': '复制图片失败',
   'notice.saveSuccess': '已保存：{path}',
   'notice.saveFail': '保存图片失败',
-  'notice.saveToPhotos': '已打开系统分享：请选择「存储图像 / 保存到照片」写入相册。',
-  'notice.saveToPhotosFallback':
-    '已开始下载。部分机型需在文件中打开图片后再存入相册。',
   'notice.exportFail': '导出失败',
   'notice.batchDone': '已导出 {count} 篇笔记',
   'notice.pdfNotSupported': '当前版本不支持 PDF',
   'notice.remotePartial': '部分网络图片加载失败（{count}）。预览可能不完整。',
   'notice.mobileHint':
-    '移动端：保存会打开系统分享，可选择存入相册；剪贴板复制可能不可用。修改配置后请点刷新更新预览。',
+    '移动端：保存会写入库附件（Notice 会显示路径）；剪贴板复制可能不可用。修改配置后请点刷新更新预览。',
   'notice.mobileRefreshFirst': '请先点标题栏刷新按钮应用配置，再复制 / 保存。',
   'notice.mobileMegaBlock':
     '存在特别高的整块内容（如超高图片或代码块）。若捕获失败，可开启分页或降低倍率。',
   'notice.mobileCanvasRisk':
     '本次导出体积较大，移动端内存压力较高。若卡顿或闪退，请开启分页或降低导出倍率。',
-  'notice.saveZipShared': '已分享包含全部页面的 ZIP — 可在文件中打开并保存图片。',
   'notice.settleTimeout': '渲染等待超时 — 导出结果可能不完整。',
   'setting.heading.language': '语言',
   'setting.locale': '界面语言',

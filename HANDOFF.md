@@ -42,7 +42,7 @@ Command/menu → Studio | quickCopy | folderExport
   → prepareEmbedLayout (fit wide blocks; align only when height-capped)
   → settleElement (images / fonts / Mermaid / MathJax)
   → capture (preview 1× no fonts | export N× + fonts; mobile budget/auto-split)
-  → clipboard / saveAs / vault binary / ZIP (mobile multi-page → one ZIP share)
+  → clipboard / saveAs (desktop) / vault binary (mobile) / ZIP (desktop multi only)
   → timed_out: Copy/Save blocked until “Export anyway”
 ```
 
@@ -67,7 +67,7 @@ pnpm run build    # tsc + production bundle
 pnpm run dev      # watch → main.js
 ```
 
-Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → system share → Save Image / Photos; multi-page expect one ZIP share.
+Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → vault attachment (Notice path); multi-page = one file per page in Attachments.
 
 ---
 
@@ -89,7 +89,7 @@ Latest public release on `main`: **1.0.5** (`40a4fbf`). Push `main` if the relea
 - Theme: copy body CSS variables for forced light/dark; code/tables keep Reading column width
 - Mobile Studio: compact panel, pinch-zoom / double-tap fit; multi-page preview fits width and height
 - Mobile capture safety: auto-split, scale ≤2×, ~8M canvas pixels/page, settle ≤5s, mega-block notice
-- Mobile Save: Web Share → Photos; multi-page = one ZIP share; settings persist only after successful save
+- Mobile Save (1.0.5 attempt): Web Share → Photos / ZIP — unreliable in Obsidian WebView; **1.0.6 reverts to vault**
 - Theme body class restore: exact prior `theme-dark` / `theme-light` presence
 - Remote images: MIME sniff; bounded LRU cache; concurrency 3
 
@@ -98,6 +98,7 @@ Latest public release on `main`: **1.0.5** (`40a4fbf`). Push `main` if the relea
 - Mobile: restore full Split + 3×; no forced auto-pagination / scale clamp (advisory notices only)
 - Mobile: settings changes do not auto-refresh preview — manual title-bar refresh + stale banner
 - Mobile UI: restore modal side gutters (~92vw); preview fit back to ~94% / 3% gutters; panel label sizes restored (compact inputs only)
+- Mobile Save: revert to **vault attachments** (honest path); drop Web Share / opaque download / mobile ZIP
 
 ## Known risks / good next work (not committed as plan)
 

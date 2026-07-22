@@ -93,7 +93,7 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 ### Batch & selection
 
-- Folder export → ZIP on desktop; on mobile, one shared ZIP (or vault fallback)
+- Folder export → ZIP on desktop; vault attachments per image on mobile
 - Selection export; optional quick copy without opening Studio
 
 ---
@@ -104,9 +104,9 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 On **mobile**:
 
-- **Save** opens the system share sheet so you can choose **Save Image / Save to Photos** (falls back to download, then vault attachment). Cancelling the share sheet does **not** persist studio settings.
-- **Copy** may be unavailable — prefer Save
-- Multi-page / folder exports share **one ZIP** (not N share sheets)
+- **Save** writes images into the **vault** as attachments (Notice shows the path). Prefer this over Copy.
+- **Copy** may be unavailable
+- Multi-page / folder exports save **one vault file per page** (no ZIP on mobile)
 - Studio: compact **inputs**, normal label sizes; pinch-zoom / double-tap fit; preview fits ~**94%** width with **3%** gutters
 - Modal keeps side margins from the screen edge (~92vw)
 - Changing settings does **not** auto-refresh the preview — tap the title-bar refresh button (Copy / Save wait for a fresh render)

@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.2`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.3`.
 
 Agent onboarding: [HANDOFF.md](HANDOFF.md). Product overview and install: [README.md](README.md).
 

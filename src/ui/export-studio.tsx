@@ -4,7 +4,6 @@ import {
   Modal,
   Notice,
   Platform,
-  setIcon,
   type App,
   type FrontMatterCache,
   type TFile,
@@ -30,7 +29,7 @@ import { defaultSplitHeight } from '../pipeline/split';
 import { resolveSettleTimeoutMs } from '../pipeline/mobile-limits';
 import { AppContext } from './app-context';
 import { FidelityPanel } from './fidelity-panel';
-import { PreviewPane } from './preview-pane';
+import { PreviewPane, type PreviewRenderProgress } from './preview-pane';
 import {
   assertNonEmptyCapture,
   captureStudioPages,
@@ -43,10 +42,21 @@ import {
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
+  // Studio toggles are session-only — never open with watermark/author pre-checked.
+  draft.watermark.enable = false;
+  draft.author.show = false;
   if (draft.split.height <= 0) {
     draft.split.height = defaultSplitHeight(draft.width);
   }
   return draft;
+}
+
+/** Persist preconfig from Studio without carrying session decoration toggles. */
+function settingsToPersist(draft: ExportImgSettings): ExportImgSettings {
+  const next = cloneSettings(draft);
+  next.watermark.enable = false;
+  next.author.show = false;
+  return next;
 }
 
 export interface StudioOpenArgs {
@@ -63,8 +73,6 @@ const RENDER_DEBOUNCE_MS = 400;
 interface TitlebarState {
   settle: SettleDiagnostic | null;
   remoteHint: string | null;
-  rendering: boolean;
-  onRefresh: () => void;
 }
 
 function notifyMobileCaptureFlags(
@@ -124,23 +132,6 @@ function updateModalTitle(titleEl: HTMLElement, state: TitlebarState): void {
       text: state.remoteHint,
     });
   }
-
-  const refreshBtn = status.createEl('button', {
-    cls: 'export-img-title-refresh clickable-icon',
-    attr: {
-      type: 'button',
-      'aria-label': t('studio.refreshPreview'),
-      title: t('studio.refreshPreview'),
-    },
-  });
-  setIcon(refreshBtn, 'refresh-cw');
-  refreshBtn.disabled = state.rendering;
-  if (state.rendering) {
-    refreshBtn.addClass('is-disabled');
-  }
-  refreshBtn.addEventListener('click', () => {
-    if (!state.rendering) state.onRefresh();
-  });
 }
 
 function StudioApp(
@@ -156,13 +147,14 @@ function StudioApp(
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [remoteHint, setRemoteHint] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
-  const [viewResetNonce, setViewResetNonce] = useState(0);
   const [exportDespiteTimeout, setExportDespiteTimeout] = useState(false);
+  /** Forces re-render when Obsidian shell theme flips and themeMode is `current`. */
+  const [shellThemeTick, setShellThemeTick] = useState(0);
 
   const workSignature = getWorkSignature(draft);
+  // Re-render on shell theme tick so themeScheme inside the signature refreshes.
+  void shellThemeTick;
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
-  /** Forces re-render when Obsidian shell theme flips and themeMode is `current`. */
-  const [, setShellThemeTick] = useState(0);
 
   const hostRef = useRef<RenderHostHandle | null>(null);
   const renderSlotRef = useRef<HTMLDivElement | null>(null);
@@ -177,7 +169,10 @@ function StudioApp(
     canvasRisk: false,
   });
   const [previewStale, setPreviewStale] = useState(false);
+  const [renderProgress, setRenderProgress] = useState<PreviewRenderProgress | null>(null);
   const appliedRenderSigRef = useRef<string>('');
+  const commitTimerRef = useRef<number | null>(null);
+  const autoRerender = plugin.settings.autoRerenderPreview;
   draftRef.current = draft;
 
   const revokePreviewUrls = () => {
@@ -196,33 +191,57 @@ function StudioApp(
 
   const onRefreshPreview = useCallback(() => {
     if (rendering) return;
+    if (commitTimerRef.current != null) {
+      window.clearTimeout(commitTimerRef.current);
+      commitTimerRef.current = null;
+    }
     appliedRenderSigRef.current = '';
     setPreviewStale(false);
     setDebouncedWorkSig(getWorkSignature(draftRef.current));
-    setViewResetNonce((n) => n + 1);
+    // Do not reset pan/zoom — only first open + double-click/tap re-fit.
     setRefreshNonce((n) => n + 1);
   }, [rendering]);
+
+  const onCommitPreview = useCallback(() => {
+    if (commitTimerRef.current != null) {
+      window.clearTimeout(commitTimerRef.current);
+    }
+    commitTimerRef.current = window.setTimeout(() => {
+      commitTimerRef.current = null;
+      setPreviewStale(false);
+      setDebouncedWorkSig(getWorkSignature(draftRef.current));
+    }, RENDER_DEBOUNCE_MS);
+  }, []);
+
+  const invalidateExportCache = () => {
+    exportBlobsRef.current = null;
+    exportSigRef.current = null;
+  };
 
   useEffect(() => {
     updateModalTitle(titleEl, {
       settle,
       remoteHint,
-      rendering,
-      onRefresh: onRefreshPreview,
     });
-  }, [titleEl, settle, remoteHint, rendering, onRefreshPreview]);
+  }, [titleEl, settle, remoteHint]);
 
   // When following the app theme, rebuild when Obsidian toggles light/dark.
   useEffect(() => {
     if (draft.themeMode !== 'current') return;
     const onCssChange = () => {
       setShellThemeTick((n) => n + 1);
+      invalidateExportCache();
+      if (plugin.settings.autoRerenderPreview) {
+        onCommitPreview();
+      } else {
+        setPreviewStale(true);
+      }
     };
     const ref = app.workspace.on('css-change', onCssChange);
     return () => {
       app.workspace.offref(ref);
     };
-  }, [app, draft.themeMode]);
+  }, [app, draft.themeMode, onCommitPreview, plugin.settings.autoRerenderPreview]);
 
   const publishPreview = useCallback((parts: CapturePagePart[]) => {
     revokePreviewUrls();
@@ -231,11 +250,6 @@ function StudioApp(
     setPreviewUrls(urls);
   }, []);
 
-  const invalidateExportCache = () => {
-    exportBlobsRef.current = null;
-    exportSigRef.current = null;
-  };
-
   const firstWorkPass = useRef(true);
   useEffect(() => {
     if (firstWorkPass.current) {
@@ -243,22 +257,21 @@ function StudioApp(
       setDebouncedWorkSig(workSignature);
       return;
     }
-    // Mobile: config changes do not auto-rerender — user taps refresh.
-    if (Platform.isMobile) {
+    // Config changed: mark stale until refresh (or until panel commits when auto-on).
+    invalidateExportCache();
+    if (!autoRerender) {
       setPreviewStale(true);
-      exportBlobsRef.current = null;
-      exportSigRef.current = null;
-      return;
     }
-    const timer = window.setTimeout(() => {
-      setDebouncedWorkSig(workSignature);
-    }, RENDER_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [workSignature]);
+  }, [workSignature, autoRerender]);
 
   useEffect(() => {
     let cancelled = false;
     const token = ++workToken.current;
+
+    const setProgress = (ratio: number, label: string) => {
+      if (token !== workToken.current) return;
+      setRenderProgress({ ratio, label });
+    };
 
     const run = async () => {
       await waitForNextPaint();
@@ -272,6 +285,7 @@ function StudioApp(
       );
 
       setRendering(true);
+      setRenderProgress({ ratio: 0.02, label: t('studio.progress.render') });
       setRemoteHint(null);
       setExportDespiteTimeout(false);
       if (phase === 'rebuild') {
@@ -319,6 +333,11 @@ function StudioApp(
           const onRemoteProgress = (progress: RemoteHydrateProgress) => {
             if (token !== workToken.current) return;
             if (progress.loading && progress.total > 0) {
+              const frac = progress.done / progress.total;
+              setProgress(0.05 + frac * 0.35, t('studio.progress.hydrate', {
+                done: progress.done,
+                total: progress.total,
+              }));
               setRemoteHint(
                 t('studio.remote.loading', {
                   done: progress.done,
@@ -332,12 +351,18 @@ function StudioApp(
 
           // Hydrate remotes (session-cached) before the first preview capture.
           if (host.remotePending > 0) {
+            setProgress(0.05, t('studio.progress.hydrate', {
+              done: 0,
+              total: host.remotePending,
+            }));
             setRemoteHint(
               t('studio.remote.loading', {
                 done: 0,
                 total: host.remotePending,
               }),
             );
+          } else {
+            setProgress(0.4, t('studio.progress.settle'));
           }
           const hydrateResult = await host.hydrateRemotes({
             onProgress: onRemoteProgress,
@@ -354,12 +379,14 @@ function StudioApp(
 
           prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
           await waitForNextPaint();
+          setProgress(0.45, t('studio.progress.settle'));
 
           const diag = await settleElement(host.captureEl, {
             timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
             signal: settleAbort.signal,
             onUpdate: (d) => {
               if (token === workToken.current) {
+                setProgress(0.5, t('studio.progress.settle'));
                 setSettle({
                   ...d,
                   status: d.status === 'timed_out' ? 'timed_out' : 'waiting',
@@ -372,9 +399,17 @@ function StudioApp(
           if (cancelled || token !== workToken.current) return;
 
           appliedRenderSigRef.current = renderSig;
+          setProgress(0.75, t('studio.progress.capture'));
 
           const captured = await captureStudioPages(host, settings, 'preview', {
             skipPrepare: true,
+            onProgress: (p) => {
+              const frac = p.total > 0 ? p.page / p.total : 1;
+              setProgress(0.75 + frac * 0.24, t('studio.progress.capturePage', {
+                page: p.page,
+                total: p.total,
+              }));
+            },
           });
           if (cancelled || token !== workToken.current) return;
           assertNonEmptyCapture(captured.parts, 'Preview capture');
@@ -388,13 +423,23 @@ function StudioApp(
             elapsedMs: Math.round(performance.now() - startedAt),
             warnings: [...host.remoteWarnings, ...diag.warnings],
           });
+          setRenderProgress(null);
           setRendering(false);
           return;
         }
 
         // recapture: reuse settled DOM (format / split changes).
         const host = hostRef.current!;
-        const captured = await captureStudioPages(host, settings, 'preview');
+        setProgress(0.55, t('studio.progress.capture'));
+        const captured = await captureStudioPages(host, settings, 'preview', {
+          onProgress: (p) => {
+            const frac = p.total > 0 ? p.page / p.total : 1;
+            setProgress(0.55 + frac * 0.4, t('studio.progress.capturePage', {
+              page: p.page,
+              total: p.total,
+            }));
+          },
+        });
         if (cancelled || token !== workToken.current) return;
         assertNonEmptyCapture(captured.parts, 'Preview capture');
         notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
@@ -408,11 +453,13 @@ function StudioApp(
           elapsedMs: Math.round(performance.now() - startedAt),
           warnings: [...host.remoteWarnings],
         });
+        setRenderProgress(null);
         setRendering(false);
       } catch (error) {
         console.error(error);
         if (token === workToken.current) {
           setRendering(false);
+          setRenderProgress(null);
           setRemoteHint(null);
           setSettle({
             status: 'timed_out',
@@ -446,6 +493,9 @@ function StudioApp(
 
   useEffect(
     () => () => {
+      if (commitTimerRef.current != null) {
+        window.clearTimeout(commitTimerRef.current);
+      }
       destroyHost();
       revokePreviewUrls();
     },
@@ -539,7 +589,7 @@ function StudioApp(
 
   const onCopy = async () => {
     if (previewStale) {
-      new Notice(t('notice.mobileRefreshFirst'));
+      new Notice(t('notice.refreshFirst'));
       return;
     }
     setBusy(true);
@@ -560,7 +610,7 @@ function StudioApp(
 
   const onSave = async () => {
     if (previewStale) {
-      new Notice(t('notice.mobileRefreshFirst'));
+      new Notice(t('notice.refreshFirst'));
       return;
     }
     setBusy(true);
@@ -583,7 +633,7 @@ function StudioApp(
         );
       }
       if (!saved) return;
-      plugin.settings = cloneSettings(draft);
+      plugin.settings = settingsToPersist(draft);
       presetPaddingRef.current = { ...draft.padding };
       await plugin.saveSettings();
     } catch (error) {
@@ -600,7 +650,8 @@ function StudioApp(
       <PreviewPane
         imageUrls={previewUrls}
         rendering={rendering}
-        viewResetNonce={viewResetNonce}
+        renderProgress={renderProgress}
+        onRefresh={onRefreshPreview}
       />
       <FidelityPanel
         draft={draft}
@@ -609,10 +660,12 @@ function StudioApp(
         exportDespiteTimeout={exportDespiteTimeout}
         onExportDespiteTimeout={setExportDespiteTimeout}
         previewStale={previewStale}
+        autoRerender={autoRerender}
         paddingMode={paddingMode}
         onChange={onChange}
         onNestedChange={onNestedChange}
         onTogglePadding={onTogglePadding}
+        onCommitPreview={onCommitPreview}
         onCopy={() => void onCopy()}
         onSave={() => void onSave()}
       />
@@ -638,8 +691,6 @@ export class ExportStudioModal extends Modal {
     updateModalTitle(this.titleEl, {
       settle: null,
       remoteHint: null,
-      rendering: true,
-      onRefresh: () => undefined,
     });
     if (Platform.isMobile) {
       new Notice(t('notice.mobileHint'), 8000);

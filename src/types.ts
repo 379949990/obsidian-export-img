@@ -65,6 +65,11 @@ export interface ExportImgSettings {
   split: SplitSettings;
   watermark: WatermarkSettings;
   author: AuthorSettings;
+  /**
+   * When true, Export Studio re-renders the preview after committed config changes.
+   * Default false — change settings, then tap title-bar refresh (avoids thrashing while dragging).
+   */
+  autoRerenderPreview: boolean;
 }
 
 export interface SettleDiagnostic {

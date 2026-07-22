@@ -18,7 +18,21 @@ describe('cloneSettings', () => {
     clone.author.name = 'y';
     expect(DEFAULT_SETTINGS.padding.top).toBe(96);
     expect(DEFAULT_SETTINGS.split.mode).toBe('none');
-    expect(DEFAULT_SETTINGS.watermark.text).toBe('');
-    expect(DEFAULT_SETTINGS.author.name).toBe('');
+    expect(DEFAULT_SETTINGS.watermark.text).toBe('Watermark');
+    expect(DEFAULT_SETTINGS.author.name).toBe('Your Name');
+    expect(DEFAULT_SETTINGS.author.remark).toBe('The Description');
+  });
+});
+
+describe('DEFAULT_SETTINGS decorations', () => {
+  it('leaves watermark and author off by default', () => {
+    expect(DEFAULT_SETTINGS.watermark.enable).toBe(false);
+    expect(DEFAULT_SETTINGS.author.show).toBe(false);
+    expect(DEFAULT_SETTINGS.watermark.rotate).toBe(30);
+    expect(DEFAULT_SETTINGS.watermark.text).toBe('Watermark');
+    expect(DEFAULT_SETTINGS.author.name).toBe('Your Name');
+    expect(DEFAULT_SETTINGS.author.remark).toBe('The Description');
+    // Desktop mock: Platform.isMobile === false → auto re-render on.
+    expect(DEFAULT_SETTINGS.autoRerenderPreview).toBe(true);
   });
 });

@@ -8,11 +8,17 @@ import {
 import { Platform } from 'obsidian';
 import { t } from '../i18n';
 
+export interface PreviewRenderProgress {
+  /** 0–1 overall estimate from hydrate / settle / capture phases. */
+  ratio: number;
+  label?: string;
+}
+
 interface PreviewPaneProps {
   imageUrls: string[];
   rendering: boolean;
-  /** Bump to force fit-to-view (title-bar refresh). */
-  viewResetNonce?: number;
+  renderProgress?: PreviewRenderProgress | null;
+  onRefresh?: () => void;
 }
 
 const MIN_SCALE = 0.15;
@@ -78,17 +84,21 @@ function pointerMidpoint(a: PointerSample, b: PointerSample): PointerSample {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: PreviewPaneProps) {
+export function PreviewPane({
+  imageUrls,
+  rendering,
+  renderProgress = null,
+  onRefresh,
+}: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState<Frame>({ scale: 1, x: 0, y: 0 });
   const frameRef = useRef(frame);
   frameRef.current = frame;
 
+  /** After the first 94%/3% fit, preserve pan/zoom across preview bitmap updates. */
   const fittedOnceRef = useRef(false);
   const userMovedRef = useRef(false);
-  const pendingResetRef = useRef(false);
-  const lastResetNonceRef = useRef(viewResetNonce);
   const pointersRef = useRef(new Map<number, PointerSample>());
   const dragRef = useRef<{
     active: boolean;
@@ -129,7 +139,6 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
       const { w } = measureStackSize(st, pageCount);
       if (w <= 0) return;
       userMovedRef.current = false;
-      pendingResetRef.current = false;
       fittedOnceRef.current = true;
       setFrame(initialFrame(vp.clientWidth, w));
     };
@@ -137,33 +146,13 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     apply();
   }, [pageCount]);
 
-  const shouldFit = () => !fittedOnceRef.current || pendingResetRef.current;
-
+  // First bitmap only: apply 94% width / 3% gutters. Later updates keep the frame.
   useEffect(() => {
-    if (viewResetNonce === lastResetNonceRef.current) return;
-    lastResetNonceRef.current = viewResetNonce;
-    if (viewResetNonce === 0) return;
-    pendingResetRef.current = true;
-    fittedOnceRef.current = false;
-    if (primaryUrl) {
-      fitToView();
-    }
-  }, [viewResetNonce, primaryUrl, fitToView]);
-
-  // New preview content: always re-fit to 94% width / 3% gutters.
-  useEffect(() => {
-    fittedOnceRef.current = false;
-    pendingResetRef.current = true;
-    userMovedRef.current = false;
-  }, [primaryUrl, pageCount]);
-
-  useEffect(() => {
-    if (!primaryUrl) return;
-    if (!shouldFit()) return;
+    if (!primaryUrl || fittedOnceRef.current) return;
 
     let cancelled = false;
     const tryFit = () => {
-      if (cancelled) return;
+      if (cancelled || fittedOnceRef.current) return;
       if (stackImagesReady(stackRef.current, pageCount)) {
         fitToView();
         return;
@@ -178,18 +167,15 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     };
   }, [primaryUrl, pageCount, fitToView]);
 
+  // Resize before the first fit only — never reset a user/session frame afterward.
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      if (userMovedRef.current || dragRef.current.active || pinchRef.current?.active) return;
-      if (!fittedOnceRef.current) {
-        fitToView();
+      if (fittedOnceRef.current || dragRef.current.active || pinchRef.current?.active) {
         return;
       }
-      if (!userMovedRef.current) {
-        fitToView();
-      }
+      fitToView();
     });
     observer.observe(viewport);
     return () => observer.disconnect();
@@ -342,6 +328,9 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
   };
 
   const hint = Platform.isMobile ? t('studio.previewHintMobile') : t('studio.previewHint');
+  const progressPct = Math.round(
+    Math.min(1, Math.max(0, renderProgress?.ratio ?? 0)) * 100,
+  );
 
   return (
     <div
@@ -381,7 +370,7 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
                 draggable={false}
                 onLoad={() => {
                   if (index !== 0) return;
-                  if (shouldFit()) fitToView();
+                  if (!fittedOnceRef.current) fitToView();
                 }}
               />
             </div>
@@ -396,10 +385,47 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
         <div className="export-img-preview-loading" aria-live="polite">
           <div className="export-img-spinner" aria-hidden="true" />
           <span className="export-img-preview-loading-text">{t('studio.rendering')}</span>
+          {renderProgress && (
+            <>
+              <div
+                className="export-img-preview-progress"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={progressPct}
+                style={{ ['--export-img-progress' as string]: `${progressPct}%` }}
+              >
+                <div className="export-img-preview-progress-bar" />
+              </div>
+              {renderProgress.label && (
+                <span className="export-img-preview-progress-label">{renderProgress.label}</span>
+              )}
+            </>
+          )}
         </div>
       )}
       {primaryUrl && !rendering && (
         <div className="export-img-preview-hint">{hint}</div>
+      )}
+      {onRefresh && (
+        <button
+          type="button"
+          className={
+            rendering
+              ? 'export-img-preview-refresh is-disabled'
+              : 'export-img-preview-refresh'
+          }
+          disabled={rendering}
+          aria-label={t('studio.refreshPreview')}
+          title={t('studio.refreshPreview')}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!rendering) onRefresh();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {t('studio.refreshPreview')}
+        </button>
       )}
     </div>
   );

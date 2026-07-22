@@ -2,6 +2,7 @@
  * Apply one-shot settings migrations. Pure: returns next settings + whether to persist.
  * Versioned so padding heuristics never re-run after the first upgrade.
  */
+import { Platform } from 'obsidian';
 import { cloneSettings, DEFAULT_SETTINGS, SETTINGS_VERSION } from './settings';
 import type { EmbedAlign, ExportImgSettings, PaddingSettings, SplitMode } from './types';
 
@@ -86,6 +87,19 @@ export function migrateLoadedSettings(data: RawSettingsData | null): {
     watermark: { ...DEFAULT_SETTINGS.watermark, ...rest.watermark },
     author: { ...DEFAULT_SETTINGS.author, ...rest.author },
   });
+
+  // v4: decoration toggles are Studio session-only — clear persisted checked state.
+  if (fromVersion < 4) {
+    settings.watermark.enable = false;
+    settings.author.show = false;
+    shouldSave = true;
+  }
+
+  // v5: platform-aware auto-rerender default (desktop on, mobile off).
+  if (fromVersion < 5) {
+    settings.autoRerenderPreview = !Platform.isMobile;
+    shouldSave = true;
+  }
 
   if (legacyPreviewMaxHeight !== undefined || legacyPreviewAlign !== undefined) {
     shouldSave = true;

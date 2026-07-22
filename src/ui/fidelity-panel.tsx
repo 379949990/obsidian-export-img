@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
+import type { TargetedEvent } from 'preact';
 import { t } from '../i18n';
 import { defaultSplitHeight } from '../pipeline/split';
 import type {
@@ -19,8 +21,10 @@ interface FidelityPanelProps {
   settleStatus: SettleStatus | null;
   exportDespiteTimeout: boolean;
   onExportDespiteTimeout: (value: boolean) => void;
-  /** Mobile: settings changed since last render — refresh required. */
+  /** Settings changed since last render — refresh required. */
   previewStale?: boolean;
+  /** Plugin setting: commit control changes schedule preview work. */
+  autoRerender: boolean;
   paddingMode: 'preset' | 'document';
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
@@ -28,8 +32,72 @@ interface FidelityPanelProps {
     patch: Partial<ExportImgSettings[K]>,
   ) => void;
   onTogglePadding: () => void;
+  /** Commit draft into preview work (debounced by parent when auto). */
+  onCommitPreview: () => void;
   onCopy: () => void;
   onSave: () => void;
+}
+
+/** Range: live label via local state; commit value on pointer/keyboard release. */
+function CommitRange(props: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  disabled: boolean;
+  formatLabel: (value: number) => string;
+  onCommit: (value: number) => void;
+}) {
+  const { label, min, max, step, value, disabled, formatLabel, onCommit } = props;
+  const [local, setLocal] = useState(value);
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    if (!dragging.current) setLocal(value);
+  }, [value]);
+
+  const finish = (next: number) => {
+    dragging.current = false;
+    setLocal(next);
+    onCommit(next);
+  };
+
+  return (
+    <label className="export-img-field">
+      <span>
+        {label} ({formatLabel(local)})
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={local}
+        disabled={disabled}
+        onPointerDown={() => {
+          dragging.current = true;
+        }}
+        onInput={(e) => {
+          setLocal(Number(e.currentTarget.value));
+        }}
+        onPointerUp={(e) => finish(Number(e.currentTarget.value))}
+        onPointerCancel={(e) => finish(Number(e.currentTarget.value))}
+        onKeyUp={(e) => {
+          if (
+            e.key === 'ArrowLeft' ||
+            e.key === 'ArrowRight' ||
+            e.key === 'ArrowUp' ||
+            e.key === 'ArrowDown' ||
+            e.key === 'Home' ||
+            e.key === 'End'
+          ) {
+            finish(Number(e.currentTarget.value));
+          }
+        }}
+      />
+    </label>
+  );
 }
 
 export function FidelityPanel(props: FidelityPanelProps) {
@@ -40,10 +108,12 @@ export function FidelityPanel(props: FidelityPanelProps) {
     exportDespiteTimeout,
     onExportDespiteTimeout,
     previewStale = false,
+    autoRerender,
     paddingMode,
     onChange,
     onNestedChange,
     onTogglePadding,
+    onCommitPreview,
     onCopy,
     onSave,
   } = props;
@@ -51,12 +121,40 @@ export function FidelityPanel(props: FidelityPanelProps) {
   const timedOut = settleStatus === 'timed_out';
   const exportBlocked = busy || previewStale || (timedOut && !exportDespiteTimeout);
 
+  const commit = () => {
+    if (autoRerender) onCommitPreview();
+  };
+
+  const patchAndCommit = (patch: Partial<ExportImgSettings>) => {
+    onChange(patch);
+    commit();
+  };
+
+  const nestedAndCommit = <K extends keyof ExportImgSettings>(
+    key: K,
+    patch: Partial<ExportImgSettings[K]>,
+  ) => {
+    onNestedChange(key, patch);
+    commit();
+  };
+
+  /** Text/number: update draft live; commit preview on blur (and Enter for text). */
+  const onTextBlurCommit = () => commit();
+
+  const onTextKeyDown = (e: TargetedEvent<HTMLInputElement, KeyboardEvent>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
+  const showRefreshHint = previewStale || (!autoRerender && Platform.isMobile);
+
   return (
     <div className="export-img-panel">
       <div className="export-img-panel-scroll">
         <h3 className="export-img-panel-title">{t('studio.fidelity')}</h3>
 
-        {Platform.isMobile && (
+        {showRefreshHint && (
           <p
             className={
               previewStale
@@ -65,9 +163,13 @@ export function FidelityPanel(props: FidelityPanelProps) {
             }
           >
             {previewStale
-              ? t('studio.mobileRefreshRequired')
+              ? t('studio.refreshRequired')
               : t('studio.mobileManualRefreshHint')}
           </p>
+        )}
+
+        {!autoRerender && !Platform.isMobile && !previewStale && (
+          <p className="export-img-field-hint">{t('studio.manualRefreshHint')}</p>
         )}
 
         <label className="export-img-field">
@@ -79,6 +181,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
             value={draft.width}
             disabled={busy}
             onChange={(e) => onChange({ width: Number(e.currentTarget.value) || draft.width })}
+            onBlur={onTextBlurCommit}
+            onKeyDown={onTextKeyDown}
           />
         </label>
 
@@ -100,6 +204,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
               if (!Number.isFinite(n) || n < 0) return;
               onChange({ embedMaxHeight: Math.round(n) });
             }}
+            onBlur={onTextBlurCommit}
+            onKeyDown={onTextKeyDown}
           />
         </label>
         <p className="export-img-field-hint">{t('studio.embedMaxHeightHint')}</p>
@@ -110,7 +216,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             value={draft.embedAlign}
             disabled={busy}
             onChange={(e) =>
-              onChange({
+              patchAndCommit({
                 embedAlign: e.currentTarget.value as 'left' | 'center',
               })
             }
@@ -126,7 +232,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.scale}
             disabled={busy}
-            onChange={(e) => onChange({ scale: e.currentTarget.value as ScaleMode })}
+            onChange={(e) => patchAndCommit({ scale: e.currentTarget.value as ScaleMode })}
           >
             <option value="1x">1x</option>
             <option value="2x">2x</option>
@@ -142,7 +248,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.format}
             disabled={busy}
-            onChange={(e) => onChange({ format: e.currentTarget.value as ExportFormat })}
+            onChange={(e) => patchAndCommit({ format: e.currentTarget.value as ExportFormat })}
           >
             <option value="png">PNG</option>
             <option value="jpg">JPEG</option>
@@ -155,7 +261,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           <select
             value={draft.themeMode}
             disabled={busy}
-            onChange={(e) => onChange({ themeMode: e.currentTarget.value as ThemeMode })}
+            onChange={(e) => patchAndCommit({ themeMode: e.currentTarget.value as ThemeMode })}
           >
             <option value="current">{t('studio.theme.current')}</option>
             <option value="light">{t('studio.theme.light')}</option>
@@ -168,7 +274,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             type="checkbox"
             checked={draft.showFilename}
             disabled={busy}
-            onChange={(e) => onChange({ showFilename: e.currentTarget.checked })}
+            onChange={(e) => patchAndCommit({ showFilename: e.currentTarget.checked })}
           />
           <span>{t('studio.showTitle')}</span>
         </label>
@@ -178,7 +284,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             type="checkbox"
             checked={draft.showMetadata}
             disabled={busy}
-            onChange={(e) => onChange({ showMetadata: e.currentTarget.checked })}
+            onChange={(e) => patchAndCommit({ showMetadata: e.currentTarget.checked })}
           />
           <span>{t('studio.showMetadata')}</span>
         </label>
@@ -190,7 +296,10 @@ export function FidelityPanel(props: FidelityPanelProps) {
               type="button"
               className="export-img-link-btn"
               disabled={busy}
-              onClick={onTogglePadding}
+              onClick={() => {
+                onTogglePadding();
+                commit();
+              }}
             >
               {paddingMode === 'preset'
                 ? t('studio.padding.useDocument')
@@ -212,6 +321,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                   const v = Math.round(n);
                   onNestedChange('padding', { top: v, bottom: v });
                 }}
+                onBlur={onTextBlurCommit}
+                onKeyDown={onTextKeyDown}
               />
             </label>
             <label className="export-img-field">
@@ -228,6 +339,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                   const v = Math.round(n);
                   onNestedChange('padding', { left: v, right: v });
                 }}
+                onBlur={onTextBlurCommit}
+                onKeyDown={onTextKeyDown}
               />
             </label>
           </div>
@@ -241,7 +354,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             onChange={(e) => {
               const mode = e.currentTarget.value as SplitMode;
               if (mode === 'fixed') {
-                onNestedChange('split', {
+                nestedAndCommit('split', {
                   mode,
                   height:
                     draft.split.height > 0
@@ -249,7 +362,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                       : defaultSplitHeight(draft.width),
                 });
               } else {
-                onNestedChange('split', { mode });
+                nestedAndCommit('split', { mode });
               }
             }}
           >
@@ -273,6 +386,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                   if (!Number.isFinite(n) || n < 200) return;
                   onNestedChange('split', { height: Math.round(n) });
                 }}
+                onBlur={onTextBlurCommit}
+                onKeyDown={onTextKeyDown}
               />
             </label>
             <p className="export-img-field-hint">{t('studio.splitHeightHint')}</p>
@@ -289,7 +404,9 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 type="checkbox"
                 checked={draft.watermark.enable}
                 disabled={busy}
-                onChange={(e) => onNestedChange('watermark', { enable: e.currentTarget.checked })}
+                onChange={(e) =>
+                  nestedAndCommit('watermark', { enable: e.currentTarget.checked })
+                }
               />
               <span>{t('studio.watermark')}</span>
             </label>
@@ -301,7 +418,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.watermark.type}
                     disabled={busy}
                     onChange={(e) =>
-                      onNestedChange('watermark', {
+                      nestedAndCommit('watermark', {
                         type: e.currentTarget.value as WatermarkType,
                       })
                     }
@@ -316,7 +433,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     label={t('studio.watermarkImage')}
                     value={draft.watermark.imageSrc}
                     disabled={busy}
-                    onChange={(imageSrc) => onNestedChange('watermark', { imageSrc })}
+                    onChange={(imageSrc) => nestedAndCommit('watermark', { imageSrc })}
                   />
                 ) : (
                   <>
@@ -329,6 +446,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                         onChange={(e) =>
                           onNestedChange('watermark', { text: e.currentTarget.value })
                         }
+                        onBlur={onTextBlurCommit}
+                        onKeyDown={onTextKeyDown}
                       />
                     </label>
                     <label className="export-img-field">
@@ -338,44 +457,32 @@ export function FidelityPanel(props: FidelityPanelProps) {
                         value={draft.watermark.color}
                         disabled={busy}
                         onChange={(e) =>
-                          onNestedChange('watermark', { color: e.currentTarget.value })
+                          nestedAndCommit('watermark', { color: e.currentTarget.value })
                         }
                       />
                     </label>
                   </>
                 )}
-                <label className="export-img-field">
-                  <span>
-                    {t('studio.watermarkOpacity')} ({Math.round(draft.watermark.opacity * 100)}%)
-                  </span>
-                  <input
-                    type="range"
-                    min={0.05}
-                    max={0.6}
-                    step={0.01}
-                    value={draft.watermark.opacity}
-                    disabled={busy}
-                    onChange={(e) =>
-                      onNestedChange('watermark', { opacity: Number(e.currentTarget.value) })
-                    }
-                  />
-                </label>
-                <label className="export-img-field">
-                  <span>
-                    {t('studio.watermarkRotate')} ({draft.watermark.rotate}°)
-                  </span>
-                  <input
-                    type="range"
-                    min={-60}
-                    max={60}
-                    step={1}
-                    value={draft.watermark.rotate}
-                    disabled={busy}
-                    onChange={(e) =>
-                      onNestedChange('watermark', { rotate: Number(e.currentTarget.value) })
-                    }
-                  />
-                </label>
+                <CommitRange
+                  label={t('studio.watermarkOpacity')}
+                  min={0.05}
+                  max={0.6}
+                  step={0.01}
+                  value={draft.watermark.opacity}
+                  disabled={busy}
+                  formatLabel={(v) => `${Math.round(v * 100)}%`}
+                  onCommit={(opacity) => nestedAndCommit('watermark', { opacity })}
+                />
+                <CommitRange
+                  label={t('studio.watermarkRotate')}
+                  min={-90}
+                  max={90}
+                  step={1}
+                  value={draft.watermark.rotate}
+                  disabled={busy}
+                  formatLabel={(v) => `${v}°`}
+                  onCommit={(rotate) => nestedAndCommit('watermark', { rotate })}
+                />
               </div>
             )}
           </div>
@@ -386,7 +493,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                 type="checkbox"
                 checked={draft.author.show}
                 disabled={busy}
-                onChange={(e) => onNestedChange('author', { show: e.currentTarget.checked })}
+                onChange={(e) => nestedAndCommit('author', { show: e.currentTarget.checked })}
               />
               <span>{t('studio.author')}</span>
             </label>
@@ -398,7 +505,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                   value={draft.author.avatarSrc}
                   disabled={busy}
                   avatar
-                  onChange={(avatarSrc) => onNestedChange('author', { avatarSrc })}
+                  onChange={(avatarSrc) => nestedAndCommit('author', { avatarSrc })}
                 />
                 <label className="export-img-field">
                   <span>{t('studio.authorName')}</span>
@@ -407,6 +514,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.author.name}
                     disabled={busy}
                     onChange={(e) => onNestedChange('author', { name: e.currentTarget.value })}
+                    onBlur={onTextBlurCommit}
+                    onKeyDown={onTextKeyDown}
                   />
                 </label>
                 <label className="export-img-field">
@@ -416,6 +525,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.author.remark}
                     disabled={busy}
                     onChange={(e) => onNestedChange('author', { remark: e.currentTarget.value })}
+                    onBlur={onTextBlurCommit}
+                    onKeyDown={onTextKeyDown}
                   />
                 </label>
                 <label className="export-img-field">
@@ -424,7 +535,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                     value={draft.author.align}
                     disabled={busy}
                     onChange={(e) =>
-                      onNestedChange('author', {
+                      nestedAndCommit('author', {
                         align: e.currentTarget.value as 'left' | 'center' | 'right',
                       })
                     }

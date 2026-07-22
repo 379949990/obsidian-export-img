@@ -25,6 +25,8 @@ Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). 
 
 **Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view as a baseline (expect close, not pixel-identical), then Copy / Save. On mobile, prefer Save (vault attachments).
 
+Preview updates are **manual by default** (title-bar refresh). Enable **Auto re-render preview on config change** in plugin settings if you want committed panel edits to refresh automatically (sliders commit on release; text on blur).
+
 ```bash
 pnpm run build   # tsc + production bundle → main.js
 pnpm run test    # vitest (hard-killed if >60s)

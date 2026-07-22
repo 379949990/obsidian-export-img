@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.2`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.3`.
 
 Agent onboarding: [HANDOFF.md](HANDOFF.md). Product overview and install: [README.md](README.md).
 
@@ -45,7 +45,9 @@ Branch model for this repo: **`main` + `vX.Y.Z`** (no `dev`).
 2. Develop on the version branch; bump **`package.json`**, **`manifest.json`**, and **`versions.json`** to the same `x.y.z` before ship.
 3. Squash → **push `main`**.
 
-Push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): build → tag **`x.y.z`** (= `manifest.json` `version`, required by Obsidian) → GitHub Release with `main.js` / `manifest.json` / `styles.css`.
+Push to `main` runs [`.github/workflows/release.yml`](.github/workflows/release.yml): build → [artifact attestation](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations) for `main.js` / `styles.css` → tag **`x.y.z`** (= `manifest.json` `version`, required by Obsidian) → GitHub Release with `main.js` / `manifest.json` / `styles.css`.
+
+Verify attested assets: `gh attestation verify main.js -R 379949990/obsidian-export-img` (same for `styles.css`).
 
 Same version already tagged → workflow skips (no duplicate release). To rebuild a version, delete that GitHub Release + tag first.
 

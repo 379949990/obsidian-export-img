@@ -30,7 +30,10 @@ export class ExportImgSettingTab extends PluginSettingTab {
             name: t('setting.locale'),
             desc: t('setting.localeDesc'),
             render: (setting) => {
-              this.renderLocaleSetting(setting, () => this.update());
+              // Avoid a typed `this.update()` call: SettingTab.update is 1.13+ and
+              // trips obsidianmd/no-unsupported-api while minAppVersion stays 1.5.7
+              // (1.13 is still Catalyst). Runtime refresh still works on 1.13+.
+              this.renderLocaleSetting(setting, () => this.refreshSettingsUi());
             },
           },
         ],
@@ -313,6 +316,20 @@ export class ExportImgSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+  }
+
+  /**
+   * Refresh settings UI after locale change.
+   * Uses Reflect so we do not reference SettingTab.update in typed form
+   * (1.13+ API; blocked by no-unsupported-api at minAppVersion 1.5.7).
+   */
+  private refreshSettingsUi(): void {
+    const updateFn = Reflect.get(this, 'update');
+    if (typeof updateFn === 'function') {
+      (updateFn as () => void).call(this);
+      return;
+    }
+    this.display();
   }
 
   private renderLocaleSetting(setting: Setting, refresh: () => void): void {

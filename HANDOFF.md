@@ -1,10 +1,10 @@
-# Agent handoff — Export Img (`v1.0.2`)
+# Agent handoff — Export Img (`v1.0.3`)
 
 > For a new coding agent. Read this first, then `README.dev.md` / `README.md`. Keep this file current when branch goals or release state change; delete obsolete claims.
 
-**Date:** 2026-07-21  
-**Branch:** `v1.0.2` (cut from `main` @ `ed76338` / release **1.0.1**)  
-**Target ship:** `1.0.2` — bump already applied in `package.json` / `manifest.json` / `versions.json`
+**Date:** 2026-07-22  
+**Branch:** `v1.0.3` (cut from `main` @ `22aa6fa` / release **1.0.2**)  
+**Target ship:** `1.0.3` — bump already applied in `package.json` / `manifest.json` / `versions.json`
 
 ---
 
@@ -24,7 +24,7 @@ Obsidian community plugin **id `export-img`** (folder must match; GitHub repo ma
 | Vault plugin path: `.obsidian/plugins/export-img/` | Must match `manifest.id` |
 | Branch model: **`main` + `vX.Y.Z` only** (no `dev`) | Project choice |
 | Release tag = plain **`x.y.z`** (= manifest version) | Obsidian BRAT / community install |
-| Do **not** use Tag `Version_*` or `v1.0.2` as release tag | Conflicts with branch / store |
+| Do **not** use Tag `Version_*` or `v1.0.3` as release tag | Conflicts with branch / store |
 | Daily work on `vX.Y.Z`; **squash → push `main`** to ship | Triggers Release Action |
 | No dynamic `<script>` injection in bundle | Store “obfuscation” checks → Preact + fflate |
 | Prefer CSS classes / `setCssProps` over mass inline `el.style.*` | Community review |
@@ -73,16 +73,16 @@ Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Sa
 
 ---
 
-## Release (1.0.2 when ready)
+## Release (1.0.3 when ready)
 
-1. Finish work on `v1.0.2`; keep versions at `1.0.2`.
-2. `git checkout main && git pull && git merge --squash v1.0.2`
-3. Commit: `release(1.0.2): <summary>`
-4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds and creates tag **`1.0.2`** + assets.
+1. Finish work on `v1.0.3`; keep versions at `1.0.3`.
+2. `git checkout main && git pull && git merge --squash v1.0.3`
+3. Commit: `release(1.0.3): <summary>`
+4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.3`** + assets.
 
 If tag already exists, workflow skips. Delete GitHub Release + tag to rebuild.
 
-Latest public release: [1.0.1](https://github.com/379949990/obsidian-export-img/releases/tag/1.0.1).
+Latest public release: [1.0.2](https://github.com/379949990/obsidian-export-img/releases/tag/1.0.2) (local `main`; push if remote tag not yet created).
 
 ---
 

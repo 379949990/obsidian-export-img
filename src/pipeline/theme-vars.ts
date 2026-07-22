@@ -88,6 +88,7 @@ const THEME_VAR_FALLBACK = [
 /** Resolve Studio themeMode against the live app shell. */
 export function resolveThemeScheme(mode: ThemeMode): ResolvedThemeScheme {
   if (mode === 'light' || mode === 'dark') return mode;
+  if (typeof document === 'undefined') return 'light';
   return document.body.classList.contains('theme-dark') ? 'dark' : 'light';
 }
 

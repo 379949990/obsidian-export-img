@@ -66,6 +66,7 @@
   border-color: color-mix(in srgb, var(--text-success) 35%, var(--background-modifier-border));
 }
 
+.export-img-title-pill.is-idle,
 .export-img-title-pill.is-waiting {
   color: var(--text-muted);
 }
@@ -772,13 +773,6 @@
   object-fit: cover;
 }
 
-.export-img-image-source-empty {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-faint);
-  text-align: center;
-  padding: 4px;
-}
-
 .export-img-image-source-actions {
   display: flex;
   flex-wrap: wrap;
@@ -916,9 +910,9 @@
   }
 
   .export-img-preview-pane {
-    min-height: 0;
-    height: 32vh;
-    max-height: 32vh;
+    min-height: 168px;
+    height: 34vh;
+    max-height: 34vh;
     flex: 0 0 auto;
   }
 
@@ -932,10 +926,11 @@
 /* Obsidian sets body.is-mobile / .is-phone on phones and tablets */
 body.is-mobile .export-img-modal,
 .export-img-modal.is-mobile {
-  width: min(100vw, 100%);
-  max-width: 100%;
-  height: min(92vh, 100%);
-  max-height: min(92vh, 100%);
+  /* Restore side gutters (desktop uses ~88vw); avoid edge-to-edge bleed. */
+  width: min(92vw, calc(100% - 24px));
+  max-width: min(92vw, calc(100% - 24px));
+  height: min(90vh, 100%);
+  max-height: min(90vh, 100%);
 }
 
 body.is-mobile .export-img-modal-titlebar,
@@ -960,14 +955,14 @@ body.is-mobile .export-img-title-refresh svg,
 body.is-mobile .export-img-studio,
 .export-img-modal.is-mobile .export-img-studio {
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 body.is-mobile .export-img-preview-pane,
 .export-img-modal.is-mobile .export-img-preview-pane {
-  height: 32vh;
-  max-height: 32vh;
-  min-height: 160px;
+  height: 34vh;
+  max-height: 34vh;
+  min-height: 168px;
   flex: 0 0 auto;
 }
 
@@ -980,57 +975,105 @@ body.is-mobile .export-img-panel,
 
 body.is-mobile .export-img-panel-scroll,
 .export-img-modal.is-mobile .export-img-panel-scroll {
-  padding: 8px 10px 6px;
-  gap: 6px;
+  padding: 10px 12px 8px;
+  gap: 8px;
 }
 
 body.is-mobile .export-img-panel-title,
 .export-img-modal.is-mobile .export-img-panel-title {
-  margin-bottom: 0;
-  font-size: var(--font-ui-small);
+  margin-bottom: 2px;
+  font-size: var(--font-ui-medium);
 }
 
+/* Labels/hints at normal UI size; only controls stay compact. */
 body.is-mobile .export-img-field,
 .export-img-modal.is-mobile .export-img-field {
-  min-height: 26px;
-  gap: 6px;
+  min-height: 32px;
+  gap: 10px;
+  align-items: center;
+  font-size: var(--font-ui-small);
 }
 
 body.is-mobile .export-img-field > span,
 .export-img-modal.is-mobile .export-img-field > span {
-  flex-basis: 38%;
-  font-size: var(--font-ui-smaller);
+  flex-basis: 42%;
+  font-size: var(--font-ui-small);
+  line-height: 1.3;
+}
+
+body.is-mobile .export-img-field input,
+body.is-mobile .export-img-field select,
+.export-img-modal.is-mobile .export-img-field input,
+.export-img-modal.is-mobile .export-img-field select {
+  min-height: 28px;
+  padding: 2px 8px;
+  font-size: var(--font-ui-small);
+}
+
+body.is-mobile .export-img-field input[type='color'],
+.export-img-modal.is-mobile .export-img-field input[type='color'] {
+  min-height: 28px;
+  height: 28px;
+}
+
+body.is-mobile .export-img-check,
+.export-img-modal.is-mobile .export-img-check {
+  min-height: 32px;
+  font-size: var(--font-ui-small);
 }
 
 body.is-mobile .export-img-field-hint,
 .export-img-modal.is-mobile .export-img-field-hint {
-  margin: 0;
-  font-size: 11px;
-  line-height: 1.3;
+  margin: -2px 0 4px;
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+body.is-mobile .export-img-mobile-banner,
+.export-img-modal.is-mobile .export-img-mobile-banner {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+body.is-mobile .export-img-mobile-banner.is-stale,
+.export-img-modal.is-mobile .export-img-mobile-banner.is-stale {
+  color: var(--text-warning);
+  border: 1px solid color-mix(in srgb, var(--text-warning) 35%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--text-warning) 10%, var(--background-primary));
 }
 
 body.is-mobile .export-img-section,
 .export-img-modal.is-mobile .export-img-section {
-  gap: 4px;
-  padding: 4px 0 0;
+  gap: 6px;
+  padding: 6px 0 0;
 }
 
 body.is-mobile .export-img-decor-block,
 .export-img-modal.is-mobile .export-img-decor-block {
-  padding: 8px;
-  margin-bottom: 6px;
-  gap: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  gap: 8px;
 }
 
 body.is-mobile .export-img-decor-fields,
 .export-img-modal.is-mobile .export-img-decor-fields {
-  gap: 6px;
+  gap: 8px;
+}
+
+body.is-mobile .export-img-padding-rows,
+.export-img-modal.is-mobile .export-img-padding-rows {
+  gap: 8px;
 }
 
 body.is-mobile .export-img-actions,
 .export-img-modal.is-mobile .export-img-actions {
-  padding: 8px 10px 10px;
-  gap: 6px;
+  padding: 10px 12px 12px;
+  gap: 8px;
 }
 
 body.is-mobile .export-img-actions button,

@@ -52,11 +52,11 @@ const en: Dict = {
   'studio.scaleHint':
     'Preview always uses 1× for speed. Copy and Save use this scale.',
   'studio.scaleHintMobile':
-    'Preview is 1×. Copy / Save use this scale (max 2× on mobile). Tall notes may auto-reduce scale further to fit memory limits.',
-  'studio.mobileAutoSplitHint':
-    'This note was auto-split into pages on mobile to avoid running out of memory. Split mode in settings stays “Off”; pagination is temporary for this capture.',
-  'studio.mobileLimitsHint':
-    'Mobile caps: scale ≤ 2×, shorter render wait, ~8M canvas pixels per page. Multi-page Save shares one ZIP. Prefer Save → “Save Image” for Photos.',
+    'Preview is 1×. Copy / Save use this scale (1× / 2× / 3×). For very long notes, enable Split or lower scale if the app struggles.',
+  'studio.mobileManualRefreshHint':
+    'On mobile, changing settings does not refresh the preview. Tap the refresh button in the title bar when ready.',
+  'studio.mobileRefreshRequired':
+    'Settings changed — tap the title-bar refresh button to update the preview before Copy / Save.',
   'studio.format': 'Format',
   'studio.theme': 'Theme',
   'studio.theme.current': 'Current',
@@ -65,13 +65,8 @@ const en: Dict = {
   'studio.showTitle': 'Show note title',
   'studio.showMetadata': 'Show properties',
   'studio.padding': 'Padding',
-  'studio.padding.top': 'Top',
-  'studio.padding.right': 'Right',
-  'studio.padding.bottom': 'Bottom',
-  'studio.padding.left': 'Left',
   'studio.padding.vertical': 'Vertical',
   'studio.padding.horizontal': 'Horizontal',
-  'studio.padding.reset': 'Match reading view',
   'studio.padding.useDocument': 'Match reading view',
   'studio.padding.usePreset': 'Use preset',
   'studio.split': 'Split long notes',
@@ -99,7 +94,6 @@ const en: Dict = {
   'studio.authorAlign.center': 'Center',
   'studio.authorAlign.right': 'Right',
   'studio.exportDespiteTimeout': 'Export anyway (incomplete render)',
-  'imageSource.empty': 'No image',
   'imageSource.upload': 'Upload',
   'imageSource.vault': 'Vault',
   'imageSource.url': 'URL',
@@ -120,7 +114,6 @@ const en: Dict = {
   'studio.copy': 'Copy',
   'studio.save': 'Save',
   'studio.rendering': 'Updating preview…',
-  'studio.exporting': 'Exporting…',
   'studio.previewEmpty': 'No preview yet',
   'studio.previewHint': 'Drag to pan · Scroll to zoom · Double-click to fit',
   'studio.previewHintMobile': 'Drag to pan · Pinch to zoom · Double-tap to fit',
@@ -130,25 +123,20 @@ const en: Dict = {
   'notice.copyFail': 'Could not copy the image',
   'notice.saveSuccess': 'Saved: {path}',
   'notice.saveFail': 'Could not save the image',
-  'notice.saveToPhotos':
-    'Shared — choose Save Image / Save to Photos in the system sheet to add it to your album.',
-  'notice.saveToPhotosFallback':
-    'Download started. On some devices open the file and save it to Photos / Gallery.',
+  'notice.savePagesSuccess': 'Saved {count} images to the vault',
+  'notice.savePartialFail':
+    'Save stopped after {saved} of {total} images — settings were not updated',
   'notice.exportFail': 'Export failed',
   'notice.batchDone': 'Exported {count} notes',
-  'notice.pdfNotSupported': 'PDF is not supported in this version',
   'notice.remotePartial': 'Some remote images failed ({count}). Preview may be incomplete.',
   'notice.mobileHint':
-    'Mobile: Save opens the system share sheet so you can add the image to Photos / Gallery. Clipboard copy may be unavailable.',
-  'notice.mobileAutoSplit':
-    'Long note: auto-split into pages on mobile to avoid running out of memory.',
-  'notice.mobileScaleCapped': 'Export scale is limited to 2× on mobile.',
-  'notice.mobileScaleBudgeted':
-    'Export scale was reduced so each page fits the mobile canvas budget.',
+    'Mobile: Save writes images into your vault as attachments (path shown in the notice). Clipboard copy may be unavailable. Change settings, then tap refresh to update the preview.',
+  'notice.mobileRefreshFirst':
+    'Tap the title-bar refresh button to apply your settings before Copy / Save.',
   'notice.mobileMegaBlock':
-    'A single block (e.g. a tall image or code fence) exceeds one safe page — it may still use a large canvas.',
-  'notice.saveZipShared':
-    'Shared a ZIP of all pages — open it and save images, or extract in Files.',
+    'A single block (e.g. a tall image or code fence) is very tall — consider Split or a lower scale if capture fails.',
+  'notice.mobileCanvasRisk':
+    'This export is large for mobile memory. If the app struggles, enable Split or lower the export scale.',
   'notice.settleTimeout': 'Render wait timed out — export may be incomplete.',
   'setting.heading.language': 'Language',
   'setting.locale': 'Interface language',
@@ -161,7 +149,7 @@ const en: Dict = {
   'setting.widthDesc': 'Default export width in pixels.',
   'setting.scale': 'Default export scale',
   'setting.scaleDesc':
-    'Scale used for Copy / Save (2× recommended). Studio preview stays at 1×. On mobile, scale is capped at 2× and may drop further for tall pages. Higher is sharper when zoomed, but slower and more memory-hungry.',
+    'Scale used for Copy / Save (2× recommended). Studio preview stays at 1×. Higher is sharper when zoomed, but slower and more memory-hungry on mobile.',
   'setting.format': 'Default format',
   'setting.showFilename': 'Show note title by default',
   'setting.showMetadata': 'Show properties by default',
@@ -224,11 +212,11 @@ const zh: Dict = {
   'studio.scale': '导出倍率',
   'studio.scaleHint': '预览始终用 1×，便于快速刷新；复制 / 保存使用此处倍率。',
   'studio.scaleHintMobile':
-    '预览为 1×。复制 / 保存使用此处倍率（移动端最高 2×）。超长笔记可能再自动降倍率以符合画布像素预算。',
-  'studio.mobileAutoSplitHint':
-    '移动端已将本笔记自动分页，避免内存不足。设置里的分页模式仍为「关闭」；本次捕获为临时分页。',
-  'studio.mobileLimitsHint':
-    '移动端限制：倍率 ≤ 2×、渲染等待更短、每页约 800 万画布像素。多页保存会分享一个 ZIP。相册请用「保存 → 存储图像」。',
+    '预览为 1×。复制 / 保存使用此处倍率（1× / 2× / 3×）。超长笔记若卡顿，可开启分页或降低倍率。',
+  'studio.mobileManualRefreshHint':
+    '移动端修改配置后不会自动刷新预览。调整完成后请点标题栏刷新按钮重新渲染。',
+  'studio.mobileRefreshRequired':
+    '配置已更改 — 请先点标题栏刷新按钮更新预览，再复制 / 保存。',
   'studio.format': '格式',
   'studio.theme': '主题',
   'studio.theme.current': '跟随当前',
@@ -237,13 +225,8 @@ const zh: Dict = {
   'studio.showTitle': '显示笔记标题',
   'studio.showMetadata': '显示属性',
   'studio.padding': '边距',
-  'studio.padding.top': '上',
-  'studio.padding.right': '右',
-  'studio.padding.bottom': '下',
-  'studio.padding.left': '左',
   'studio.padding.vertical': '上下',
   'studio.padding.horizontal': '左右',
-  'studio.padding.reset': '与阅读视图一致',
   'studio.padding.useDocument': '与阅读视图一致',
   'studio.padding.usePreset': '使用预设边距',
   'studio.split': '长文分页',
@@ -271,7 +254,6 @@ const zh: Dict = {
   'studio.authorAlign.center': '居中',
   'studio.authorAlign.right': '居右',
   'studio.exportDespiteTimeout': '仍要导出（渲染可能不完整）',
-  'imageSource.empty': '暂无图片',
   'imageSource.upload': '上传',
   'imageSource.vault': '库内',
   'imageSource.url': '链接',
@@ -292,7 +274,6 @@ const zh: Dict = {
   'studio.copy': '复制',
   'studio.save': '保存',
   'studio.rendering': '正在更新预览…',
-  'studio.exporting': '正在导出…',
   'studio.previewEmpty': '暂无预览',
   'studio.previewHint': '拖拽平移 · 滚轮缩放 · 双击适应窗口',
   'studio.previewHintMobile': '拖拽平移 · 双指缩放 · 双击适应窗口',
@@ -302,21 +283,18 @@ const zh: Dict = {
   'notice.copyFail': '复制图片失败',
   'notice.saveSuccess': '已保存：{path}',
   'notice.saveFail': '保存图片失败',
-  'notice.saveToPhotos': '已打开系统分享：请选择「存储图像 / 保存到照片」写入相册。',
-  'notice.saveToPhotosFallback':
-    '已开始下载。部分机型需在文件中打开图片后再存入相册。',
+  'notice.savePagesSuccess': '已保存 {count} 张图片到库附件',
+  'notice.savePartialFail': '保存中断：已写入 {saved}/{total} 张，设置未更新',
   'notice.exportFail': '导出失败',
   'notice.batchDone': '已导出 {count} 篇笔记',
-  'notice.pdfNotSupported': '当前版本不支持 PDF',
   'notice.remotePartial': '部分网络图片加载失败（{count}）。预览可能不完整。',
   'notice.mobileHint':
-    '移动端：保存会打开系统分享，可选择存入相册；剪贴板复制可能不可用。',
-  'notice.mobileAutoSplit': '长文已在移动端自动分页，避免内存不足导致闪退。',
-  'notice.mobileScaleCapped': '移动端导出倍率上限为 2×。',
-  'notice.mobileScaleBudgeted': '已降低导出倍率，使每页符合移动端画布像素预算。',
+    '移动端：保存会写入库附件（Notice 会显示路径）；剪贴板复制可能不可用。修改配置后请点刷新更新预览。',
+  'notice.mobileRefreshFirst': '请先点标题栏刷新按钮应用配置，再复制 / 保存。',
   'notice.mobileMegaBlock':
-    '存在超出单页安全高度的整块内容（如超高图片或代码块），仍可能占用较大画布。',
-  'notice.saveZipShared': '已分享包含全部页面的 ZIP — 可在文件中打开并保存图片。',
+    '存在特别高的整块内容（如超高图片或代码块）。若捕获失败，可开启分页或降低倍率。',
+  'notice.mobileCanvasRisk':
+    '本次导出体积较大，移动端内存压力较高。若卡顿或闪退，请开启分页或降低导出倍率。',
   'notice.settleTimeout': '渲染等待超时 — 导出结果可能不完整。',
   'setting.heading.language': '语言',
   'setting.locale': '界面语言',
@@ -329,7 +307,7 @@ const zh: Dict = {
   'setting.widthDesc': '默认导出宽度（像素）。',
   'setting.scale': '默认导出倍率',
   'setting.scaleDesc':
-    '复制 / 保存时使用的倍率（推荐 2×）。工作室预览固定为 1×。移动端最高 2×，超长页还可能再降。倍率越高越清晰，也更慢、更耗内存。',
+    '复制 / 保存时使用的倍率（推荐 2×）。工作室预览固定为 1×。倍率越高越清晰，移动端也更耗内存。',
   'setting.format': '默认格式',
   'setting.showFilename': '默认显示笔记标题',
   'setting.showMetadata': '默认显示属性',

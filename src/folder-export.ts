@@ -45,7 +45,7 @@ export async function exportFolderAsImages(
   }
 
   const settings = cloneSettings(plugin.settings);
-  // One note → one logical export; mobile auto-split still applies inside capture.
+  // One note → one logical export; user Split still applies inside capture.
   settings.split = { ...settings.split, mode: 'none' };
   const holder = document.body.createDiv({ cls: 'export-img-offscreen' });
   const items: {

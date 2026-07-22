@@ -72,40 +72,8 @@ describe('saveBlob', () => {
     expect(app.fileManager.getAvailablePathForAttachment).not.toHaveBeenCalled();
   });
 
-  it('shares an image file on mobile when Web Share is available', async () => {
+  it('writes a vault attachment on mobile', async () => {
     platform.isMobile = true;
-    const share = vi.fn(async () => undefined);
-    const canShare = vi.fn(() => true);
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      share,
-      canShare,
-    });
-
-    const createBinary = vi.fn(async () => undefined);
-    const app = mockApp({ createBinary });
-    const blob = new Blob([new Uint8Array(64)], { type: 'image/png' });
-    const path = await saveBlob(app, blob, 'Note/Title', 'png');
-
-    expect(path).toBe('Note_Title.png');
-    expect(canShare).toHaveBeenCalled();
-    expect(share).toHaveBeenCalledOnce();
-    expect(createBinary).not.toHaveBeenCalled();
-    expect(saveAsMock).not.toHaveBeenCalled();
-    expect(noticeMock).toHaveBeenCalled();
-  });
-
-  it('falls back to download then vault when share is unavailable', async () => {
-    platform.isMobile = true;
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      canShare: undefined,
-      share: undefined,
-    });
-    saveAsMock.mockImplementationOnce(() => {
-      throw new Error('download blocked');
-    });
-
     const createBinary = vi.fn(async () => undefined);
     const getPath = vi.fn(async (name: string) => `Attachments/${name}`);
     const app = mockApp({
@@ -117,25 +85,8 @@ describe('saveBlob', () => {
     expect(path).toBe('Attachments/Note_Title.png');
     expect(getPath).toHaveBeenCalledWith('Note_Title.png');
     expect(createBinary).toHaveBeenCalledOnce();
-  });
-
-  it('treats share abort as cancellation', async () => {
-    platform.isMobile = true;
-    const share = vi.fn(async () => {
-      throw new DOMException('Aborted', 'AbortError');
-    });
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      share,
-      canShare: () => true,
-    });
-    const createBinary = vi.fn(async () => undefined);
-    const app = mockApp({ createBinary });
-    const blob = new Blob([new Uint8Array(64)], { type: 'image/png' });
-    const path = await saveBlob(app, blob, 'Note', 'png');
-    expect(path).toBeUndefined();
-    expect(createBinary).not.toHaveBeenCalled();
     expect(saveAsMock).not.toHaveBeenCalled();
+    expect(noticeMock).toHaveBeenCalled();
   });
 });
 
@@ -150,7 +101,12 @@ describe('saveMultipleBlobs', () => {
   it('saves individually when only one item on desktop', async () => {
     const app = mockApp();
     const blob = new Blob([new Uint8Array(64)], { type: 'image/png' });
-    await saveMultipleBlobs(app, [{ blob, title: 'One', format: 'png' }], 'batch');
+    const ok = await saveMultipleBlobs(
+      app,
+      [{ blob, title: 'One', format: 'png' }],
+      'batch',
+    );
+    expect(ok).toBe(true);
     expect(saveAsMock).toHaveBeenCalledWith(blob, 'One.png');
   });
 
@@ -158,7 +114,7 @@ describe('saveMultipleBlobs', () => {
     const app = mockApp();
     const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
-    await saveMultipleBlobs(
+    const ok = await saveMultipleBlobs(
       app,
       [
         { blob: a, title: 'Page', format: 'png', index: 1 },
@@ -166,6 +122,7 @@ describe('saveMultipleBlobs', () => {
       ],
       'My Folder',
     );
+    expect(ok).toBe(true);
     expect(saveAsMock).toHaveBeenCalledOnce();
     const [zipBlob, name] = saveAsMock.mock.calls[0]!;
     expect(name).toBe('My_Folder.zip');
@@ -173,18 +130,14 @@ describe('saveMultipleBlobs', () => {
     expect((zipBlob as Blob).type).toBe('application/zip');
   });
 
-  it('shares one ZIP on mobile for multiple items', async () => {
+  it('saves each page to the vault on mobile (no ZIP)', async () => {
     platform.isMobile = true;
-    const share = vi.fn<(data: { files: File[]; title: string }) => Promise<void>>(
-      async () => undefined,
-    );
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      share,
-      canShare: () => true,
-    });
     const createBinary = vi.fn(async () => undefined);
-    const app = mockApp({ createBinary });
+    const getPath = vi.fn(async (name: string) => `Attachments/${name}`);
+    const app = mockApp({
+      getAvailablePathForAttachment: getPath,
+      createBinary,
+    });
     const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const ok = await saveMultipleBlobs(
@@ -196,26 +149,23 @@ describe('saveMultipleBlobs', () => {
       'batch',
     );
     expect(ok).toBe(true);
-    expect(share).toHaveBeenCalledOnce();
-    const shared = share.mock.calls[0]![0];
-    expect(shared.files[0]!.name).toBe('batch.zip');
-    expect(shared.files[0]!.type).toBe('application/zip');
-    expect(createBinary).not.toHaveBeenCalled();
+    expect(createBinary).toHaveBeenCalledTimes(2);
     expect(saveAsMock).not.toHaveBeenCalled();
+    expect(getPath).toHaveBeenCalledWith('Page_1.png');
+    expect(getPath).toHaveBeenCalledWith('Page_2.png');
   });
 
-  it('returns false when mobile multi-page share is aborted', async () => {
+  it('returns false when any mobile page fails (no settings persist)', async () => {
     platform.isMobile = true;
-    const share = vi.fn(async () => {
-      throw new DOMException('Aborted', 'AbortError');
+    const createBinary = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('disk full'));
+    const getPath = vi.fn(async (name: string) => `Attachments/${name}`);
+    const app = mockApp({
+      getAvailablePathForAttachment: getPath,
+      createBinary,
     });
-    vi.stubGlobal('navigator', {
-      ...navigator,
-      share,
-      canShare: () => true,
-    });
-    const createBinary = vi.fn(async () => undefined);
-    const app = mockApp({ createBinary });
     const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const ok = await saveMultipleBlobs(
@@ -227,7 +177,6 @@ describe('saveMultipleBlobs', () => {
       'batch',
     );
     expect(ok).toBe(false);
-    expect(createBinary).not.toHaveBeenCalled();
-    expect(saveAsMock).not.toHaveBeenCalled();
+    expect(createBinary).toHaveBeenCalledTimes(2);
   });
 });

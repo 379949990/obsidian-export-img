@@ -19,8 +19,8 @@ interface FidelityPanelProps {
   settleStatus: SettleStatus | null;
   exportDespiteTimeout: boolean;
   onExportDespiteTimeout: (value: boolean) => void;
-  /** Mobile forced pagination for memory safety (not user split setting). */
-  mobileAutoSplitActive?: boolean;
+  /** Mobile: settings changed since last render — refresh required. */
+  previewStale?: boolean;
   paddingMode: 'preset' | 'document';
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
@@ -39,7 +39,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
     settleStatus,
     exportDespiteTimeout,
     onExportDespiteTimeout,
-    mobileAutoSplitActive = false,
+    previewStale = false,
     paddingMode,
     onChange,
     onNestedChange,
@@ -49,20 +49,25 @@ export function FidelityPanel(props: FidelityPanelProps) {
   } = props;
   const { app } = useAppContext();
   const timedOut = settleStatus === 'timed_out';
-  const exportBlocked = busy || (timedOut && !exportDespiteTimeout);
+  const exportBlocked = busy || previewStale || (timedOut && !exportDespiteTimeout);
 
   return (
     <div className="export-img-panel">
       <div className="export-img-panel-scroll">
         <h3 className="export-img-panel-title">{t('studio.fidelity')}</h3>
 
-        {Platform.isMobile && mobileAutoSplitActive && (
-          <p className="export-img-field-hint export-img-mobile-banner">
-            {t('studio.mobileAutoSplitHint')}
-          </p>
-        )}
         {Platform.isMobile && (
-          <p className="export-img-field-hint">{t('studio.mobileLimitsHint')}</p>
+          <p
+            className={
+              previewStale
+                ? 'export-img-field-hint export-img-mobile-banner is-stale'
+                : 'export-img-field-hint export-img-mobile-banner'
+            }
+          >
+            {previewStale
+              ? t('studio.mobileRefreshRequired')
+              : t('studio.mobileManualRefreshHint')}
+          </p>
         )}
 
         <label className="export-img-field">
@@ -125,7 +130,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
           >
             <option value="1x">1x</option>
             <option value="2x">2x</option>
-            {!Platform.isMobile && <option value="3x">3x</option>}
+            <option value="3x">3x</option>
           </select>
         </label>
         <p className="export-img-field-hint">

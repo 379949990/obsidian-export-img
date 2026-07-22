@@ -142,30 +142,34 @@ describe('prepareEmbedLayout', () => {
     expect(img.parentElement!.classList.contains('export-img-text-align-left')).toBe(true);
   });
 
-  it('wraps and scales wide pre blocks to content width without align when under max height', () => {
+  it('keeps wide code blocks at column width without transform scale', () => {
     const root = buildHost({ withWidePre: true });
     const capture = root.querySelector('.export-img-capture') as HTMLElement;
     prepareEmbedLayout(capture, 0, 'center');
     const pre = root.querySelector('pre') as HTMLElement;
-    expect(pre.classList.contains('export-img-fit-target')).toBe(true);
-    expect(pre.classList.contains('is-scaled')).toBe(true);
-    const wrap = pre.parentElement!;
-    expect(wrap.classList.contains('export-img-fit-wrap')).toBe(true);
-    expect(wrap.classList.contains('is-scaled')).toBe(true);
-    expect(wrap.classList.contains('is-align-center')).toBe(false);
-    expect(Number(pre.style.getPropertyValue('--export-img-fit-scale'))).toBeCloseTo(
-      800 / 1200,
-      5,
-    );
+    expect(pre.classList.contains('export-img-fit-target')).toBe(false);
+    expect(pre.classList.contains('is-scaled')).toBe(false);
+    expect(pre.parentElement?.classList.contains('export-img-fit-wrap')).toBe(false);
+    expect(pre.classList.contains('export-img-unlock-overflow')).toBe(true);
   });
 
-  it('aligns scaled blocks when height is capped', () => {
-    const root = buildHost({ withWidePre: true });
-    const pre = root.querySelector('pre') as HTMLElement;
-    stubBox(pre, { scrollWidth: 1200, scrollHeight: 800 });
+  it('scales wide mermaid svg blocks to content width', () => {
+    const root = buildHost();
     const capture = root.querySelector('.export-img-capture') as HTMLElement;
-    prepareEmbedLayout(capture, 200, 'center');
-    const wrap = root.querySelector('.export-img-fit-wrap') as HTMLElement;
-    expect(wrap.classList.contains('is-align-center')).toBe(true);
+    const sizer = root.querySelector('.markdown-preview-sizer') as HTMLElement;
+    const mermaid = document.createElement('div');
+    mermaid.className = 'mermaid';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 1200 200');
+    Object.defineProperty(svg, 'getBBox', {
+      value: () => ({ x: 0, y: 0, width: 1200, height: 200 }),
+    });
+    mermaid.appendChild(svg);
+    sizer.appendChild(mermaid);
+    stubBox(mermaid, { scrollWidth: 1200, scrollHeight: 200 });
+
+    prepareEmbedLayout(capture, 0, 'center');
+    expect(svg.getAttribute('width')).toBe('800');
+    expect(Number(svg.getAttribute('height'))).toBeCloseTo((200 / 1200) * 800, 0);
   });
 });

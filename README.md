@@ -38,7 +38,7 @@ Requires Obsidian **1.5.7+**. Plugin id: `export-img`.
 
 Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HANDOFF.md).
 
-**Current development branch:** `v1.0.4`
+**Current development branch:** `v1.0.5`
 
 ---
 
@@ -93,7 +93,7 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 ### Batch & selection
 
-- Folder export → ZIP on desktop; individual vault saves on mobile
+- Folder export → ZIP on desktop; on mobile, one shared ZIP (or vault fallback)
 - Selection export; optional quick copy without opening Studio
 
 ---
@@ -104,10 +104,14 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 On **mobile**:
 
-- **Save** writes into the vault via `getAvailablePathForAttachment`
+- **Save** opens the system share sheet so you can choose **Save Image / Save to Photos** (falls back to download, then vault attachment). Cancelling the share sheet does **not** persist studio settings.
 - **Copy** may be unavailable — prefer Save
-- Multi-page / folder exports save files individually (no ZIP)
-- Large notes and 3× scale use more memory and take longer to settle
+- Multi-page / folder exports share **one ZIP** (not N share sheets)
+- Studio: compact controls, pinch-zoom / double-tap fit; multi-page preview fits width and height
+- Long notes **auto-split** into pages (even when Split is Off); panel shows a hint when this happens
+- Export scale capped at **2×**; may drop further so each page stays within ~**8M canvas pixels**
+- Render wait timeout capped at **5s**
+- A single oversized block (tall image / code fence) may still allocate a large canvas — shorten the block or lower width/scale if the app crashes
 
 ---
 
@@ -127,8 +131,10 @@ Exports approximate Reading view; they are not a screenshot of the open pane:
 - Offscreen render host, not the live Reading DOM
 - Wide blocks are fitted to the chosen width
 - “Frontmatter” is a simplified property table, not the Obsidian Properties UI
+- Forced light/dark copies app theme CSS variables onto the export host; community themes that style via `body.theme-*` descendant selectors (not variables) may still partially follow the shell
 - Math settles when MathJax containers are present; complex equations may still soft-timeout
 - Community themes and plugin widgets may differ
+- Code blocks and tables keep Reading column width (not shrink-to-fit); very long lines may extend the bitmap
 - Preview is 1× without fonts; export uses your scale with fonts
 - Slow assets may soft-timeout (status: Timed out — export blocked until confirmed)
 

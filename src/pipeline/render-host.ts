@@ -15,6 +15,7 @@ import {
   type RemoteHydrateResult,
 } from './remote-images';
 import { applyCapturePadding } from './overflow';
+import { applyHostTheme } from './theme-vars';
 
 export interface RenderHostOptions {
   app: App;
@@ -42,24 +43,6 @@ export interface RenderHostHandle {
     timeoutMs?: number;
   }) => Promise<RemoteHydrateResult>;
   destroy: () => void;
-}
-
-function applyThemeMode(el: HTMLElement, mode: ThemeMode): void {
-  el.classList.remove('theme-light', 'theme-dark');
-  if (mode === 'light') {
-    el.classList.add('theme-light');
-    return;
-  }
-  if (mode === 'dark') {
-    el.classList.add('theme-dark');
-    return;
-  }
-  // `current`: mirror the app shell so the offscreen host is not theme-less.
-  if (document.body.classList.contains('theme-dark')) {
-    el.classList.add('theme-dark');
-  } else {
-    el.classList.add('theme-light');
-  }
 }
 
 function formatMetaValue(value: unknown): string {
@@ -202,7 +185,9 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
 
   const rootEl = mountEl.createDiv({ cls: 'export-img-host markdown-reading-view' });
   rootEl.setCssProps({ '--export-img-width': `${width}px` });
-  applyThemeMode(rootEl, themeMode);
+  // Copy body theme tokens (with a sync light/dark swap when needed) so code,
+  // tables, and callouts do not keep the app-shell palette.
+  applyHostTheme(rootEl, themeMode);
 
   const captureEl = rootEl.createDiv({ cls: 'export-img-capture' });
   applyCapturePadding(captureEl, settings.padding);

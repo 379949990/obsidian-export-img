@@ -1,10 +1,10 @@
-# Agent handoff — Export Img (`v1.0.4`)
+# Agent handoff — Export Img (`v1.0.5`)
 
 > For a new coding agent. Read this first, then `README.dev.md` / `README.md`. Keep this file current when branch goals or release state change; delete obsolete claims.
 
 **Date:** 2026-07-22  
-**Branch:** `v1.0.4` (cut from `main` @ `2eec8dc` / release **1.0.3**)  
-**Target ship:** `1.0.4` — bump already applied in `package.json` / `manifest.json` / `versions.json`
+**Branch:** `v1.0.5` (cut from `main` @ `7684f10` / release **1.0.4**)  
+**Target ship:** `1.0.5` — bump already applied in `package.json` / `manifest.json` / `versions.json`
 
 ---
 
@@ -24,7 +24,7 @@ Obsidian community plugin **id `export-img`** (folder must match; GitHub repo ma
 | Vault plugin path: `.obsidian/plugins/export-img/` | Must match `manifest.id` |
 | Branch model: **`main` + `vX.Y.Z` only** (no `dev`) | Project choice |
 | Release tag = plain **`x.y.z`** (= manifest version) | Obsidian BRAT / community install |
-| Do **not** use Tag `Version_*` or `v1.0.4` as release tag | Conflicts with branch / store |
+| Do **not** use Tag `Version_*` or `v1.0.5` as release tag | Conflicts with branch / store |
 | Daily work on `vX.Y.Z`; **squash → push `main`** to ship | Triggers Release Action |
 | No dynamic `<script>` injection in bundle | Store “obfuscation” checks → Preact + fflate |
 | Prefer CSS classes / `setCssProps` over mass inline `el.style.*` | Community review |
@@ -71,20 +71,20 @@ pnpm run test     # vitest; wrapper kills at 60s
 pnpm run verify   # tsc + test (CI: verify.yml)
 ```
 
-Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: prefer Save (vault attachments).
+Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → system share → Save Image / Photos; multi-page expect one ZIP share.
 
 ---
 
-## Release (1.0.4 when ready)
+## Release (1.0.5 when ready)
 
-1. Finish work on `v1.0.4`; keep versions at `1.0.4`.
-2. `git checkout main && git pull && git merge --squash v1.0.4`
-3. Commit: `release(1.0.4): <summary>`
-4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.4`** + assets.
+1. Finish work on `v1.0.5`; keep versions at `1.0.5`.
+2. `git checkout main && git pull && git merge --squash v1.0.5`
+3. Commit: `release(1.0.5): <summary>`
+4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.5`** + assets.
 
 If tag already exists, workflow skips. Delete GitHub Release + tag to rebuild.
 
-Latest public release: [1.0.3](https://github.com/379949990/obsidian-export-img/releases/tag/1.0.3).
+Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/releases/tag/1.0.4).
 
 ---
 
@@ -98,23 +98,28 @@ Latest public release: [1.0.3](https://github.com/379949990/obsidian-export-img/
 
 ---
 
-## Shipped / fixed on `v1.0.4` (review batch)
+## Shipped / fixed on `v1.0.5` (in progress)
 
-- Settings migrate **v2**: drop `split.overlap`; map legacy `split.mode: auto` → `fixed`
-- Community lint: migrate union warning; remove `setDynamicTooltip`; keep Path B `display()` for minApp **1.5.7**
-- Unified Preact `ImageSourceField` for settings + Studio (avatar / watermark image)
-- Remote hydrate: image MIME + 12MB cap + `notice.remotePartial`
-- `themeMode: current` mirrors `document.body` dark/light
-- Studio: watermark type text/image; timed_out blocks Copy/Save unless confirmed
-- README honesty: frontmatter ≠ Properties UI; Save persists settings (Copy does not); no fake split modes
+- Theme: copy body CSS variables for forced light/dark; code/tables keep Reading column width
+- Mobile Studio: larger refresh hit target, shorter preview, compact panel, avatar 2×2 actions
+- Preview: pinch-zoom + double-tap fit on touch; multi-page stacks fit width **and** height
+- Mobile capture safety:
+  - auto-split tall notes (Studio + folder + quick-copy path via `captureStudioPages`)
+  - export scale capped at 2×; further reduced to ~8M canvas pixels/page
+  - shorter settle timeout (≤5s)
+  - mega-block notice when an atomic block exceeds one safe page
+- Mobile Save: Web Share → Photos; multi-page = **one ZIP share**; settings persist only after successful save
+- Theme body class restore: exact prior `theme-dark` / `theme-light` presence
+- Remote images: MIME sniff from magic bytes; bounded LRU cache; concurrency 3
 
 ## Known risks / good next work (not committed as plan)
 
-1. Theme fidelity still limited — community themes diverge beyond body class + a few vars
+1. Theme fidelity: forced light/dark copies CSS variables from a brief body scheme swap; rules keyed only as `body.theme-* …` descendants (not variables) may still partially follow the shell
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin
-5. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
+5. Extremely large atomic blocks on low-RAM devices may still OOM despite auto-split
+6. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---
 

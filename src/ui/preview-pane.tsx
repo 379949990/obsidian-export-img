@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from 'preact/hooks';
+import { Platform } from 'obsidian';
 import { t } from '../i18n';
 
 interface PreviewPaneProps {
@@ -24,18 +25,39 @@ const MAX_SCALE = 6;
  */
 const MARGIN_RATIO = 0.03;
 
+const DOUBLE_TAP_MS = 320;
+const DOUBLE_TAP_SLOP_PX = 28;
+
 interface Frame {
   scale: number;
   x: number;
   y: number;
 }
 
-function initialFrame(viewportW: number, naturalW: number): Frame {
+interface PointerSample {
+  x: number;
+  y: number;
+}
+
+function initialFrame(
+  viewportW: number,
+  viewportH: number,
+  naturalW: number,
+  naturalH: number,
+  pageCount: number,
+): Frame {
   const vw = Math.max(40, viewportW);
+  const vh = Math.max(40, viewportH);
   const imageW = vw / (1 + 2 * MARGIN_RATIO);
   const gap = imageW * MARGIN_RATIO;
+  let scale = imageW / Math.max(1, naturalW);
+  // Multi-page stacks: also fit height so the first pages stay on-screen.
+  if (pageCount > 1 && naturalH > 0) {
+    const maxH = Math.max(40, vh - gap * 2);
+    scale = Math.min(scale, maxH / naturalH);
+  }
   return {
-    scale: imageW / naturalW,
+    scale,
     x: gap,
     y: gap,
   };
@@ -52,21 +74,46 @@ function measureStackSize(stack: HTMLElement | null, pageCount: number): { w: nu
   return { w: first.naturalWidth, h: totalH || first.naturalHeight };
 }
 
+function pointerDistance(a: PointerSample, b: PointerSample): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.hypot(dx, dy);
+}
+
+function pointerMidpoint(a: PointerSample, b: PointerSample): PointerSample {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
 export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: PreviewPaneProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState<Frame>({ scale: 1, x: 0, y: 0 });
+  const frameRef = useRef(frame);
+  frameRef.current = frame;
+
   const fittedOnceRef = useRef(false);
   const userMovedRef = useRef(false);
   const pendingResetRef = useRef(false);
   const lastResetNonceRef = useRef(viewResetNonce);
+  const pointersRef = useRef(new Map<number, PointerSample>());
   const dragRef = useRef<{
     active: boolean;
+    pointerId: number;
     startX: number;
     startY: number;
     originX: number;
     originY: number;
-  }>({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 });
+  }>({ active: false, pointerId: -1, startX: 0, startY: 0, originX: 0, originY: 0 });
+  const pinchRef = useRef<{
+    active: boolean;
+    startDist: number;
+    startScale: number;
+    originX: number;
+    originY: number;
+    localX: number;
+    localY: number;
+  } | null>(null);
+  const lastTapRef = useRef<{ t: number; x: number; y: number } | null>(null);
 
   const primaryUrl = imageUrls[0] ?? null;
   const pageCount = imageUrls.length;
@@ -84,12 +131,12 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
         window.requestAnimationFrame(apply);
         return;
       }
-      const { w } = measureStackSize(st, pageCount);
+      const { w, h } = measureStackSize(st, pageCount);
       if (w <= 0) return;
       userMovedRef.current = false;
       pendingResetRef.current = false;
       fittedOnceRef.current = true;
-      setFrame(initialFrame(vp.clientWidth, w));
+      setFrame(initialFrame(vp.clientWidth, vp.clientHeight, w, h, pageCount));
     };
 
     apply();
@@ -97,7 +144,6 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
 
   const shouldFit = () => !fittedOnceRef.current || pendingResetRef.current;
 
-  // Title-bar refresh: reset view on next available image.
   useEffect(() => {
     if (viewResetNonce === lastResetNonceRef.current) return;
     lastResetNonceRef.current = viewResetNonce;
@@ -108,7 +154,6 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     }
   }, [viewResetNonce, primaryUrl, fitToView]);
 
-  // First image only — later URL swaps keep pan/zoom.
   useEffect(() => {
     if (!primaryUrl) return;
     if (!shouldFit()) return;
@@ -136,12 +181,11 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     const viewport = viewportRef.current;
     if (!viewport) return;
     const observer = new ResizeObserver(() => {
-      if (userMovedRef.current || dragRef.current.active) return;
+      if (userMovedRef.current || dragRef.current.active || pinchRef.current?.active) return;
       if (!fittedOnceRef.current) {
         fitToView();
         return;
       }
-      // After the user has a frame, viewport resize re-fits only if they never panned/zoomed.
       if (!userMovedRef.current) {
         fitToView();
       }
@@ -171,37 +215,132 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
     });
   };
 
+  const beginPinch = (viewport: HTMLDivElement) => {
+    const pts = [...pointersRef.current.values()];
+    if (pts.length < 2) return;
+    const [a, b] = pts;
+    const dist = pointerDistance(a!, b!);
+    if (dist < 8) return;
+    const rect = viewport.getBoundingClientRect();
+    const mid = pointerMidpoint(a!, b!);
+    const cx = mid.x - rect.left;
+    const cy = mid.y - rect.top;
+    const cur = frameRef.current;
+    dragRef.current.active = false;
+    pinchRef.current = {
+      active: true,
+      startDist: dist,
+      startScale: cur.scale,
+      originX: cur.x,
+      originY: cur.y,
+      localX: (cx - cur.x) / cur.scale,
+      localY: (cy - cur.y) / cur.scale,
+    };
+  };
+
+  const updatePinch = (viewport: HTMLDivElement) => {
+    const pinch = pinchRef.current;
+    if (!pinch?.active) return;
+    const pts = [...pointersRef.current.values()];
+    if (pts.length < 2) return;
+    const [a, b] = pts;
+    const dist = pointerDistance(a!, b!);
+    if (dist < 8) return;
+    const rect = viewport.getBoundingClientRect();
+    const mid = pointerMidpoint(a!, b!);
+    const cx = mid.x - rect.left;
+    const cy = mid.y - rect.top;
+    const nextScale = Math.min(
+      MAX_SCALE,
+      Math.max(MIN_SCALE, pinch.startScale * (dist / pinch.startDist)),
+    );
+    userMovedRef.current = true;
+    setFrame({
+      scale: nextScale,
+      x: cx - pinch.localX * nextScale,
+      y: cy - pinch.localY * nextScale,
+    });
+  };
+
   const onPointerDown = (event: TargetedPointerEvent<HTMLDivElement>) => {
     if (!primaryUrl) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    const viewport = event.currentTarget;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    try {
+      viewport.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore
+    }
+
+    if (pointersRef.current.size >= 2) {
+      lastTapRef.current = null;
+      beginPinch(viewport);
+      return;
+    }
+
     dragRef.current = {
       active: true,
+      pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      originX: x,
-      originY: y,
+      originX: frameRef.current.x,
+      originY: frameRef.current.y,
     };
   };
 
   const onPointerMove = (event: TargetedPointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current.active) return;
+    if (!pointersRef.current.has(event.pointerId)) return;
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pointersRef.current.size >= 2) {
+      updatePinch(event.currentTarget);
+      return;
+    }
+
+    if (!dragRef.current.active || dragRef.current.pointerId !== event.pointerId) return;
     userMovedRef.current = true;
     setFrame({
-      scale,
+      scale: frameRef.current.scale,
       x: dragRef.current.originX + (event.clientX - dragRef.current.startX),
       y: dragRef.current.originY + (event.clientY - dragRef.current.startY),
     });
   };
 
-  const endDrag = (event: TargetedPointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current.active) return;
-    dragRef.current.active = false;
+  const endPointer = (event: TargetedPointerEvent<HTMLDivElement>) => {
+    const wasPinching = !!pinchRef.current?.active;
+    pointersRef.current.delete(event.pointerId);
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
     } catch {
       // ignore
     }
+
+    if (pointersRef.current.size < 2) {
+      pinchRef.current = null;
+    }
+    if (dragRef.current.pointerId === event.pointerId) {
+      dragRef.current.active = false;
+    }
+
+    // Double-tap to fit (mobile); desktop still has onDblClick.
+    if (wasPinching || pointersRef.current.size > 0 || event.pointerType === 'mouse') {
+      return;
+    }
+    const now = Date.now();
+    const prev = lastTapRef.current;
+    if (
+      prev &&
+      now - prev.t <= DOUBLE_TAP_MS &&
+      Math.hypot(event.clientX - prev.x, event.clientY - prev.y) <= DOUBLE_TAP_SLOP_PX
+    ) {
+      lastTapRef.current = null;
+      fitToView();
+      return;
+    }
+    lastTapRef.current = { t: now, x: event.clientX, y: event.clientY };
   };
+
+  const hint = Platform.isMobile ? t('studio.previewHintMobile') : t('studio.previewHint');
 
   return (
     <div
@@ -210,8 +349,8 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
       onWheel={onWheel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerUp={endPointer}
+      onPointerCancel={endPointer}
       onDblClick={(e) => {
         e.preventDefault();
         fitToView();
@@ -259,7 +398,7 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
         </div>
       )}
       {primaryUrl && !rendering && (
-        <div className="export-img-preview-hint">{t('studio.previewHint')}</div>
+        <div className="export-img-preview-hint">{hint}</div>
       )}
     </div>
   );

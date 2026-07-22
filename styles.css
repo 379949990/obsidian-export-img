@@ -415,6 +415,14 @@
   color: var(--text-faint);
 }
 
+.export-img-mobile-banner {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+
 .export-img-setting-padding-controls {
   display: flex;
   flex-direction: column;
@@ -492,22 +500,10 @@
 
 .export-img-host.theme-light {
   color-scheme: light;
-  --background-primary: #ffffff;
-  --background-secondary: #f6f6f6;
-  --text-normal: #222222;
-  --text-muted: #666666;
-  background: var(--background-primary);
-  color: var(--text-normal);
 }
 
 .export-img-host.theme-dark {
   color-scheme: dark;
-  --background-primary: #1e1e1e;
-  --background-secondary: #2a2a2a;
-  --text-normal: #dadada;
-  --text-muted: #aaaaaa;
-  background: var(--background-primary);
-  color: var(--text-normal);
 }
 
 .export-img-capture {
@@ -631,6 +627,27 @@
   padding: 0;
   overflow: visible;
   background: transparent;
+}
+
+/*
+ * Reading view keeps code / tables at the note column width (scroll inside).
+ * Do not transform-scale them — that shrinks glyphs and changes the “region”
+ * vs Reading. Unlock overflow so long lines still paint for capture.
+ */
+.export-img-host .cm-preview-code-block,
+.export-img-host .markdown-preview-view pre,
+.export-img-host .table-wrapper,
+.export-img-host .markdown-preview-view table {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.export-img-host .cm-preview-code-block {
+  width: 100%;
+}
+
+.export-img-host .markdown-preview-view pre {
+  width: 100%;
 }
 
 .export-img-title.inline-title {
@@ -895,13 +912,185 @@
 @media (max-width: 800px) {
   .export-img-studio {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .export-img-preview-pane {
-    min-height: 40vh;
+    min-height: 0;
+    height: 32vh;
+    max-height: 32vh;
+    flex: 0 0 auto;
   }
 
   .export-img-panel {
-    max-height: 42vh;
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
   }
+}
+
+/* Obsidian sets body.is-mobile / .is-phone on phones and tablets */
+body.is-mobile .export-img-modal,
+.export-img-modal.is-mobile {
+  width: min(100vw, 100%);
+  max-width: 100%;
+  height: min(92vh, 100%);
+  max-height: min(92vh, 100%);
+}
+
+body.is-mobile .export-img-modal-titlebar,
+.export-img-modal.is-mobile .export-img-modal-titlebar {
+  padding-right: 36px;
+  gap: 8px;
+}
+
+body.is-mobile .export-img-title-refresh,
+.export-img-modal.is-mobile .export-img-title-refresh {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+body.is-mobile .export-img-title-refresh svg,
+.export-img-modal.is-mobile .export-img-title-refresh svg {
+  width: 20px;
+  height: 20px;
+}
+
+body.is-mobile .export-img-studio,
+.export-img-modal.is-mobile .export-img-studio {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+body.is-mobile .export-img-preview-pane,
+.export-img-modal.is-mobile .export-img-preview-pane {
+  height: 32vh;
+  max-height: 32vh;
+  min-height: 160px;
+  flex: 0 0 auto;
+}
+
+body.is-mobile .export-img-panel,
+.export-img-modal.is-mobile .export-img-panel {
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.is-mobile .export-img-panel-scroll,
+.export-img-modal.is-mobile .export-img-panel-scroll {
+  padding: 8px 10px 6px;
+  gap: 6px;
+}
+
+body.is-mobile .export-img-panel-title,
+.export-img-modal.is-mobile .export-img-panel-title {
+  margin-bottom: 0;
+  font-size: var(--font-ui-small);
+}
+
+body.is-mobile .export-img-field,
+.export-img-modal.is-mobile .export-img-field {
+  min-height: 26px;
+  gap: 6px;
+}
+
+body.is-mobile .export-img-field > span,
+.export-img-modal.is-mobile .export-img-field > span {
+  flex-basis: 38%;
+  font-size: var(--font-ui-smaller);
+}
+
+body.is-mobile .export-img-field-hint,
+.export-img-modal.is-mobile .export-img-field-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+body.is-mobile .export-img-section,
+.export-img-modal.is-mobile .export-img-section {
+  gap: 4px;
+  padding: 4px 0 0;
+}
+
+body.is-mobile .export-img-decor-block,
+.export-img-modal.is-mobile .export-img-decor-block {
+  padding: 8px;
+  margin-bottom: 6px;
+  gap: 6px;
+}
+
+body.is-mobile .export-img-decor-fields,
+.export-img-modal.is-mobile .export-img-decor-fields {
+  gap: 6px;
+}
+
+body.is-mobile .export-img-actions,
+.export-img-modal.is-mobile .export-img-actions {
+  padding: 8px 10px 10px;
+  gap: 6px;
+}
+
+body.is-mobile .export-img-actions button,
+.export-img-modal.is-mobile .export-img-actions button {
+  min-height: 40px;
+}
+
+/* Avatar / image source — stack + 2×2 actions for touch */
+body.is-mobile .export-img-image-source-row,
+.export-img-modal.is-mobile .export-img-image-source-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+body.is-mobile .export-img-image-source.is-avatar .export-img-image-source-preview,
+body.is-mobile .export-img-setting-image-source.is-avatar .export-img-image-source-preview,
+.export-img-modal.is-mobile .export-img-image-source.is-avatar .export-img-image-source-preview {
+  width: 56px;
+  height: 56px;
+  align-self: center;
+}
+
+body.is-mobile .export-img-image-source-actions,
+.export-img-modal.is-mobile .export-img-image-source-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+
+body.is-mobile .export-img-image-source-actions button,
+.export-img-modal.is-mobile .export-img-image-source-actions button {
+  min-height: 36px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: var(--font-ui-small);
+}
+
+body.is-mobile .export-img-setting-image-source {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+body.is-mobile .export-img-setting-image-source .export-img-image-source {
+  width: 100%;
+}
+
+body.is-mobile .export-img-vault-image-main {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+body.is-mobile .export-img-vault-image-list {
+  max-height: 180px;
+}
+
+body.is-mobile .export-img-preview-hint {
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  text-align: center;
 }

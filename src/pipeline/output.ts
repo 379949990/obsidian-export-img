@@ -27,6 +27,61 @@ export async function copyBlobToClipboard(blob: Blob): Promise<void> {
   new Notice(t('notice.copySuccess'));
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
+async function shareFileOrThrow(file: File, title: string): Promise<void> {
+  const canShareFiles =
+    typeof navigator.canShare === 'function' &&
+    typeof navigator.share === 'function' &&
+    navigator.canShare({ files: [file] });
+  if (!canShareFiles) {
+    throw new Error('web share files unavailable');
+  }
+  await navigator.share({ files: [file], title });
+}
+
+/**
+ * Mobile: prefer the system share sheet with an image file so the user can
+ * save to Photos / Gallery. Fall back to download, then vault attachment.
+ */
+async function saveBlobOnMobile(
+  app: App,
+  blob: Blob,
+  filename: string,
+): Promise<string | undefined> {
+  const type = blob.type || 'image/png';
+  const file = new File([blob], filename, { type });
+
+  try {
+    await shareFileOrThrow(file, filename);
+    new Notice(t('notice.saveToPhotos'));
+    return filename;
+  } catch (error) {
+    if (isAbortError(error)) {
+      return undefined;
+    }
+    console.error(error);
+  }
+
+  try {
+    saveAs(blob, filename);
+    new Notice(t('notice.saveToPhotosFallback'));
+    return filename;
+  } catch (error) {
+    console.error(error);
+  }
+
+  const filePath = await app.fileManager.getAvailablePathForAttachment(filename);
+  await app.vault.createBinary(filePath, await blob.arrayBuffer());
+  new Notice(t('notice.saveSuccess', { path: filePath }));
+  return filePath;
+}
+
 export async function saveBlob(
   app: App,
   blob: Blob,
@@ -36,10 +91,7 @@ export async function saveBlob(
   const filename = safeFilename(title, format);
   try {
     if (Platform.isMobile) {
-      const filePath = await app.fileManager.getAvailablePathForAttachment(filename);
-      await app.vault.createBinary(filePath, await blob.arrayBuffer());
-      new Notice(t('notice.saveSuccess', { path: filePath }));
-      return filePath;
+      return await saveBlobOnMobile(app, blob, filename);
     }
     saveAs(blob, filename);
     new Notice(t('notice.saveSuccess', { path: filename }));
@@ -51,30 +103,74 @@ export async function saveBlob(
   }
 }
 
-export async function saveMultipleBlobs(
-  app: App,
+async function buildZipBlob(
   items: { blob: Blob; title: string; format: ExportFormat; index?: number }[],
-  zipName: string,
-): Promise<void> {
-  if (items.length === 0) return;
-
-  if (Platform.isMobile || items.length === 1) {
-    for (const item of items) {
-      const name = item.index !== undefined ? `${item.title}_${item.index}` : item.title;
-      await saveBlob(app, item.blob, name, item.format);
-    }
-    return;
-  }
-
+): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   for (const item of items) {
     const name = safeFilename(item.title, item.format, item.index);
     files[name] = new Uint8Array(await item.blob.arrayBuffer());
   }
   const zipped = zipSync(files);
-  // Copy into a fresh ArrayBuffer-backed view for BlobPart typing.
   const zipBytes = new Uint8Array(zipped.byteLength);
   zipBytes.set(zipped);
-  saveAs(new Blob([zipBytes], { type: 'application/zip' }), `${zipName.replaceAll(/\s+/g, '_')}.zip`);
+  return new Blob([zipBytes], { type: 'application/zip' });
+}
+
+/**
+ * Save one or more images. Returns true when at least one artifact was saved
+ * (false if the user cancelled a mobile share sheet).
+ */
+export async function saveMultipleBlobs(
+  app: App,
+  items: { blob: Blob; title: string; format: ExportFormat; index?: number }[],
+  zipName: string,
+): Promise<boolean> {
+  if (items.length === 0) return false;
+
+  if (items.length === 1) {
+    const item = items[0]!;
+    const name = item.index !== undefined ? `${item.title}_${item.index}` : item.title;
+    const saved = await saveBlob(app, item.blob, name, item.format);
+    return saved !== undefined;
+  }
+
+  // Mobile multi-page: one ZIP → one share sheet (avoids N sequential sheets).
+  if (Platform.isMobile) {
+    const zipFilename = `${zipName.replaceAll(/\s+/g, '_')}.zip`;
+    try {
+      const zipBlob = await buildZipBlob(items);
+      const file = new File([zipBlob], zipFilename, { type: 'application/zip' });
+      try {
+        await shareFileOrThrow(file, zipFilename);
+        new Notice(t('notice.saveZipShared'));
+        return true;
+      } catch (error) {
+        if (isAbortError(error)) return false;
+        console.error(error);
+      }
+      try {
+        saveAs(zipBlob, zipFilename);
+        new Notice(t('notice.saveSuccess', { path: zipFilename }));
+        return true;
+      } catch (error) {
+        console.error(error);
+      }
+      // Last resort: vault attachments one-by-one.
+      for (const item of items) {
+        const name = item.index !== undefined ? `${item.title}_${item.index}` : item.title;
+        await saveBlob(app, item.blob, name, item.format);
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+      new Notice(t('notice.saveFail'));
+      return false;
+    }
+  }
+
+  const zipBlob = await buildZipBlob(items);
+  saveAs(zipBlob, `${zipName.replaceAll(/\s+/g, '_')}.zip`);
   new Notice(t('notice.saveSuccess', { path: `${zipName}.zip` }));
+  return true;
 }

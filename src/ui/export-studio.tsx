@@ -11,13 +11,12 @@ import {
 } from 'obsidian';
 import type ExportImgPlugin from '../main';
 import { t } from '../i18n';
-import { cloneSettings, scaleToNumber } from '../settings';
+import { cloneSettings } from '../settings';
 import type {
   ExportImgSettings,
   PaddingSettings,
   SettleDiagnostic,
 } from '../types';
-import { captureElement } from '../pipeline/capture';
 import { readReadingViewPadding } from '../pipeline/document-padding';
 import {
   prepareEmbedLayout,
@@ -73,7 +72,12 @@ interface TitlebarState {
 
 function notifyMobileCaptureFlags(
   result: CaptureStudioResult,
-  flags: { autoSplit: boolean; scaleCapped: boolean },
+  flags: {
+    autoSplit: boolean;
+    scaleCapped: boolean;
+    scaleBudgeted: boolean;
+    megaBlock: boolean;
+  },
 ): void {
   if (result.mobileAutoSplit && !flags.autoSplit) {
     flags.autoSplit = true;
@@ -82,6 +86,14 @@ function notifyMobileCaptureFlags(
   if (result.mobileScaleCapped && !flags.scaleCapped) {
     flags.scaleCapped = true;
     new Notice(t('notice.mobileScaleCapped'), 6000);
+  }
+  if (result.mobileScaleBudgeted && !flags.scaleBudgeted) {
+    flags.scaleBudgeted = true;
+    new Notice(t('notice.mobileScaleBudgeted'), 7000);
+  }
+  if (result.mobileMegaBlock && !flags.megaBlock) {
+    flags.megaBlock = true;
+    new Notice(t('notice.mobileMegaBlock'), 8000);
   }
 }
 
@@ -163,7 +175,13 @@ function StudioApp(
   const previewUrlsRef = useRef<string[]>([]);
   const exportBlobsRef = useRef<CapturePagePart[] | null>(null);
   const exportSigRef = useRef<string | null>(null);
-  const mobileNoticeFlagsRef = useRef({ autoSplit: false, scaleCapped: false });
+  const mobileNoticeFlagsRef = useRef({
+    autoSplit: false,
+    scaleCapped: false,
+    scaleBudgeted: false,
+    megaBlock: false,
+  });
+  const [mobileAutoSplitActive, setMobileAutoSplitActive] = useState(false);
   const appliedRenderSigRef = useRef<string>('');
   draftRef.current = draft;
 
@@ -345,6 +363,7 @@ function StudioApp(
           if (cancelled || token !== workToken.current) return;
           assertNonEmptyCapture(captured.parts, 'Preview capture');
           notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
+          setMobileAutoSplitActive(captured.mobileAutoSplit);
 
           invalidateExportCache();
           publishPreview(captured.parts);
@@ -364,6 +383,7 @@ function StudioApp(
         if (cancelled || token !== workToken.current) return;
         assertNonEmptyCapture(captured.parts, 'Preview capture');
         notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
+        setMobileAutoSplitActive(captured.mobileAutoSplit);
         invalidateExportCache();
         publishPreview(captured.parts);
         setSettle({
@@ -496,6 +516,7 @@ function StudioApp(
       // Export path: reuse settled DOM; capture at export scale with fonts.
       const captured = await captureStudioPages(host, draft, 'export');
       notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
+      setMobileAutoSplitActive(captured.mobileAutoSplit);
       parts = captured.parts;
       exportBlobsRef.current = parts;
       exportSigRef.current = sig;
@@ -524,10 +545,12 @@ function StudioApp(
     setBusy(true);
     try {
       const parts = await ensureExportParts();
+      let saved = false;
       if (parts.length === 1) {
-        await saveBlob(app, parts[0]!.blob, file.basename, draft.format);
+        const path = await saveBlob(app, parts[0]!.blob, file.basename, draft.format);
+        saved = path !== undefined;
       } else {
-        await saveMultipleBlobs(
+        saved = await saveMultipleBlobs(
           app,
           parts.map((p) => ({
             blob: p.blob,
@@ -538,6 +561,7 @@ function StudioApp(
           file.basename,
         );
       }
+      if (!saved) return;
       plugin.settings = cloneSettings(draft);
       presetPaddingRef.current = { ...draft.padding };
       await plugin.saveSettings();
@@ -563,6 +587,7 @@ function StudioApp(
         settleStatus={settle?.status ?? null}
         exportDespiteTimeout={exportDespiteTimeout}
         onExportDespiteTimeout={setExportDespiteTimeout}
+        mobileAutoSplitActive={mobileAutoSplitActive}
         paddingMode={paddingMode}
         onChange={onChange}
         onNestedChange={onNestedChange}
@@ -624,7 +649,7 @@ export async function openExportStudio(args: StudioOpenArgs): Promise<void> {
 
 export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
   const { app, plugin, markdown, file } = args;
-  const settings = cloneSettings(plugin.settings);
+  const settings = createStudioDraft(plugin);
   settings.showFilename = false;
   settings.showMetadata = false;
   settings.split = { ...settings.split, mode: 'none' };
@@ -644,14 +669,23 @@ export async function quickCopySelection(args: StudioOpenArgs): Promise<void> {
     await host.hydrateRemotes();
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
-    await settleElement(host.captureEl, {
+    const settle = await settleElement(host.captureEl, {
       timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
     });
-    const blob = await captureElement(host.captureEl, {
-      scale: scaleToNumber(clampMobileExportScale(settings.scale)),
-      format: settings.format,
+    if (settle.status === 'timed_out') {
+      new Notice(t('notice.settleTimeout'));
+      host.destroy();
+      return;
+    }
+    const captured = await captureStudioPages(host, settings, 'export', {
+      skipPrepare: true,
     });
-    await copyBlobToClipboard(blob);
+    if (captured.parts.length !== 1) {
+      new Notice(t('notice.copyFail'));
+      host.destroy();
+      return;
+    }
+    await copyBlobToClipboard(captured.parts[0]!.blob);
     host.destroy();
   } catch (error) {
     console.error(error);

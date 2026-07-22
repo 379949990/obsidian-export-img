@@ -51,6 +51,12 @@ const en: Dict = {
   'studio.scale': 'Export scale',
   'studio.scaleHint':
     'Preview always uses 1× for speed. Copy and Save use this scale.',
+  'studio.scaleHintMobile':
+    'Preview is 1×. Copy / Save use this scale (max 2× on mobile). Tall notes may auto-reduce scale further to fit memory limits.',
+  'studio.mobileAutoSplitHint':
+    'This note was auto-split into pages on mobile to avoid running out of memory. Split mode in settings stays “Off”; pagination is temporary for this capture.',
+  'studio.mobileLimitsHint':
+    'Mobile caps: scale ≤ 2×, shorter render wait, ~8M canvas pixels per page. Multi-page Save shares one ZIP. Prefer Save → “Save Image” for Photos.',
   'studio.format': 'Format',
   'studio.theme': 'Theme',
   'studio.theme.current': 'Current',
@@ -137,6 +143,13 @@ const en: Dict = {
   'notice.mobileAutoSplit':
     'Long note: auto-split into pages on mobile to avoid running out of memory.',
   'notice.mobileScaleCapped': 'Export scale is limited to 2× on mobile.',
+  'notice.mobileScaleBudgeted':
+    'Export scale was reduced so each page fits the mobile canvas budget.',
+  'notice.mobileMegaBlock':
+    'A single block (e.g. a tall image or code fence) exceeds one safe page — it may still use a large canvas.',
+  'notice.saveZipShared':
+    'Shared a ZIP of all pages — open it and save images, or extract in Files.',
+  'notice.settleTimeout': 'Render wait timed out — export may be incomplete.',
   'setting.heading.language': 'Language',
   'setting.locale': 'Interface language',
   'setting.localeDesc':
@@ -148,7 +161,7 @@ const en: Dict = {
   'setting.widthDesc': 'Default export width in pixels.',
   'setting.scale': 'Default export scale',
   'setting.scaleDesc':
-    'Scale used for Copy / Save (2× recommended). Studio preview stays at 1×. Higher is sharper when zoomed, but slower.',
+    'Scale used for Copy / Save (2× recommended). Studio preview stays at 1×. On mobile, scale is capped at 2× and may drop further for tall pages. Higher is sharper when zoomed, but slower and more memory-hungry.',
   'setting.format': 'Default format',
   'setting.showFilename': 'Show note title by default',
   'setting.showMetadata': 'Show properties by default',
@@ -164,7 +177,7 @@ const en: Dict = {
     'Left or center for media that reaches the max height. Shorter media keeps the note layout.',
   'setting.settleTimeout': 'Render wait timeout (ms)',
   'setting.settleTimeoutDesc':
-    'How long to wait for images, fonts, and diagrams before treating the note as ready.',
+    'How long to wait for images, fonts, and diagrams before treating the note as ready. On mobile this is capped at 5s.',
   'setting.quickExportSelection': 'Quick-export selection',
   'setting.quickExportSelectionDesc': 'Skip the studio and copy the selection immediately.',
   'setting.heading.defaults': 'Defaults',
@@ -210,6 +223,12 @@ const zh: Dict = {
   'studio.embedAlign.left': '居左',
   'studio.scale': '导出倍率',
   'studio.scaleHint': '预览始终用 1×，便于快速刷新；复制 / 保存使用此处倍率。',
+  'studio.scaleHintMobile':
+    '预览为 1×。复制 / 保存使用此处倍率（移动端最高 2×）。超长笔记可能再自动降倍率以符合画布像素预算。',
+  'studio.mobileAutoSplitHint':
+    '移动端已将本笔记自动分页，避免内存不足。设置里的分页模式仍为「关闭」；本次捕获为临时分页。',
+  'studio.mobileLimitsHint':
+    '移动端限制：倍率 ≤ 2×、渲染等待更短、每页约 800 万画布像素。多页保存会分享一个 ZIP。相册请用「保存 → 存储图像」。',
   'studio.format': '格式',
   'studio.theme': '主题',
   'studio.theme.current': '跟随当前',
@@ -294,6 +313,11 @@ const zh: Dict = {
     '移动端：保存会打开系统分享，可选择存入相册；剪贴板复制可能不可用。',
   'notice.mobileAutoSplit': '长文已在移动端自动分页，避免内存不足导致闪退。',
   'notice.mobileScaleCapped': '移动端导出倍率上限为 2×。',
+  'notice.mobileScaleBudgeted': '已降低导出倍率，使每页符合移动端画布像素预算。',
+  'notice.mobileMegaBlock':
+    '存在超出单页安全高度的整块内容（如超高图片或代码块），仍可能占用较大画布。',
+  'notice.saveZipShared': '已分享包含全部页面的 ZIP — 可在文件中打开并保存图片。',
+  'notice.settleTimeout': '渲染等待超时 — 导出结果可能不完整。',
   'setting.heading.language': '语言',
   'setting.locale': '界面语言',
   'setting.localeDesc':
@@ -305,7 +329,7 @@ const zh: Dict = {
   'setting.widthDesc': '默认导出宽度（像素）。',
   'setting.scale': '默认导出倍率',
   'setting.scaleDesc':
-    '复制 / 保存时使用的倍率（推荐 2×）。工作室预览固定为 1×。倍率越高放大后越清晰，但更慢。',
+    '复制 / 保存时使用的倍率（推荐 2×）。工作室预览固定为 1×。移动端最高 2×，超长页还可能再降。倍率越高越清晰，也更慢、更耗内存。',
   'setting.format': '默认格式',
   'setting.showFilename': '默认显示笔记标题',
   'setting.showMetadata': '默认显示属性',
@@ -320,7 +344,8 @@ const zh: Dict = {
   'setting.embedAlignDesc':
     '仅对达到媒体最大高度的元素生效：居左或居中。未达上限的媒体保持文档原有排版。',
   'setting.settleTimeout': '渲染等待超时（毫秒）',
-  'setting.settleTimeoutDesc': '等待图片、字体、图表等就绪的最长时间。',
+  'setting.settleTimeoutDesc':
+    '等待图片、字体、图表等就绪的最长时间。移动端上限为 5 秒。',
   'setting.quickExportSelection': '快速导出选区',
   'setting.quickExportSelectionDesc': '跳过工作室，直接复制选区图片。',
   'setting.heading.defaults': '默认值',

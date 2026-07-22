@@ -71,7 +71,7 @@ pnpm run test     # vitest; wrapper kills at 60s
 pnpm run verify   # tsc + test (CI: verify.yml)
 ```
 
-Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: prefer Save (vault attachments).
+Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → system share → Save Image / Photos; multi-page expect one ZIP share.
 
 ---
 
@@ -102,8 +102,15 @@ Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/
 
 - Theme: copy body CSS variables for forced light/dark; code/tables keep Reading column width
 - Mobile Studio: larger refresh hit target, shorter preview, compact panel, avatar 2×2 actions
-- Preview: pinch-zoom + double-tap fit on touch
-- Mobile capture safety: auto-split tall notes; export scale capped at 2×; shorter settle timeout
+- Preview: pinch-zoom + double-tap fit on touch; multi-page stacks fit width **and** height
+- Mobile capture safety:
+  - auto-split tall notes (Studio + folder + quick-copy path via `captureStudioPages`)
+  - export scale capped at 2×; further reduced to ~8M canvas pixels/page
+  - shorter settle timeout (≤5s)
+  - mega-block notice when an atomic block exceeds one safe page
+- Mobile Save: Web Share → Photos; multi-page = **one ZIP share**; settings persist only after successful save
+- Theme body class restore: exact prior `theme-dark` / `theme-light` presence
+- Remote images: MIME sniff from magic bytes; bounded LRU cache; concurrency 3
 
 ## Known risks / good next work (not committed as plan)
 
@@ -111,7 +118,7 @@ Latest public release: [1.0.4](https://github.com/379949990/obsidian-export-img/
 2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
 3. Bundle size large (`modern-screenshot` + Preact)
 4. `obsidian` types still `"latest"` in package.json — prefer pin
-5. Extremely large notes on low-RAM devices may still struggle even with auto-split
+5. Extremely large atomic blocks on low-RAM devices may still OOM despite auto-split
 6. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---

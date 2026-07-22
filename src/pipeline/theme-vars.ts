@@ -115,6 +115,7 @@ function collectThemeVars(computed: CSSStyleDeclaration): Record<string, string>
 export function readBodyThemeVars(scheme: ResolvedThemeScheme): Record<string, string> {
   const body = document.body;
   const wasDark = body.classList.contains('theme-dark');
+  const wasLight = body.classList.contains('theme-light');
   const wantDark = scheme === 'dark';
   const swapped = wasDark !== wantDark;
 
@@ -129,8 +130,9 @@ export function readBodyThemeVars(scheme: ResolvedThemeScheme): Record<string, s
     return collectThemeVars(getComputedStyle(body));
   } finally {
     if (swapped) {
+      // Restore the exact prior class presence (do not invent theme-light).
       body.classList.toggle('theme-dark', wasDark);
-      body.classList.toggle('theme-light', !wasDark);
+      body.classList.toggle('theme-light', wasLight);
     }
   }
 }

@@ -6,16 +6,16 @@ import {
 } from 'obsidian';
 import type ExportImgPlugin from './main';
 import { t } from './i18n';
-import { scaleToNumber } from './settings';
+import { cloneSettings } from './settings';
 import { createRenderHost } from './pipeline/render-host';
-import { prepareEmbedLayout, waitForNextPaint } from './pipeline/overflow';
+import { waitForNextPaint } from './pipeline/overflow';
 import { settleElement } from './pipeline/settle-gate';
-import { captureElement } from './pipeline/capture';
-import {
-  clampMobileExportScale,
-  resolveSettleTimeoutMs,
-} from './pipeline/mobile-limits';
+import { resolveSettleTimeoutMs } from './pipeline/mobile-limits';
 import { saveMultipleBlobs } from './pipeline/output';
+import {
+  assertNonEmptyCapture,
+  captureStudioPages,
+} from './ui/studio-pipeline';
 
 function isMarkdownFile(file: TFile): boolean {
   return file.extension === 'md' || file.extension === 'markdown';
@@ -44,9 +44,16 @@ export async function exportFolderAsImages(
     return;
   }
 
-  const settings = plugin.settings;
+  const settings = cloneSettings(plugin.settings);
+  // One note → one logical export; mobile auto-split still applies inside capture.
+  settings.split = { ...settings.split, mode: 'none' };
   const holder = document.body.createDiv({ cls: 'export-img-offscreen' });
-  const items: { blob: Blob; title: string; format: typeof settings.format }[] = [];
+  const items: {
+    blob: Blob;
+    title: string;
+    format: typeof settings.format;
+    index?: number;
+  }[] = [];
 
   try {
     for (const file of files) {
@@ -58,28 +65,36 @@ export async function exportFolderAsImages(
         sourcePath: file.path,
         title: file.basename,
         frontmatter: cache?.frontmatter,
-        settings: { ...settings, split: { ...settings.split, mode: 'none' } },
+        settings,
         mountEl: holder,
         width: settings.width,
         themeMode: settings.themeMode,
       });
       await host.hydrateRemotes();
-      prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
       await waitForNextPaint();
       await settleElement(host.captureEl, {
         timeoutMs: resolveSettleTimeoutMs(settings.settleTimeoutMs),
       });
-      const blob = await captureElement(host.captureEl, {
-        scale: scaleToNumber(clampMobileExportScale(settings.scale)),
-        format: settings.format,
+      const captured = await captureStudioPages(host, settings, 'export', {
+        skipPrepare: false,
       });
-      items.push({ blob, title: file.basename, format: settings.format });
+      assertNonEmptyCapture(captured.parts, 'Folder export');
+      for (const part of captured.parts) {
+        items.push({
+          blob: part.blob,
+          title: file.basename,
+          format: settings.format,
+          index: part.index,
+        });
+      }
       host.destroy();
       holder.empty();
     }
 
-    await saveMultipleBlobs(app, items, folder.name);
-    new Notice(t('notice.batchDone', { count: items.length }));
+    const saved = await saveMultipleBlobs(app, items, folder.name);
+    if (saved) {
+      new Notice(t('notice.batchDone', { count: files.length }));
+    }
   } catch (error) {
     console.error(error);
     new Notice(t('notice.exportFail'));

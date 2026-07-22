@@ -5,6 +5,7 @@ import {
   countRemoteImages,
   hydrateRemoteImages,
   remoteImageCacheSize,
+  sniffImageMime,
 } from '../src/pipeline/remote-images';
 import { installObsidianDomHelpers } from './helpers/obsidian-dom';
 
@@ -22,6 +23,20 @@ function mountRemoteImg(src: string): { root: HTMLElement; img: HTMLImageElement
   document.body.appendChild(root);
   return { root, img };
 }
+
+describe('sniffImageMime', () => {
+  it('detects png / jpeg / webp signatures', () => {
+    expect(sniffImageMime(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0]).buffer)).toBe(
+      'image/png',
+    );
+    expect(sniffImageMime(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]).buffer)).toBe('image/jpeg');
+    const webp = new Uint8Array(12);
+    webp.set([0x52, 0x49, 0x46, 0x46], 0);
+    webp.set([0x57, 0x45, 0x42, 0x50], 8);
+    expect(sniffImageMime(webp.buffer)).toBe('image/webp');
+    expect(sniffImageMime(new Uint8Array([1, 2, 3]).buffer)).toBeNull();
+  });
+});
 
 describe('countRemoteImages', () => {
   it('counts http(s) images outside author/watermark', () => {

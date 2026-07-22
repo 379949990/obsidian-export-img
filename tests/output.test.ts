@@ -173,9 +173,11 @@ describe('saveMultipleBlobs', () => {
     expect((zipBlob as Blob).type).toBe('application/zip');
   });
 
-  it('never zips on mobile even with multiple items', async () => {
+  it('shares one ZIP on mobile for multiple items', async () => {
     platform.isMobile = true;
-    const share = vi.fn(async () => undefined);
+    const share = vi.fn<(data: { files: File[]; title: string }) => Promise<void>>(
+      async () => undefined,
+    );
     vi.stubGlobal('navigator', {
       ...navigator,
       share,
@@ -185,7 +187,7 @@ describe('saveMultipleBlobs', () => {
     const app = mockApp({ createBinary });
     const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
     const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
-    await saveMultipleBlobs(
+    const ok = await saveMultipleBlobs(
       app,
       [
         { blob: a, title: 'Page', format: 'png', index: 1 },
@@ -193,7 +195,38 @@ describe('saveMultipleBlobs', () => {
       ],
       'batch',
     );
-    expect(share).toHaveBeenCalledTimes(2);
+    expect(ok).toBe(true);
+    expect(share).toHaveBeenCalledOnce();
+    const shared = share.mock.calls[0]![0];
+    expect(shared.files[0]!.name).toBe('batch.zip');
+    expect(shared.files[0]!.type).toBe('application/zip');
+    expect(createBinary).not.toHaveBeenCalled();
+    expect(saveAsMock).not.toHaveBeenCalled();
+  });
+
+  it('returns false when mobile multi-page share is aborted', async () => {
+    platform.isMobile = true;
+    const share = vi.fn(async () => {
+      throw new DOMException('Aborted', 'AbortError');
+    });
+    vi.stubGlobal('navigator', {
+      ...navigator,
+      share,
+      canShare: () => true,
+    });
+    const createBinary = vi.fn(async () => undefined);
+    const app = mockApp({ createBinary });
+    const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
+    const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
+    const ok = await saveMultipleBlobs(
+      app,
+      [
+        { blob: a, title: 'Page', format: 'png', index: 1 },
+        { blob: b, title: 'Page', format: 'png', index: 2 },
+      ],
+      'batch',
+    );
+    expect(ok).toBe(false);
     expect(createBinary).not.toHaveBeenCalled();
     expect(saveAsMock).not.toHaveBeenCalled();
   });

@@ -19,6 +19,8 @@ interface FidelityPanelProps {
   settleStatus: SettleStatus | null;
   exportDespiteTimeout: boolean;
   onExportDespiteTimeout: (value: boolean) => void;
+  /** Mobile forced pagination for memory safety (not user split setting). */
+  mobileAutoSplitActive?: boolean;
   paddingMode: 'preset' | 'document';
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
@@ -37,6 +39,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
     settleStatus,
     exportDespiteTimeout,
     onExportDespiteTimeout,
+    mobileAutoSplitActive = false,
     paddingMode,
     onChange,
     onNestedChange,
@@ -52,6 +55,15 @@ export function FidelityPanel(props: FidelityPanelProps) {
     <div className="export-img-panel">
       <div className="export-img-panel-scroll">
         <h3 className="export-img-panel-title">{t('studio.fidelity')}</h3>
+
+        {Platform.isMobile && mobileAutoSplitActive && (
+          <p className="export-img-field-hint export-img-mobile-banner">
+            {t('studio.mobileAutoSplitHint')}
+          </p>
+        )}
+        {Platform.isMobile && (
+          <p className="export-img-field-hint">{t('studio.mobileLimitsHint')}</p>
+        )}
 
         <label className="export-img-field">
           <span>{t('studio.width')}</span>
@@ -116,7 +128,9 @@ export function FidelityPanel(props: FidelityPanelProps) {
             {!Platform.isMobile && <option value="3x">3x</option>}
           </select>
         </label>
-        <p className="export-img-field-hint">{t('studio.scaleHint')}</p>
+        <p className="export-img-field-hint">
+          {Platform.isMobile ? t('studio.scaleHintMobile') : t('studio.scaleHint')}
+        </p>
 
         <label className="export-img-field">
           <span>{t('studio.format')}</span>

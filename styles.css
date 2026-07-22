@@ -415,6 +415,14 @@
   color: var(--text-faint);
 }
 
+.export-img-mobile-banner {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+}
+
 .export-img-setting-padding-controls {
   display: flex;
   flex-direction: column;

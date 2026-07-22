@@ -39,12 +39,25 @@ interface PointerSample {
   y: number;
 }
 
-function initialFrame(viewportW: number, naturalW: number): Frame {
+function initialFrame(
+  viewportW: number,
+  viewportH: number,
+  naturalW: number,
+  naturalH: number,
+  pageCount: number,
+): Frame {
   const vw = Math.max(40, viewportW);
+  const vh = Math.max(40, viewportH);
   const imageW = vw / (1 + 2 * MARGIN_RATIO);
   const gap = imageW * MARGIN_RATIO;
+  let scale = imageW / Math.max(1, naturalW);
+  // Multi-page stacks: also fit height so the first pages stay on-screen.
+  if (pageCount > 1 && naturalH > 0) {
+    const maxH = Math.max(40, vh - gap * 2);
+    scale = Math.min(scale, maxH / naturalH);
+  }
   return {
-    scale: imageW / naturalW,
+    scale,
     x: gap,
     y: gap,
   };
@@ -118,12 +131,12 @@ export function PreviewPane({ imageUrls, rendering, viewResetNonce = 0 }: Previe
         window.requestAnimationFrame(apply);
         return;
       }
-      const { w } = measureStackSize(st, pageCount);
+      const { w, h } = measureStackSize(st, pageCount);
       if (w <= 0) return;
       userMovedRef.current = false;
       pendingResetRef.current = false;
       fittedOnceRef.current = true;
-      setFrame(initialFrame(vp.clientWidth, w));
+      setFrame(initialFrame(vp.clientWidth, vp.clientHeight, w, h, pageCount));
     };
 
     apply();

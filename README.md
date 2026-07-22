@@ -93,7 +93,7 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 ### Batch & selection
 
-- Folder export → ZIP on desktop; individual vault saves on mobile
+- Folder export → ZIP on desktop; on mobile, one shared ZIP (or vault fallback)
 - Selection export; optional quick copy without opening Studio
 
 ---
@@ -104,12 +104,14 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 
 On **mobile**:
 
-- **Save** opens the system share sheet so you can add the image to Photos / Gallery (falls back to download, then vault attachment)
+- **Save** opens the system share sheet so you can choose **Save Image / Save to Photos** (falls back to download, then vault attachment). Cancelling the share sheet does **not** persist studio settings.
 - **Copy** may be unavailable — prefer Save
-- Multi-page / folder exports save files individually (no ZIP)
-- Studio: compact controls, pinch-zoom / double-tap fit
-- Long notes auto-split into pages; export scale capped at **2×** to reduce out-of-memory crashes
-- Large notes and higher scale still use more memory and take longer to settle
+- Multi-page / folder exports share **one ZIP** (not N share sheets)
+- Studio: compact controls, pinch-zoom / double-tap fit; multi-page preview fits width and height
+- Long notes **auto-split** into pages (even when Split is Off); panel shows a hint when this happens
+- Export scale capped at **2×**; may drop further so each page stays within ~**8M canvas pixels**
+- Render wait timeout capped at **5s**
+- A single oversized block (tall image / code fence) may still allocate a large canvas — shorten the block or lower width/scale if the app crashes
 
 ---
 

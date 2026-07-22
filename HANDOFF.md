@@ -78,7 +78,7 @@ Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Sa
 1. Finish work on `v1.0.3`; keep versions at `1.0.3`.
 2. `git checkout main && git pull && git merge --squash v1.0.3`
 3. Commit: `release(1.0.3): <summary>`
-4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds and creates tag **`1.0.3`** + assets.
+4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.3`** + assets.
 
 If tag already exists, workflow skips. Delete GitHub Release + tag to rebuild.
 

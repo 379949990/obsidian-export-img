@@ -76,20 +76,8 @@ export interface SettleDiagnostic {
   warnings: string[];
 }
 
-export interface ExportSession {
-  markdown: string;
-  sourcePath: string;
-  title: string;
-  type: 'file' | 'selection';
-}
-
 export interface CaptureOptions {
   scale: number;
   format: ExportFormat;
   quality?: number;
-}
-
-export interface SplitPosition {
-  startY: number;
-  height: number;
 }

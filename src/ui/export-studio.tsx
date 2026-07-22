@@ -74,13 +74,21 @@ function notifyMobileCaptureFlags(
     canvasRisk: boolean;
   },
 ): void {
-  if (result.mobileMegaBlock && !flags.megaBlock) {
-    flags.megaBlock = true;
-    new Notice(t('notice.mobileMegaBlock'), 8000);
+  if (result.mobileMegaBlock) {
+    if (!flags.megaBlock) {
+      flags.megaBlock = true;
+      new Notice(t('notice.mobileMegaBlock'), 8000);
+    }
+  } else {
+    flags.megaBlock = false;
   }
-  if (result.mobileCanvasRisk && !flags.canvasRisk) {
-    flags.canvasRisk = true;
-    new Notice(t('notice.mobileCanvasRisk'), 8000);
+  if (result.mobileCanvasRisk) {
+    if (!flags.canvasRisk) {
+      flags.canvasRisk = true;
+      new Notice(t('notice.mobileCanvasRisk'), 8000);
+    }
+  } else {
+    flags.canvasRisk = false;
   }
 }
 
@@ -136,7 +144,7 @@ function updateModalTitle(titleEl: HTMLElement, state: TitlebarState): void {
 }
 
 function StudioApp(
-  props: StudioOpenArgs & { onClose: () => void; titleEl: HTMLElement },
+  props: StudioOpenArgs & { titleEl: HTMLElement },
 ) {
   const { app, plugin, markdown, file, frontmatter, type, titleEl } = props;
   const presetPaddingRef = useRef<PaddingSettings>({ ...plugin.settings.padding });
@@ -153,6 +161,8 @@ function StudioApp(
 
   const workSignature = getWorkSignature(draft);
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
+  /** Forces re-render when Obsidian shell theme flips and themeMode is `current`. */
+  const [, setShellThemeTick] = useState(0);
 
   const hostRef = useRef<RenderHostHandle | null>(null);
   const renderSlotRef = useRef<HTMLDivElement | null>(null);
@@ -201,6 +211,18 @@ function StudioApp(
       onRefresh: onRefreshPreview,
     });
   }, [titleEl, settle, remoteHint, rendering, onRefreshPreview]);
+
+  // When following the app theme, rebuild when Obsidian toggles light/dark.
+  useEffect(() => {
+    if (draft.themeMode !== 'current') return;
+    const onCssChange = () => {
+      setShellThemeTick((n) => n + 1);
+    };
+    const ref = app.workspace.on('css-change', onCssChange);
+    return () => {
+      app.workspace.offref(ref);
+    };
+  }, [app, draft.themeMode]);
 
   const publishPreview = useCallback((parts: CapturePagePart[]) => {
     revokePreviewUrls();
@@ -577,7 +599,7 @@ function StudioApp(
       <div className="export-img-render-slot" ref={renderSlotRef} aria-hidden="true" />
       <PreviewPane
         imageUrls={previewUrls}
-        rendering={rendering || busy}
+        rendering={rendering}
         viewResetNonce={viewResetNonce}
       />
       <FidelityPanel
@@ -628,7 +650,6 @@ export class ExportStudioModal extends Modal {
         <StudioApp
           {...this.args}
           titleEl={this.titleEl}
-          onClose={() => this.close()}
         />
       </AppContext.Provider>,
     );

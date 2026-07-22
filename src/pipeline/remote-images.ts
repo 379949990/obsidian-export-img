@@ -240,12 +240,7 @@ export async function hydrateRemoteImages(
   };
 }
 
-/** Host destroy must not revoke cache-owned blob URLs. */
-export function revokeHydratedImages(_root: HTMLElement): void {
-  // Session cache owns object URLs for remote images.
-}
-
-/** Drop the session cache (e.g. plugin unload). */
+/** Host destroy must not revoke cache-owned blob URLs — session cache owns them. */
 export function clearRemoteImageCache(): void {
   for (const objectUrl of remoteImageCache.values()) {
     URL.revokeObjectURL(objectUrl);

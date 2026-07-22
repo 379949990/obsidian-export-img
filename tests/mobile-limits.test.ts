@@ -4,7 +4,6 @@ import {
   MOBILE_ADVISORY_CANVAS_PIXELS,
   MOBILE_ADVISORY_PAGE_HEIGHT,
   canvasPixelCount,
-  clampMobileExportScale,
   hasMobileMegaBlock,
   isMobileCanvasRisk,
   resolveCaptureScale,
@@ -33,8 +32,6 @@ describe('mobile-limits (desktop)', () => {
 describe('mobile-limits (mobile)', () => {
   it('keeps full scale including 3× and shortens settle timeout', () => {
     (Platform as { isMobile: boolean }).isMobile = true;
-    expect(clampMobileExportScale('3x')).toBe('3x');
-    expect(clampMobileExportScale('2x')).toBe('2x');
     expect(resolveSettleTimeoutMs(8000)).toBe(5000);
     expect(resolveSettleTimeoutMs(3000)).toBe(3000);
     const settings = cloneSettings(DEFAULT_SETTINGS);
@@ -43,25 +40,16 @@ describe('mobile-limits (mobile)', () => {
     expect(resolveCaptureScale(settings, 'preview')).toBe(1);
   });
 
-  it('never force-auto-splits tall notes', () => {
+  it('honors user split mode without forcing pagination', () => {
     (Platform as { isMobile: boolean }).isMobile = true;
-    const settings = cloneSettings(DEFAULT_SETTINGS);
-    settings.split.mode = 'none';
-    settings.split.height = 0;
-    const plan = resolveMobileSplitPlan(settings, MOBILE_ADVISORY_PAGE_HEIGHT + 100, 2);
-    expect(plan.autoSplit).toBe(false);
-    expect(plan.mode).toBe('none');
-  });
+    const off = cloneSettings(DEFAULT_SETTINGS);
+    off.split.mode = 'none';
+    expect(resolveMobileSplitPlan(off).mode).toBe('none');
 
-  it('honors explicit user split mode', () => {
-    (Platform as { isMobile: boolean }).isMobile = true;
-    const settings = cloneSettings(DEFAULT_SETTINGS);
-    settings.split.mode = 'hr';
-    settings.split.height = 1800;
-    const plan = resolveMobileSplitPlan(settings, 5000, 2);
-    expect(plan.autoSplit).toBe(false);
-    expect(plan.mode).toBe('hr');
-    expect(plan.height).toBe(1800);
+    const hr = cloneSettings(DEFAULT_SETTINGS);
+    hr.split.mode = 'hr';
+    hr.split.height = 1800;
+    expect(resolveMobileSplitPlan(hr)).toEqual({ mode: 'hr', height: 1800 });
   });
 
   it('advises high canvas risk without changing scale', () => {
@@ -75,7 +63,7 @@ describe('mobile-limits (mobile)', () => {
 
   it('flags mega-blocks taller than advisory page height', () => {
     (Platform as { isMobile: boolean }).isMobile = true;
-    expect(hasMobileMegaBlock([100, 2500], 2400)).toBe(true);
-    expect(hasMobileMegaBlock([100, 200], 2400)).toBe(false);
+    expect(hasMobileMegaBlock([100, 2500], MOBILE_ADVISORY_PAGE_HEIGHT)).toBe(true);
+    expect(hasMobileMegaBlock([100, 200], MOBILE_ADVISORY_PAGE_HEIGHT)).toBe(false);
   });
 });

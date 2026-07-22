@@ -27,28 +27,36 @@ export async function copyBlobToClipboard(blob: Blob): Promise<void> {
   new Notice(t('notice.copySuccess'));
 }
 
+export interface SaveBlobOptions {
+  /** Skip per-file success Notice (caller shows a summary). */
+  quiet?: boolean;
+}
+
 /**
  * Save one image.
  * Desktop → browser download. Mobile → vault attachment (path in Notice).
- * Web Share / opaque downloads are intentionally not used on mobile: Obsidian's
- * WebView often lacks a working share sheet, and file-saver locations are unclear.
  */
 export async function saveBlob(
   app: App,
   blob: Blob,
   title: string,
   format: ExportFormat,
+  opts?: SaveBlobOptions,
 ): Promise<string | undefined> {
   const filename = safeFilename(title, format);
   try {
     if (Platform.isMobile) {
       const filePath = await app.fileManager.getAvailablePathForAttachment(filename);
       await app.vault.createBinary(filePath, await blob.arrayBuffer());
-      new Notice(t('notice.saveSuccess', { path: filePath }));
+      if (!opts?.quiet) {
+        new Notice(t('notice.saveSuccess', { path: filePath }));
+      }
       return filePath;
     }
     saveAs(blob, filename);
-    new Notice(t('notice.saveSuccess', { path: filename }));
+    if (!opts?.quiet) {
+      new Notice(t('notice.saveSuccess', { path: filename }));
+    }
     return filename;
   } catch (error) {
     console.error(error);
@@ -72,9 +80,9 @@ async function buildZipBlob(
 }
 
 /**
- * Save one or more images. Returns true when at least one artifact was saved.
- * Desktop multi-page → ZIP download. Mobile → one vault attachment per image
- * (no ZIP: mobile has no reliable unzip → Photos path).
+ * Save one or more images. Returns true only when every item was saved
+ * (so callers can safely persist settings).
+ * Desktop multi-page → ZIP download. Mobile → one vault attachment per image.
  */
 export async function saveMultipleBlobs(
   app: App,
@@ -84,20 +92,30 @@ export async function saveMultipleBlobs(
   if (items.length === 0) return false;
 
   if (Platform.isMobile || items.length === 1) {
-    let any = false;
+    const quiet = items.length > 1;
+    const paths: string[] = [];
     for (const item of items) {
       const name = item.index !== undefined ? `${item.title}_${item.index}` : item.title;
-      const saved = await saveBlob(app, item.blob, name, item.format);
-      if (saved !== undefined) any = true;
+      const saved = await saveBlob(app, item.blob, name, item.format, { quiet });
+      if (saved === undefined) {
+        if (paths.length > 0) {
+          new Notice(t('notice.savePartialFail', { saved: paths.length, total: items.length }));
+        }
+        return false;
+      }
+      paths.push(saved);
     }
-    return any;
+    if (quiet) {
+      new Notice(t('notice.savePagesSuccess', { count: paths.length }));
+    }
+    return true;
   }
 
   try {
     const zipBlob = await buildZipBlob(items);
     const zipFilename = `${zipName.replaceAll(/\s+/g, '_')}.zip`;
     saveAs(zipBlob, zipFilename);
-    new Notice(t('notice.saveSuccess', { path: `${zipName}.zip` }));
+    new Notice(t('notice.saveSuccess', { path: zipFilename }));
     return true;
   } catch (error) {
     console.error(error);

@@ -66,6 +66,7 @@
   border-color: color-mix(in srgb, var(--text-success) 35%, var(--background-modifier-border));
 }
 
+.export-img-title-pill.is-idle,
 .export-img-title-pill.is-waiting {
   color: var(--text-muted);
 }
@@ -772,13 +773,6 @@
   object-fit: cover;
 }
 
-.export-img-image-source-empty {
-  font-size: var(--font-ui-smaller);
-  color: var(--text-faint);
-  text-align: center;
-  padding: 4px;
-}
-
 .export-img-image-source-actions {
   display: flex;
   flex-wrap: wrap;
@@ -916,9 +910,9 @@
   }
 
   .export-img-preview-pane {
-    min-height: 0;
-    height: 32vh;
-    max-height: 32vh;
+    min-height: 168px;
+    height: 34vh;
+    max-height: 34vh;
     flex: 0 0 auto;
   }
 

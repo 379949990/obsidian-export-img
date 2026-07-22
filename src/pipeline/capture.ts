@@ -46,17 +46,3 @@ export async function captureElement(
   }
   return blob;
 }
-
-export async function detectFormats(): Promise<ExportFormat[]> {
-  const formats: ExportFormat[] = ['png', 'jpg'];
-  try {
-    const canvas = createEl('canvas');
-    canvas.width = 1;
-    canvas.height = 1;
-    const ok = canvas.toDataURL('image/webp').startsWith('data:image/webp');
-    if (ok) formats.push('webp');
-  } catch {
-    // ignore
-  }
-  return formats;
-}

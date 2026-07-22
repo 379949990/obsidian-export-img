@@ -154,4 +154,29 @@ describe('saveMultipleBlobs', () => {
     expect(getPath).toHaveBeenCalledWith('Page_1.png');
     expect(getPath).toHaveBeenCalledWith('Page_2.png');
   });
+
+  it('returns false when any mobile page fails (no settings persist)', async () => {
+    platform.isMobile = true;
+    const createBinary = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('disk full'));
+    const getPath = vi.fn(async (name: string) => `Attachments/${name}`);
+    const app = mockApp({
+      getAvailablePathForAttachment: getPath,
+      createBinary,
+    });
+    const a = new Blob([new Uint8Array(32)], { type: 'image/png' });
+    const b = new Blob([new Uint8Array(32)], { type: 'image/png' });
+    const ok = await saveMultipleBlobs(
+      app,
+      [
+        { blob: a, title: 'Page', format: 'png', index: 1 },
+        { blob: b, title: 'Page', format: 'png', index: 2 },
+      ],
+      'batch',
+    );
+    expect(ok).toBe(false);
+    expect(createBinary).toHaveBeenCalledTimes(2);
+  });
 });

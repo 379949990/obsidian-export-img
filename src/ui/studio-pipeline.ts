@@ -11,6 +11,7 @@ import {
   resolveCaptureScale,
   resolveMobileSplitPlan,
 } from '../pipeline/mobile-limits';
+import { resolveThemeScheme } from '../pipeline/theme-vars';
 import type { RenderHostHandle } from '../pipeline/render-host';
 import {
   applyPageBlocks,
@@ -27,6 +28,8 @@ export function getRenderSignature(settings: ExportImgSettings): string {
   return JSON.stringify({
     width: settings.width,
     themeMode: settings.themeMode,
+    /** Live shell scheme when themeMode is `current` — invalidates on css-change. */
+    themeScheme: resolveThemeScheme(settings.themeMode),
     showFilename: settings.showFilename,
     showMetadata: settings.showMetadata,
     padding: settings.padding,
@@ -81,12 +84,6 @@ export interface CapturePagePart {
 
 export interface CaptureStudioResult {
   parts: CapturePagePart[];
-  /** @deprecated Always false — auto-split removed. */
-  mobileAutoSplit: boolean;
-  /** @deprecated Always false — scale is never capped. */
-  mobileScaleCapped: boolean;
-  /** @deprecated Always false — scale is never auto-reduced. */
-  mobileScaleBudgeted: boolean;
   /** At least one atomic block is extremely tall (advisory). */
   mobileMegaBlock: boolean;
   /** Capture canvas likely heavy on mobile (advisory). */
@@ -132,9 +129,6 @@ export async function captureStudioPages(
     );
     return {
       parts: [{ blob }],
-      mobileAutoSplit: false,
-      mobileScaleCapped: false,
-      mobileScaleBudgeted: false,
       mobileMegaBlock: hasMobileMegaBlock([contentH], MOBILE_ADVISORY_PAGE_HEIGHT),
       mobileCanvasRisk: isMobileCanvasRisk(
         settings.width,
@@ -188,9 +182,6 @@ export async function captureStudioPages(
 
   return {
     parts,
-    mobileAutoSplit: false,
-    mobileScaleCapped: false,
-    mobileScaleBudgeted: false,
     mobileMegaBlock,
     mobileCanvasRisk: isMobileCanvasRisk(settings.width, tallest, preferredScale),
   };

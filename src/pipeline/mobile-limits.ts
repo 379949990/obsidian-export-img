@@ -1,5 +1,5 @@
 import { Platform } from 'obsidian';
-import type { ExportImgSettings, ScaleMode, SplitMode } from '../types';
+import type { ExportImgSettings, SplitMode } from '../types';
 import { scaleToNumber } from '../settings';
 import { defaultSplitHeight } from './split';
 
@@ -14,11 +14,6 @@ export const MOBILE_ADVISORY_CANVAS_PIXELS = 8_000_000;
 export function resolveSettleTimeoutMs(settingsTimeoutMs: number): number {
   if (!Platform.isMobile) return settingsTimeoutMs;
   return Math.min(settingsTimeoutMs, 5000);
-}
-
-/** Kept for call-site clarity; mobile no longer clamps export scale. */
-export function clampMobileExportScale(scale: ScaleMode): ScaleMode {
-  return scale;
 }
 
 export function canvasPixelCount(width: number, height: number, scale: number): number {
@@ -49,19 +44,10 @@ export function isMobileCanvasRisk(
 export interface MobileSplitPlan {
   mode: SplitMode;
   height: number;
-  /** Always false — split mode is user-controlled. */
-  autoSplit: boolean;
 }
 
-/**
- * Resolve split settings for capture. Mobile does not force pagination;
- * honors the user's Split mode / height.
- */
-export function resolveMobileSplitPlan(
-  settings: ExportImgSettings,
-  _contentHeightPx = 0,
-  _preferredScale = 1,
-): MobileSplitPlan {
+/** Resolve split settings for capture — honors the user's Split mode / height. */
+export function resolveMobileSplitPlan(settings: ExportImgSettings): MobileSplitPlan {
   const baseH =
     settings.split.height > 0
       ? settings.split.height
@@ -69,7 +55,6 @@ export function resolveMobileSplitPlan(
   return {
     mode: settings.split.mode,
     height: baseH,
-    autoSplit: false,
   };
 }
 

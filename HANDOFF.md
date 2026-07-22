@@ -97,8 +97,9 @@ Latest public release on `main`: **1.0.5** (`40a4fbf`). Push `main` if the relea
 
 - Mobile: restore full Split + 3×; no forced auto-pagination / scale clamp (advisory notices only)
 - Mobile: settings changes do not auto-refresh preview — manual title-bar refresh + stale banner
-- Mobile UI: restore modal side gutters (~92vw); preview fit back to ~94% / 3% gutters; panel label sizes restored (compact inputs only)
-- Mobile Save: revert to **vault attachments** (honest path); drop Web Share / opaque download / mobile ZIP
+- Mobile UI: restore modal side gutters (~92vw); preview fit ~94% / 3% gutters (width-based); panel label sizes restored
+- Mobile Save: vault attachments (per page); all-or-nothing for settings persist
+- Hygiene: live `current` theme via css-change + scheme in render sig; dead mobile flags / i18n / stubs removed
 
 ## Known risks / good next work (not committed as plan)
 

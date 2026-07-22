@@ -10,7 +10,6 @@ import { prepareMarkdown } from './prepare';
 import {
   hydrateRemoteImages,
   countRemoteImages,
-  revokeHydratedImages,
   type RemoteHydrateProgress,
   type RemoteHydrateResult,
 } from './remote-images';
@@ -233,7 +232,6 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
       return result;
     },
     destroy: () => {
-      revokeHydratedImages(captureEl);
       component.unload();
       mountEl.empty();
     },

@@ -1,3 +1,4 @@
+/** @vitest-environment happy-dom */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS, cloneSettings } from '../src/settings';
 import {
@@ -28,6 +29,18 @@ describe('studio signatures', () => {
     expect(getCaptureSignature(a)).toBe(getCaptureSignature(b));
     expect(getExportCacheKey(a)).not.toBe(getExportCacheKey(b));
     expect(getWorkSignature(a)).toBe(getWorkSignature(b));
+  });
+
+  it('includes resolved theme scheme so current tracks the shell', () => {
+    document.body.classList.remove('theme-dark');
+    document.body.classList.add('theme-light');
+    const a = cloneSettings(DEFAULT_SETTINGS);
+    a.themeMode = 'current';
+    const lightSig = getRenderSignature(a);
+    document.body.classList.remove('theme-light');
+    document.body.classList.add('theme-dark');
+    const darkSig = getRenderSignature(a);
+    expect(lightSig).not.toBe(darkSig);
   });
 });
 

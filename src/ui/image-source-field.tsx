@@ -6,7 +6,7 @@ import { promptImageUrl, VaultImageModal } from './vault-image-modal';
 
 interface ImageSourceFieldProps {
   app: App;
-  label: string;
+  label?: string;
   value: string;
   disabled?: boolean;
   avatar?: boolean;
@@ -20,7 +20,7 @@ export function ImageSourceField(props: ImageSourceFieldProps) {
 
   return (
     <div className={'export-img-image-source' + (avatar ? ' is-avatar' : '')}>
-      <div className="export-img-image-source-label">{label}</div>
+      {label ? <div className="export-img-image-source-label">{label}</div> : null}
       <div className="export-img-image-source-row">
         <div className="export-img-image-source-preview">
           {preview ? <img src={preview} alt="" /> : null}

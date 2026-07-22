@@ -4,6 +4,7 @@ import {
   type App,
   type SettingDefinitionItem,
 } from 'obsidian';
+import { createRoot } from 'preact/compat/client';
 import type ExportImgPlugin from './main';
 import { setLocalePreference, t } from './i18n';
 import type {
@@ -13,14 +14,45 @@ import type {
   ThemeMode,
   WatermarkType,
 } from './types';
-import { mountImageSourceControl } from './ui/setting-image-source';
+import { ImageSourceField } from './ui/image-source-field';
 
 export class ExportImgSettingTab extends PluginSettingTab {
   plugin: ExportImgPlugin;
+  private imageRoots: ReturnType<typeof createRoot>[] = [];
 
   constructor(app: App, plugin: ExportImgPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  private clearImageRoots(): void {
+    for (const root of this.imageRoots) {
+      root.unmount();
+    }
+    this.imageRoots = [];
+  }
+
+  private mountImageField(
+    setting: Setting,
+    value: string,
+    onChange: (next: string) => void | Promise<void>,
+    opts?: { avatar?: boolean },
+  ): void {
+    setting.controlEl.empty();
+    setting.controlEl.addClass('export-img-setting-image-source');
+    if (opts?.avatar) setting.controlEl.addClass('is-avatar');
+    const root = createRoot(setting.controlEl);
+    this.imageRoots.push(root);
+    root.render(
+      <ImageSourceField
+        app={this.app}
+        value={value}
+        avatar={opts?.avatar}
+        onChange={(next) => {
+          void onChange(next);
+        }}
+      />,
+    );
   }
 
   /**
@@ -218,8 +250,13 @@ export class ExportImgSettingTab extends PluginSettingTab {
     ];
   }
 
-  /** Obsidian &lt; 1.13 fallback when declarative defs are unavailable. */
+  /**
+   * Obsidian &lt; 1.13 fallback when declarative defs are unavailable.
+   * Path B: keep `display()` while minAppVersion is 1.5.7 (1.13 SettingTab APIs
+   * are still Catalyst). Prefer {@link getSettingDefinitions} on 1.13+.
+   */
   display(): void {
+    this.clearImageRoots();
     const { containerEl } = this;
     containerEl.empty();
 
@@ -396,6 +433,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
    * (1.13+ API; blocked by no-unsupported-api at minAppVersion 1.5.7).
    */
   private refreshSettingsUi(): void {
+    this.clearImageRoots();
     const updateFn = Reflect.get(this, 'update');
     if (typeof updateFn === 'function') {
       (updateFn as () => void).call(this);
@@ -509,11 +547,16 @@ export class ExportImgSettingTab extends PluginSettingTab {
   }
 
   private renderAuthorAvatar(setting: Setting): void {
-    mountImageSourceControl(setting, this.app, this.plugin.settings.author.avatarSrc, async (next) => {
-      this.plugin.settings.author.avatarSrc = next;
-      await this.plugin.saveSettings();
-      this.refreshSettingsUi();
-    }, { avatar: true });
+    this.mountImageField(
+      setting,
+      this.plugin.settings.author.avatarSrc,
+      async (next) => {
+        this.plugin.settings.author.avatarSrc = next;
+        await this.plugin.saveSettings();
+        this.refreshSettingsUi();
+      },
+      { avatar: true },
+    );
   }
 
   private renderAuthorName(setting: Setting): void {
@@ -572,16 +615,11 @@ export class ExportImgSettingTab extends PluginSettingTab {
   }
 
   private renderWatermarkImage(setting: Setting): void {
-    mountImageSourceControl(
-      setting,
-      this.app,
-      this.plugin.settings.watermark.imageSrc,
-      async (next) => {
-        this.plugin.settings.watermark.imageSrc = next;
-        await this.plugin.saveSettings();
-        this.refreshSettingsUi();
-      },
-    );
+    this.mountImageField(setting, this.plugin.settings.watermark.imageSrc, async (next) => {
+      this.plugin.settings.watermark.imageSrc = next;
+      await this.plugin.saveSettings();
+      this.refreshSettingsUi();
+    });
   }
 
   private renderWatermarkColor(setting: Setting): void {
@@ -604,7 +642,6 @@ export class ExportImgSettingTab extends PluginSettingTab {
       slider
         .setLimits(0.05, 0.6, 0.01)
         .setValue(this.plugin.settings.watermark.opacity)
-        .setDynamicTooltip()
         .onChange(async (value) => {
           this.plugin.settings.watermark.opacity = value;
           await this.plugin.saveSettings();
@@ -617,7 +654,6 @@ export class ExportImgSettingTab extends PluginSettingTab {
       slider
         .setLimits(-60, 60, 1)
         .setValue(this.plugin.settings.watermark.rotate)
-        .setDynamicTooltip()
         .onChange(async (value) => {
           this.plugin.settings.watermark.rotate = value;
           await this.plugin.saveSettings();

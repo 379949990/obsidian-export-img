@@ -37,12 +37,13 @@ Obsidian community plugin **id `export-img`** (folder must match; GitHub repo ma
 
 ```text
 Command/menu → Studio | quickCopy | folderExport
-  → createRenderHost (MarkdownRenderer)
-  → hydrateRemotes (session-cached blob URLs; status before first capture)
+  → createRenderHost (MarkdownRenderer; themeMode current mirrors body)
+  → hydrateRemotes (session cache; MIME + ~12MB gate; Notice on failures)
   → prepareEmbedLayout (fit wide blocks; align only when height-capped)
-  → settleElement (images / fonts / Mermaid)
+  → settleElement (images / fonts / Mermaid / MathJax)
   → capture (preview 1× no fonts | export N× + fonts)
   → clipboard / saveAs / vault binary / ZIP
+  → timed_out: Copy/Save blocked until “Export anyway”
 ```
 
 | Area | Path |
@@ -97,17 +98,23 @@ Latest public release: [1.0.3](https://github.com/379949990/obsidian-export-img/
 
 ---
 
+## Shipped / fixed on `v1.0.4` (review batch)
+
+- Settings migrate **v2**: drop `split.overlap`; map legacy `split.mode: auto` → `fixed`
+- Community lint: migrate union warning; remove `setDynamicTooltip`; keep Path B `display()` for minApp **1.5.7**
+- Unified Preact `ImageSourceField` for settings + Studio (avatar / watermark image)
+- Remote hydrate: image MIME + 12MB cap + `notice.remotePartial`
+- `themeMode: current` mirrors `document.body` dark/light
+- Studio: watermark type text/image; timed_out blocks Copy/Save unless confirmed
+- README honesty: frontmatter ≠ Properties UI; Save persists settings (Copy does not); no fake split modes
+
 ## Known risks / good next work (not committed as plan)
 
-Priority leftovers from first-principles review (pick with user, don’t silent-scope):
-
-1. Dead / confusing: `split.overlap` unused; `fixed` ≡ `auto` in `paginateBlocks`
-2. Theme fidelity still limited to a few CSS vars — community themes diverge
-3. Remote `requestUrl` for any `http(s)` img — no allowlist
-4. Bundle size large (`modern-screenshot` + Preact)
-5. `obsidian` types still `"latest"` in package.json — prefer pin
-6. Watermark image / author avatar settings renderable but weak/no Studio UI
-7. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks (unit suite now covers layout classes, split DOM, mobile save, migrate edges)
+1. Theme fidelity still limited — community themes diverge beyond body class + a few vars
+2. Remote `requestUrl` for any `http(s)` img — no allowlist (MIME/size only)
+3. Bundle size large (`modern-screenshot` + Preact)
+4. `obsidian` types still `"latest"` in package.json — prefer pin
+5. Settle / remote-images / render-host still need Obsidian runtime or heavier mocks for full coverage
 
 ---
 

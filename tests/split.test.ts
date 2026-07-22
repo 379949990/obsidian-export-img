@@ -19,14 +19,14 @@ function block(height: number, hr = false): SplitBlock {
 describe('resolveSplitHeight', () => {
   it('uses A4 ratio when height is 0', () => {
     expect(defaultSplitHeight(800)).toBe(Math.round(800 * 1.414));
-    expect(resolveSplitHeight({ mode: 'fixed', height: 0, overlap: 0 }, 800)).toBe(
+    expect(resolveSplitHeight({ mode: 'fixed', height: 0 }, 800)).toBe(
       Math.round(800 * 1.414),
     );
   });
 
   it('respects explicit height (min 200)', () => {
-    expect(resolveSplitHeight({ mode: 'fixed', height: 500, overlap: 0 }, 800)).toBe(500);
-    expect(resolveSplitHeight({ mode: 'fixed', height: 10, overlap: 0 }, 800)).toBe(200);
+    expect(resolveSplitHeight({ mode: 'fixed', height: 500 }, 800)).toBe(500);
+    expect(resolveSplitHeight({ mode: 'fixed', height: 10 }, 800)).toBe(200);
   });
 });
 
@@ -40,12 +40,11 @@ describe('paginateBlocks', () => {
     expect(paginateBlocks(blocks, 50, 'none')).toEqual([blocks]);
   });
 
-  it('packs by max height for fixed (same as auto)', () => {
+  it('packs by max height for fixed mode', () => {
     const a = block(100);
     const b = block(100);
     const c = block(100);
     expect(paginateBlocks([a, b, c], 200, 'fixed')).toEqual([[a, b], [c]]);
-    expect(paginateBlocks([a, b, c], 200, 'auto')).toEqual([[a, b], [c]]);
   });
 
   it('keeps an oversized block intact on its own page', () => {

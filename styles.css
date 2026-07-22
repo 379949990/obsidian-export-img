@@ -463,11 +463,18 @@
 
 .export-img-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
   padding: 10px 12px 12px;
   border-top: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
+}
+
+.export-img-export-despite {
+  flex: 1 1 100%;
+  color: var(--text-muted);
 }
 
 .export-img-actions button {

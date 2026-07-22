@@ -1,6 +1,8 @@
 import { requestUrl } from 'obsidian';
 
 const REMOTE_FETCH_MS = 10_000;
+/** Reject remote payloads larger than this (bytes). */
+const REMOTE_MAX_BYTES = 12 * 1024 * 1024;
 
 /**
  * Session-scoped remote image cache (URL → object URL).
@@ -23,6 +25,15 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
       },
     );
   });
+}
+
+function normalizeMime(header: string | undefined): string {
+  const raw = (header ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+  return raw;
+}
+
+function isImageMime(mime: string): boolean {
+  return mime.startsWith('image/');
 }
 
 export interface RemoteHydrateProgress {
@@ -62,8 +73,17 @@ async function resolveRemoteObjectUrl(
     requestUrl({ url: src, method: 'GET' }),
     timeoutMs,
   );
-  const mime = response.headers['content-type'] || 'image/png';
-  const blob = new Blob([response.arrayBuffer], { type: mime });
+  const bytes = response.arrayBuffer.byteLength;
+  if (bytes > REMOTE_MAX_BYTES) {
+    throw new Error(`too large (${bytes} bytes)`);
+  }
+  const mime = normalizeMime(response.headers['content-type']);
+  if (mime && !isImageMime(mime)) {
+    throw new Error(`not an image (${mime || 'unknown type'})`);
+  }
+  const blob = new Blob([response.arrayBuffer], {
+    type: mime || 'image/png',
+  });
   const objectUrl = URL.createObjectURL(blob);
   remoteImageCache.set(src, objectUrl);
   return { objectUrl, fromCache: false };
@@ -109,8 +129,9 @@ export async function hydrateRemoteImages(
         img.setAttribute('src', objectUrl);
         img.dataset.exportImgRemoteUrl = src;
         img.dataset.exportImgCached = '1';
-      } catch {
-        warnings.push(`Remote image failed: ${src.slice(0, 80)}`);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        warnings.push(`Remote image failed (${reason}): ${src.slice(0, 80)}`);
       } finally {
         done += 1;
         report(done < total);

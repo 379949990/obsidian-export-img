@@ -48,8 +48,17 @@ function applyThemeMode(el: HTMLElement, mode: ThemeMode): void {
   el.classList.remove('theme-light', 'theme-dark');
   if (mode === 'light') {
     el.classList.add('theme-light');
-  } else if (mode === 'dark') {
+    return;
+  }
+  if (mode === 'dark') {
     el.classList.add('theme-dark');
+    return;
+  }
+  // `current`: mirror the app shell so the offscreen host is not theme-less.
+  if (document.body.classList.contains('theme-dark')) {
+    el.classList.add('theme-dark');
+  } else {
+    el.classList.add('theme-light');
   }
 }
 

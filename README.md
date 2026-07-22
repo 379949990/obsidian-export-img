@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong>Export Img</strong> — export Markdown notes as images that approximate Obsidian Reading view.<br/>
-  Themes · Callouts · Code · Math · Mermaid · Embeds · Properties · Author · Watermark
+  Themes · Callouts · Code · Math · Mermaid · Embeds · Frontmatter · Author · Watermark
 </p>
 
 <p align="center">
@@ -51,7 +51,7 @@ Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HA
 | Export folder | Folder menu → ZIP of images (desktop) |
 | Refresh preview | Title-bar refresh control when status is idle / ready |
 
-Settings open from **Settings → Export Img**. Values there are the defaults Studio loads on open; Studio can still override them for the session and writes back on Copy/Save when that path persists settings.
+Settings open from **Settings → Export Img**. Author/watermark fields there are **prefill only** — enable them with the toggles inside Export Studio. **Save** writes the studio draft back to plugin settings (Copy does not).
 
 ---
 
@@ -62,7 +62,8 @@ Settings open from **Settings → Export Img**. Values there are the defaults St
 - Live bitmap preview with pan / zoom
 - Shared controls for width, theme, padding, split, media limits, decorations
 - Settle status (idle / rendering / ready / timed out) plus remote-image loading progress
-- Manual **refresh** to rebuild the capture host
+- On timeout, Copy/Save stay disabled until you confirm **Export anyway**
+- Manual **refresh** rebuilds the capture host and resets preview pan/zoom
 
 ### Media layout
 
@@ -76,20 +77,19 @@ HTML badge rows (several inline `<img>`s in one paragraph) stay **horizontal** �
 ### Remote images
 
 - Network `http(s)` images are fetched once per plugin session and reused from an in-memory blob cache
-- Title bar shows `Loading remote images…` until hydrate finishes, then the first preview is captured
+- Rejects non-image MIME types and payloads over ~12 MB; failures show a notice
+- Title bar shows loading progress until hydrate finishes, then the first preview is captured
 - Cache is cleared when the plugin unloads
 
 ### Decorations
 
-- **Author bar** — toggle, name, bio, alignment, **avatar** (upload / vault file as data URL / remote URL)
-- **Watermark** — text or image, opacity and rotation
-
-Both can be preconfigured in plugin settings and adjusted in Studio.
+- **Author bar** — toggle (Studio only), name, bio, alignment, **avatar** (upload / vault file as data URL / remote URL)
+- **Watermark** — toggle (Studio only), text or image, opacity and rotation
 
 ### Long notes
 
-- Split: off · fixed height · horizontal rules · by content blocks
-- Default fixed/auto page height ≈ `width × 1.414` (A4). Blocks are never cut mid-element.
+- Split: off · fixed height · horizontal rules
+- Default fixed page height ≈ `width × 1.414` (A4). Blocks are never cut mid-element.
 
 ### Batch & selection
 
@@ -126,9 +126,11 @@ Exports approximate Reading view; they are not a screenshot of the open pane:
 
 - Offscreen render host, not the live Reading DOM
 - Wide blocks are fitted to the chosen width
+- “Frontmatter” is a simplified property table, not the Obsidian Properties UI
+- Math settles when MathJax containers are present; complex equations may still soft-timeout
 - Community themes and plugin widgets may differ
 - Preview is 1× without fonts; export uses your scale with fonts
-- Slow assets may soft-timeout (status: Timed out)
+- Slow assets may soft-timeout (status: Timed out — export blocked until confirmed)
 
 ---
 

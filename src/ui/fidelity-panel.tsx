@@ -4,8 +4,10 @@ import type {
   ExportFormat,
   ExportImgSettings,
   ScaleMode,
+  SettleStatus,
   SplitMode,
   ThemeMode,
+  WatermarkType,
 } from '../types';
 import { useAppContext } from './app-context';
 import { ImageSourceField } from './image-source-field';
@@ -13,6 +15,9 @@ import { ImageSourceField } from './image-source-field';
 interface FidelityPanelProps {
   draft: ExportImgSettings;
   busy: boolean;
+  settleStatus: SettleStatus | null;
+  exportDespiteTimeout: boolean;
+  onExportDespiteTimeout: (value: boolean) => void;
   paddingMode: 'preset' | 'document';
   onChange: (patch: Partial<ExportImgSettings>) => void;
   onNestedChange: <K extends keyof ExportImgSettings>(
@@ -28,6 +33,9 @@ export function FidelityPanel(props: FidelityPanelProps) {
   const {
     draft,
     busy,
+    settleStatus,
+    exportDespiteTimeout,
+    onExportDespiteTimeout,
     paddingMode,
     onChange,
     onNestedChange,
@@ -36,6 +44,8 @@ export function FidelityPanel(props: FidelityPanelProps) {
     onSave,
   } = props;
   const { app } = useAppContext();
+  const timedOut = settleStatus === 'timed_out';
+  const exportBlocked = busy || (timedOut && !exportDespiteTimeout);
 
   return (
     <div className="export-img-panel">
@@ -210,7 +220,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
             disabled={busy}
             onChange={(e) => {
               const mode = e.currentTarget.value as SplitMode;
-              if (mode === 'fixed' || mode === 'auto') {
+              if (mode === 'fixed') {
                 onNestedChange('split', {
                   mode,
                   height:
@@ -226,11 +236,10 @@ export function FidelityPanel(props: FidelityPanelProps) {
             <option value="none">{t('studio.split.none')}</option>
             <option value="fixed">{t('studio.split.fixed')}</option>
             <option value="hr">{t('studio.split.hr')}</option>
-            <option value="auto">{t('studio.split.auto')}</option>
           </select>
         </label>
 
-        {draft.split.mode !== 'none' && draft.split.mode !== 'hr' && (
+        {draft.split.mode === 'fixed' && (
           <>
             <label className="export-img-field">
               <span>{t('studio.splitHeight')}</span>
@@ -267,23 +276,54 @@ export function FidelityPanel(props: FidelityPanelProps) {
             {draft.watermark.enable && (
               <div className="export-img-decor-fields">
                 <label className="export-img-field">
-                  <span>{t('studio.watermarkText')}</span>
-                  <input
-                    type="text"
-                    value={draft.watermark.text}
+                  <span>{t('studio.watermarkType')}</span>
+                  <select
+                    value={draft.watermark.type}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('watermark', { text: e.currentTarget.value })}
-                  />
+                    onChange={(e) =>
+                      onNestedChange('watermark', {
+                        type: e.currentTarget.value as WatermarkType,
+                      })
+                    }
+                  >
+                    <option value="text">{t('setting.watermarkType.text')}</option>
+                    <option value="image">{t('setting.watermarkType.image')}</option>
+                  </select>
                 </label>
-                <label className="export-img-field">
-                  <span>{t('studio.watermarkColor')}</span>
-                  <input
-                    type="color"
-                    value={draft.watermark.color}
+                {draft.watermark.type === 'image' ? (
+                  <ImageSourceField
+                    app={app}
+                    label={t('studio.watermarkImage')}
+                    value={draft.watermark.imageSrc}
                     disabled={busy}
-                    onChange={(e) => onNestedChange('watermark', { color: e.currentTarget.value })}
+                    onChange={(imageSrc) => onNestedChange('watermark', { imageSrc })}
                   />
-                </label>
+                ) : (
+                  <>
+                    <label className="export-img-field">
+                      <span>{t('studio.watermarkText')}</span>
+                      <input
+                        type="text"
+                        value={draft.watermark.text}
+                        disabled={busy}
+                        onChange={(e) =>
+                          onNestedChange('watermark', { text: e.currentTarget.value })
+                        }
+                      />
+                    </label>
+                    <label className="export-img-field">
+                      <span>{t('studio.watermarkColor')}</span>
+                      <input
+                        type="color"
+                        value={draft.watermark.color}
+                        disabled={busy}
+                        onChange={(e) =>
+                          onNestedChange('watermark', { color: e.currentTarget.value })
+                        }
+                      />
+                    </label>
+                  </>
+                )}
                 <label className="export-img-field">
                   <span>
                     {t('studio.watermarkOpacity')} ({Math.round(draft.watermark.opacity * 100)}%)
@@ -381,10 +421,21 @@ export function FidelityPanel(props: FidelityPanelProps) {
       </div>
 
       <div className="export-img-actions">
-        <button className="mod-cta" disabled={busy} onClick={onCopy} type="button">
+        {timedOut && (
+          <label className="export-img-check export-img-export-despite">
+            <input
+              type="checkbox"
+              checked={exportDespiteTimeout}
+              disabled={busy}
+              onChange={(e) => onExportDespiteTimeout(e.currentTarget.checked)}
+            />
+            <span>{t('studio.exportDespiteTimeout')}</span>
+          </label>
+        )}
+        <button className="mod-cta" disabled={exportBlocked} onClick={onCopy} type="button">
           {t('studio.copy')}
         </button>
-        <button disabled={busy} onClick={onSave} type="button">
+        <button disabled={exportBlocked} onClick={onSave} type="button">
           {t('studio.save')}
         </button>
       </div>

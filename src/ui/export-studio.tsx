@@ -131,6 +131,7 @@ function StudioApp(
   const [remoteHint, setRemoteHint] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [viewResetNonce, setViewResetNonce] = useState(0);
+  const [exportDespiteTimeout, setExportDespiteTimeout] = useState(false);
 
   const workSignature = getWorkSignature(draft);
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
@@ -218,6 +219,7 @@ function StudioApp(
 
       setRendering(true);
       setRemoteHint(null);
+      setExportDespiteTimeout(false);
       if (phase === 'rebuild') {
         invalidateExportCache();
       }
@@ -283,11 +285,18 @@ function StudioApp(
               }),
             );
           }
-          await host.hydrateRemotes({ onProgress: onRemoteProgress });
+          const hydrateResult = await host.hydrateRemotes({
+            onProgress: onRemoteProgress,
+          });
           if (cancelled || token !== workToken.current || settleAbort.signal.aborted) {
             return;
           }
           setRemoteHint(null);
+          if (hydrateResult.warnings.length > 0) {
+            new Notice(
+              t('notice.remotePartial', { count: hydrateResult.warnings.length }),
+            );
+          }
 
           prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
           await waitForNextPaint();
@@ -393,7 +402,7 @@ function StudioApp(
       if (typeof patch.width === 'number' && patch.width !== prev.width) {
         const prevDefault = defaultSplitHeight(prev.width);
         if (
-          (prev.split.mode === 'fixed' || prev.split.mode === 'auto') &&
+          (prev.split.mode === 'fixed') &&
           prev.split.height === prevDefault
         ) {
           next.split = { ...prev.split, height: defaultSplitHeight(patch.width) };
@@ -419,7 +428,7 @@ function StudioApp(
       const next = { ...prev, [key]: nextVal };
       if (key === 'split') {
         const splitPatch = patch as Partial<ExportImgSettings['split']>;
-        if (splitPatch.mode === 'fixed' || splitPatch.mode === 'auto') {
+        if (splitPatch.mode === 'fixed') {
           // Preserve an explicit height; only fill A4 default when unset.
           if (!(next.split.height > 0)) {
             next.split = {
@@ -527,6 +536,9 @@ function StudioApp(
       <FidelityPanel
         draft={draft}
         busy={busy || rendering}
+        settleStatus={settle?.status ?? null}
+        exportDespiteTimeout={exportDespiteTimeout}
+        onExportDespiteTimeout={setExportDespiteTimeout}
         paddingMode={paddingMode}
         onChange={onChange}
         onNestedChange={onNestedChange}

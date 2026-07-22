@@ -1,7 +1,7 @@
 export type ExportFormat = 'png' | 'jpg' | 'webp';
 export type ScaleMode = '1x' | '2x' | '3x';
 export type ThemeMode = 'current' | 'light' | 'dark';
-export type SplitMode = 'none' | 'fixed' | 'hr' | 'auto';
+export type SplitMode = 'none' | 'fixed' | 'hr';
 export type WatermarkType = 'text' | 'image';
 export type SettleStatus = 'idle' | 'waiting' | 'ready' | 'timed_out';
 /** auto follows Obsidian app language (zh* → Chinese, else English). */
@@ -17,8 +17,8 @@ export interface PaddingSettings {
 
 export interface SplitSettings {
   mode: SplitMode;
+  /** 0 = resolve as width × 1.414 (A4) for fixed-height pages. */
   height: number;
-  overlap: number;
 }
 
 export interface WatermarkSettings {

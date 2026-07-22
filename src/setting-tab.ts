@@ -142,12 +142,8 @@ export class ExportImgSettingTab extends PluginSettingTab {
         heading: t('setting.heading.author'),
         items: [
           {
-            name: t('setting.authorShow'),
-            desc: t('setting.authorShowDesc'),
-            render: (setting) => this.renderAuthorShow(setting),
-          },
-          {
             name: t('setting.authorAvatar'),
+            desc: t('setting.authorPreconfigDesc'),
             render: (setting) => this.renderAuthorAvatar(setting),
           },
           {
@@ -169,12 +165,8 @@ export class ExportImgSettingTab extends PluginSettingTab {
         heading: t('setting.heading.watermark'),
         items: [
           {
-            name: t('setting.watermarkEnable'),
-            desc: t('setting.watermarkEnableDesc'),
-            render: (setting) => this.renderWatermarkEnable(setting),
-          },
-          {
             name: t('setting.watermarkType'),
+            desc: t('setting.watermarkPreconfigDesc'),
             render: (setting) => this.renderWatermarkType(setting),
           },
           {
@@ -324,9 +316,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).setName(t('setting.heading.media')).setHeading();
 
-    const mediaBlock = containerEl.createDiv({ cls: 'export-img-setting-block' });
-
-    new Setting(mediaBlock)
+    new Setting(containerEl)
       .setName(t('setting.embedMaxHeight'))
       .setDesc(t('setting.embedMaxHeightDesc'))
       .addText((text) =>
@@ -351,7 +341,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(mediaBlock)
+    new Setting(containerEl)
       .setName(t('setting.embedAlign'))
       .setDesc(t('setting.embedAlignDesc'))
       .addDropdown((dropdown) =>
@@ -476,70 +466,46 @@ export class ExportImgSettingTab extends PluginSettingTab {
   }
 
   private renderAuthorBlock(containerEl: HTMLElement): void {
-    const block = containerEl.createDiv({ cls: 'export-img-setting-block' });
-    new Setting(block)
-      .setName(t('setting.authorShow'))
-      .setDesc(t('setting.authorShowDesc'))
-      .then((setting) => this.renderAuthorShow(setting));
-
-    if (!this.plugin.settings.author.show) return;
-
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.authorAvatar'))
+      .setDesc(t('setting.authorPreconfigDesc'))
       .then((setting) => this.renderAuthorAvatar(setting));
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.authorName'))
       .then((setting) => this.renderAuthorName(setting));
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.authorRemark'))
       .then((setting) => this.renderAuthorRemark(setting));
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.authorAlign'))
       .then((setting) => this.renderAuthorAlign(setting));
   }
 
   private renderWatermarkBlock(containerEl: HTMLElement): void {
-    const block = containerEl.createDiv({ cls: 'export-img-setting-block' });
-    new Setting(block)
-      .setName(t('setting.watermarkEnable'))
-      .setDesc(t('setting.watermarkEnableDesc'))
-      .then((setting) => this.renderWatermarkEnable(setting));
-
-    if (!this.plugin.settings.watermark.enable) return;
-
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.watermarkType'))
+      .setDesc(t('setting.watermarkPreconfigDesc'))
       .then((setting) => this.renderWatermarkType(setting));
 
     if (this.plugin.settings.watermark.type === 'image') {
-      new Setting(block)
+      new Setting(containerEl)
         .setName(t('setting.watermarkImage'))
         .then((setting) => this.renderWatermarkImage(setting));
     } else {
-      new Setting(block)
+      new Setting(containerEl)
         .setName(t('setting.watermarkText'))
         .then((setting) => this.renderWatermarkText(setting));
-      new Setting(block)
+      new Setting(containerEl)
         .setName(t('setting.watermarkColor'))
         .then((setting) => this.renderWatermarkColor(setting));
     }
 
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.watermarkOpacity'))
       .then((setting) => this.renderWatermarkOpacity(setting));
-    new Setting(block)
+    new Setting(containerEl)
       .setName(t('setting.watermarkRotate'))
       .then((setting) => this.renderWatermarkRotate(setting));
-  }
-
-  private renderAuthorShow(setting: Setting): void {
-    setting.addToggle((toggle) =>
-      toggle.setValue(this.plugin.settings.author.show).onChange(async (value) => {
-        this.plugin.settings.author.show = value;
-        await this.plugin.saveSettings();
-        this.refreshSettingsUi();
-      }),
-    );
   }
 
   private renderAuthorAvatar(setting: Setting): void {
@@ -547,7 +513,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
       this.plugin.settings.author.avatarSrc = next;
       await this.plugin.saveSettings();
       this.refreshSettingsUi();
-    });
+    }, { avatar: true });
   }
 
   private renderAuthorName(setting: Setting): void {
@@ -579,16 +545,6 @@ export class ExportImgSettingTab extends PluginSettingTab {
           this.plugin.settings.author.align = value as 'left' | 'center' | 'right';
           await this.plugin.saveSettings();
         }),
-    );
-  }
-
-  private renderWatermarkEnable(setting: Setting): void {
-    setting.addToggle((toggle) =>
-      toggle.setValue(this.plugin.settings.watermark.enable).onChange(async (value) => {
-        this.plugin.settings.watermark.enable = value;
-        await this.plugin.saveSettings();
-        this.refreshSettingsUi();
-      }),
     );
   }
 

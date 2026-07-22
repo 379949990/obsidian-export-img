@@ -116,18 +116,6 @@
   height: 14px;
 }
 
-.export-img-setting-block {
-  background: var(--background-secondary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-m);
-  padding: 4px 12px 8px;
-  margin-bottom: 12px;
-}
-
-.export-img-setting-block .setting-item {
-  border-top-color: transparent;
-}
-
 .export-img-studio {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -731,12 +719,12 @@
 .export-img-image-source-row {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: center;
 }
 
 .export-img-image-source-preview {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-s);
   border: 1px solid var(--background-modifier-border);
   background: var(--background-secondary);
@@ -745,6 +733,13 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.export-img-setting-image-source.is-avatar .export-img-image-source-preview,
+.export-img-image-source.is-avatar .export-img-image-source-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
 }
 
 .export-img-image-source-preview img {
@@ -763,11 +758,26 @@
 .export-img-image-source-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+  align-items: center;
 }
 
-.export-img-image-source-actions button {
+.export-img-image-source-actions button,
+.export-img-image-source-btn {
   font-size: var(--font-ui-smaller);
+  padding: 2px 8px;
+  margin: 0;
+  height: auto;
+  min-height: 0;
+  line-height: var(--line-height-tight);
+}
+
+.export-img-setting-image-source {
+  justify-content: flex-end;
+}
+
+.export-img-setting-image-source .export-img-image-source-row {
+  gap: 8px;
 }
 
 .export-img-image-source-file {

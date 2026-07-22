@@ -337,6 +337,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
                   label={t('studio.authorAvatar')}
                   value={draft.author.avatarSrc}
                   disabled={busy}
+                  avatar
                   onChange={(avatarSrc) => onNestedChange('author', { avatarSrc })}
                 />
                 <label className="export-img-field">

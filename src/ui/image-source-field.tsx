@@ -9,24 +9,21 @@ interface ImageSourceFieldProps {
   label: string;
   value: string;
   disabled?: boolean;
+  avatar?: boolean;
   onChange: (next: string) => void;
 }
 
 export function ImageSourceField(props: ImageSourceFieldProps) {
-  const { app, label, value, disabled, onChange } = props;
+  const { app, label, value, disabled, avatar, onChange } = props;
   const fileRef = useRef<HTMLInputElement>(null);
   const preview = value && (isDataImageSrc(value) || isHttpImageSrc(value)) ? value : '';
 
   return (
-    <div className="export-img-image-source">
+    <div className={'export-img-image-source' + (avatar ? ' is-avatar' : '')}>
       <div className="export-img-image-source-label">{label}</div>
       <div className="export-img-image-source-row">
         <div className="export-img-image-source-preview">
-          {preview ? (
-            <img src={preview} alt="" />
-          ) : (
-            <span className="export-img-image-source-empty">{t('imageSource.empty')}</span>
-          )}
+          {preview ? <img src={preview} alt="" /> : null}
         </div>
         <div className="export-img-image-source-actions">
           <button

@@ -130,6 +130,7 @@ function StudioApp(
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [remoteHint, setRemoteHint] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [viewResetNonce, setViewResetNonce] = useState(0);
 
   const workSignature = getWorkSignature(draft);
   const [debouncedWorkSig, setDebouncedWorkSig] = useState(workSignature);
@@ -162,6 +163,7 @@ function StudioApp(
   const onRefreshPreview = useCallback(() => {
     if (rendering) return;
     appliedRenderSigRef.current = '';
+    setViewResetNonce((n) => n + 1);
     setRefreshNonce((n) => n + 1);
   }, [rendering]);
 
@@ -217,7 +219,6 @@ function StudioApp(
       setRendering(true);
       setRemoteHint(null);
       if (phase === 'rebuild') {
-        setPreviewUrls([]);
         invalidateExportCache();
       }
       setSettle({
@@ -518,7 +519,11 @@ function StudioApp(
   return (
     <div className="export-img-studio">
       <div className="export-img-render-slot" ref={renderSlotRef} aria-hidden="true" />
-      <PreviewPane imageUrls={previewUrls} rendering={rendering || busy} />
+      <PreviewPane
+        imageUrls={previewUrls}
+        rendering={rendering || busy}
+        viewResetNonce={viewResetNonce}
+      />
       <FidelityPanel
         draft={draft}
         busy={busy || rendering}

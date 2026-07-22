@@ -1,10 +1,10 @@
+import type { TargetedPointerEvent, TargetedWheelEvent } from 'preact';
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
 } from 'preact/hooks';
-import type { JSX } from 'preact';
 import { t } from '../i18n';
 
 interface PreviewPaneProps {
@@ -69,7 +69,6 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
 
   const fitToView = useCallback(() => {
     const viewport = viewportRef.current;
-    const stack = stackRef.current;
     if (!viewport) return;
 
     const apply = () => {
@@ -124,7 +123,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     return () => observer.disconnect();
   }, [fitToView]);
 
-  const onWheel = (event: JSX.TargetedWheelEvent<HTMLDivElement>) => {
+  const onWheel = (event: TargetedWheelEvent<HTMLDivElement>) => {
     event.preventDefault();
     const viewport = viewportRef.current;
     if (!viewport || !primaryUrl) return;
@@ -145,7 +144,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     });
   };
 
-  const onPointerDown = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
+  const onPointerDown = (event: TargetedPointerEvent<HTMLDivElement>) => {
     if (!primaryUrl) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = {
@@ -157,7 +156,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     };
   };
 
-  const onPointerMove = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
+  const onPointerMove = (event: TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return;
     userMovedRef.current = true;
     setFrame({
@@ -167,7 +166,7 @@ export function PreviewPane({ imageUrls, rendering }: PreviewPaneProps) {
     });
   };
 
-  const endDrag = (event: JSX.TargetedPointerEvent<HTMLDivElement>) => {
+  const endDrag = (event: TargetedPointerEvent<HTMLDivElement>) => {
     if (!dragRef.current.active) return;
     dragRef.current.active = false;
     try {

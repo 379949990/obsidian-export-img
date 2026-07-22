@@ -3,12 +3,13 @@
  * Versioned so padding heuristics never re-run after the first upgrade.
  */
 import { cloneSettings, DEFAULT_SETTINGS, SETTINGS_VERSION } from './settings';
-import type { ExportImgSettings, PaddingSettings } from './types';
+import type { EmbedAlign, ExportImgSettings, PaddingSettings } from './types';
 
 export type RawSettingsData = Partial<ExportImgSettings> & {
   previewMaxHeight?: number;
   previewAlign?: 'left' | 'center';
   settingsVersion?: number;
+  embedAlign?: EmbedAlign | 'default' | string;
 };
 
 function isLegacyPaddingDefault(padding: PaddingSettings): boolean {
@@ -22,6 +23,10 @@ function isLegacyPaddingDefault(padding: PaddingSettings): boolean {
       padding.left === 128 &&
       padding.right === 128)
   );
+}
+
+function normalizeEmbedAlign(value: unknown): EmbedAlign {
+  return value === 'center' ? 'center' : 'left';
 }
 
 export function migrateLoadedSettings(data: RawSettingsData | null): {
@@ -52,7 +57,9 @@ export function migrateLoadedSettings(data: RawSettingsData | null): {
     locale: rest.locale ?? DEFAULT_SETTINGS.locale,
     embedMaxHeight:
       rest.embedMaxHeight ?? legacyPreviewMaxHeight ?? DEFAULT_SETTINGS.embedMaxHeight,
-    embedAlign: rest.embedAlign ?? legacyPreviewAlign ?? DEFAULT_SETTINGS.embedAlign,
+    embedAlign: normalizeEmbedAlign(
+      rest.embedAlign ?? legacyPreviewAlign ?? DEFAULT_SETTINGS.embedAlign,
+    ),
     padding,
     split: { ...DEFAULT_SETTINGS.split, ...rest.split },
     watermark: { ...DEFAULT_SETTINGS.watermark, ...rest.watermark },

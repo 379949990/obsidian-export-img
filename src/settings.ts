@@ -26,7 +26,7 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
    * 0 = no height clamp.
    */
   embedMaxHeight: 360,
-  embedAlign: 'center',
+  embedAlign: 'left',
   split: {
     mode: 'none',
     /** 0 = auto (width × 1.414, A4 ratio) when resolving fixed/auto pages. */

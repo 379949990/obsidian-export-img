@@ -79,13 +79,16 @@ export function FidelityPanel(props: FidelityPanelProps) {
             value={draft.embedAlign}
             disabled={busy}
             onChange={(e) =>
-              onChange({ embedAlign: e.currentTarget.value as 'left' | 'center' })
+              onChange({
+                embedAlign: e.currentTarget.value as 'left' | 'center',
+              })
             }
           >
-            <option value="center">{t('studio.embedAlign.center')}</option>
             <option value="left">{t('studio.embedAlign.left')}</option>
+            <option value="center">{t('studio.embedAlign.center')}</option>
           </select>
         </label>
+        <p className="export-img-field-hint">{t('studio.embedAlignHint')}</p>
 
         <label className="export-img-field">
           <span>{t('studio.scale')}</span>

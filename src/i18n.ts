@@ -45,7 +45,7 @@ const en: Dict = {
     'Caps how tall embedded images, Mermaid, and other wide blocks can be (they are first fitted to the content width). Does not change the studio preview size. Leave empty or 0 for no limit.',
   'studio.embedMaxHeightPlaceholder': 'No limit',
   'studio.embedAlign': 'Media alignment',
-  'studio.embedAlign.default': 'Default',
+  'studio.embedAlignHint': 'Applies only to media that reaches the max height.',
   'studio.embedAlign.center': 'Center',
   'studio.embedAlign.left': 'Left',
   'studio.scale': 'Export scale',
@@ -132,18 +132,19 @@ const en: Dict = {
   'setting.padding': 'Default padding',
   'setting.paddingDesc':
     'Margins applied when Export Studio opens. You can switch to reading-view padding in the studio.',
-  'setting.embedMaxHeight': 'Default max media height',
+  'setting.embedMaxHeight': 'Max media height',
   'setting.embedMaxHeightDesc':
-    'Default height cap for embedded images, Mermaid, and other wide blocks (fitted to content width first). Empty or 0 = no limit. Does not change the studio preview size.',
-  'setting.embedAlign': 'Default media alignment',
+    'Height cap for embedded images, Mermaid, and other wide blocks (fitted to content width first). Empty or 0 = no limit.',
+  'setting.embedAlign': 'Media alignment',
   'setting.embedAlignDesc':
-    'Default keeps each block as aligned in the note. Left/Center force alignment even when media is shorter than the max height.',
+    'Left or center for media that reaches the max height. Shorter media keeps the note layout.',
   'setting.settleTimeout': 'Render wait timeout (ms)',
   'setting.settleTimeoutDesc':
     'How long to wait for images, fonts, and diagrams before treating the note as ready.',
   'setting.quickExportSelection': 'Quick-export selection',
   'setting.quickExportSelectionDesc': 'Skip the studio and copy the selection immediately.',
   'setting.heading.defaults': 'Defaults',
+  'setting.heading.media': 'Media',
   'setting.heading.behavior': 'Behavior',
 };
 
@@ -162,7 +163,7 @@ const zh: Dict = {
     '限制笔记中图片、Mermaid 等宽内容块的高度（会先按内容区宽度适配）。不影响左侧预览窗口大小。留空或填 0 表示不限制。',
   'studio.embedMaxHeightPlaceholder': '不限制',
   'studio.embedAlign': '媒体对齐',
-  'studio.embedAlign.default': '默认',
+  'studio.embedAlignHint': '仅作用于达到媒体最大高度的元素。',
   'studio.embedAlign.center': '居中',
   'studio.embedAlign.left': '居左',
   'studio.scale': '导出倍率',
@@ -248,17 +249,18 @@ const zh: Dict = {
   'setting.padding': '默认边距',
   'setting.paddingDesc':
     '打开导出工作室时使用的边距。可在工作室内切换为「与阅读视图一致」。',
-  'setting.embedMaxHeight': '默认媒体最大高度',
+  'setting.embedMaxHeight': '媒体最大高度',
   'setting.embedMaxHeightDesc':
-    '图片、Mermaid 等宽内容块的默认高度上限（会先按内容区宽度适配）。留空或 0 表示不限制。不影响工作室预览窗口大小。',
-  'setting.embedAlign': '默认媒体对齐',
+    '限制嵌入图片、Mermaid 等宽内容块的高度（会先按内容区宽度适配）。留空或 0 表示不限制。',
+  'setting.embedAlign': '媒体对齐',
   'setting.embedAlignDesc':
-    '「默认」保持文档中的对齐方式；「居左 / 居中」会强制对齐，即使媒体未达到高度上限。',
+    '仅对达到媒体最大高度的元素生效：居左或居中。未达上限的媒体保持文档原有排版。',
   'setting.settleTimeout': '渲染等待超时（毫秒）',
   'setting.settleTimeoutDesc': '等待图片、字体、图表等就绪的最长时间。',
   'setting.quickExportSelection': '快速导出选区',
   'setting.quickExportSelectionDesc': '跳过工作室，直接复制选区图片。',
   'setting.heading.defaults': '默认值',
+  'setting.heading.media': '媒体',
   'setting.heading.behavior': '行为',
 };
 

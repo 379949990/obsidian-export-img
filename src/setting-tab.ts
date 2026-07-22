@@ -99,6 +99,12 @@ export class ExportImgSettingTab extends PluginSettingTab {
               this.renderPaddingSetting(setting);
             },
           },
+        ],
+      },
+      {
+        type: 'group',
+        heading: t('setting.heading.media'),
+        items: [
           {
             name: t('setting.embedMaxHeight'),
             desc: t('setting.embedMaxHeightDesc'),
@@ -120,8 +126,8 @@ export class ExportImgSettingTab extends PluginSettingTab {
               type: 'dropdown',
               key: 'embedAlign',
               options: {
-                center: t('studio.embedAlign.center'),
                 left: t('studio.embedAlign.left'),
+                center: t('studio.embedAlign.center'),
               },
             },
           },
@@ -250,7 +256,11 @@ export class ExportImgSettingTab extends PluginSettingTab {
         this.renderPaddingSetting(setting);
       });
 
-    new Setting(containerEl)
+    new Setting(containerEl).setName(t('setting.heading.media')).setHeading();
+
+    const mediaBlock = containerEl.createDiv({ cls: 'export-img-setting-block' });
+
+    new Setting(mediaBlock)
       .setName(t('setting.embedMaxHeight'))
       .setDesc(t('setting.embedMaxHeightDesc'))
       .addText((text) =>
@@ -275,13 +285,13 @@ export class ExportImgSettingTab extends PluginSettingTab {
           }),
       );
 
-    new Setting(containerEl)
+    new Setting(mediaBlock)
       .setName(t('setting.embedAlign'))
       .setDesc(t('setting.embedAlignDesc'))
       .addDropdown((dropdown) =>
         dropdown
-          .addOption('center', t('studio.embedAlign.center'))
           .addOption('left', t('studio.embedAlign.left'))
+          .addOption('center', t('studio.embedAlign.center'))
           .setValue(this.plugin.settings.embedAlign)
           .onChange(async (value) => {
             this.plugin.settings.embedAlign = value as 'left' | 'center';

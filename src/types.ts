@@ -60,7 +60,7 @@ export interface ExportImgSettings {
    * wide/scrollable blocks inside the note. 0 = no clamp.
    */
   embedMaxHeight: number;
-  /** Horizontal alignment for embedded media (always applied). */
+  /** Horizontal alignment for media that reaches embedMaxHeight. */
   embedAlign: EmbedAlign;
   split: SplitSettings;
   watermark: WatermarkSettings;

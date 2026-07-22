@@ -116,6 +116,18 @@
   height: 14px;
 }
 
+.export-img-setting-block {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 4px 12px 8px;
+  margin-bottom: 12px;
+}
+
+.export-img-setting-block .setting-item {
+  border-top-color: transparent;
+}
+
 .export-img-studio {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;

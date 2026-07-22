@@ -38,7 +38,7 @@ Requires Obsidian **1.5.7+**. Plugin id: `export-img`.
 
 Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HANDOFF.md).
 
-**Current development branch:** `v1.0.6`
+**Current development branch:** `v1.0.7`
 
 ---
 
@@ -49,7 +49,7 @@ Contributors and branch model: [README.dev.md](README.dev.md) · [HANDOFF.md](HA
 | Export note | Command / file menu → Export Img |
 | Export selection | Command / editor menu (optional quick-copy skips Studio) |
 | Export folder | Folder menu → ZIP of images (desktop) |
-| Refresh preview | Title-bar refresh control when status is idle / ready |
+| Refresh preview | Preview pane **Update preview** control (bottom-right) |
 
 Settings open from **Settings → Export Img**. Author/watermark fields there are **prefill only** — enable them with the toggles inside Export Studio. **Save** writes the studio draft back to plugin settings (Copy does not).
 
@@ -59,11 +59,12 @@ Settings open from **Settings → Export Img**. Author/watermark fields there ar
 
 ### Export Studio
 
-- Live bitmap preview with pan / zoom
+- Live bitmap preview with pan / zoom (kept across updates; first open + double-click/tap re-fit)
 - Shared controls for width, theme, padding, split, media limits, decorations
 - Settle status (idle / rendering / ready / timed out) plus remote-image loading progress
 - On timeout, Copy/Save stay disabled until you confirm **Export anyway**
-- Manual **refresh** rebuilds the capture host and resets preview pan/zoom
+- **Update preview** (preview pane) rebuilds / re-captures; Copy / Save also refresh when the preview is stale
+- Optional **Auto re-render preview on config change** (default on desktop, off on mobile)
 
 ### Media layout
 
@@ -109,7 +110,7 @@ On **mobile**:
 - Multi-page / folder exports save **one vault file per page** (no ZIP on mobile)
 - Studio: compact **inputs**, normal label sizes; pinch-zoom / double-tap fit; preview fits ~**94%** width with **3%** gutters
 - Modal keeps side margins from the screen edge (~92vw)
-- Changing settings does **not** auto-refresh the preview — tap the title-bar refresh button (Copy / Save wait for a fresh render)
+- Changing settings does **not** auto-refresh by default on mobile — tap **Update preview**, or Copy / Save (they refresh first). Desktop defaults to auto re-render; toggle in settings.
 - Full capability: **3×** scale and user-controlled Split (no forced auto-pagination). Heavy exports show an advisory notice; enable Split or lower scale if the device struggles
 - Render wait timeout capped at **5s**
 

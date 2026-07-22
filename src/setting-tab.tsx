@@ -7,6 +7,7 @@ import {
 import { createRoot } from 'preact/compat/client';
 import type ExportImgPlugin from './main';
 import { setLocalePreference, t } from './i18n';
+import { cloneSettings, DEFAULT_SETTINGS } from './settings';
 import type {
   ExportFormat,
   PluginLocale,
@@ -245,6 +246,25 @@ export class ExportImgSettingTab extends PluginSettingTab {
             desc: t('setting.quickExportSelectionDesc'),
             control: { type: 'toggle', key: 'quickExportSelection' },
           },
+          {
+            name: t('setting.autoRerenderPreview'),
+            desc: t('setting.autoRerenderPreviewDesc'),
+            control: { type: 'toggle', key: 'autoRerenderPreview' },
+          },
+          {
+            name: t('setting.restoreDefaults'),
+            desc: t('setting.restoreDefaultsDesc'),
+            render: (setting) => {
+              setting.addButton((btn) =>
+                btn
+                  .setButtonText(t('setting.restoreDefaults'))
+                  .setWarning()
+                  .onClick(() => {
+                    void this.restoreDefaultSettings();
+                  }),
+              );
+            },
+          },
         ],
       },
     ];
@@ -423,6 +443,30 @@ export class ExportImgSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.quickExportSelection = value;
             await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(t('setting.autoRerenderPreview'))
+      .setDesc(t('setting.autoRerenderPreviewDesc'))
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoRerenderPreview)
+          .onChange(async (value) => {
+            this.plugin.settings.autoRerenderPreview = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName(t('setting.restoreDefaults'))
+      .setDesc(t('setting.restoreDefaultsDesc'))
+      .addButton((btn) =>
+        btn
+          .setButtonText(t('setting.restoreDefaults'))
+          .setWarning()
+          .onClick(() => {
+            void this.restoreDefaultSettings();
           }),
       );
   }
@@ -638,26 +682,41 @@ export class ExportImgSettingTab extends PluginSettingTab {
   }
 
   private renderWatermarkOpacity(setting: Setting): void {
+    const pct = Math.round(this.plugin.settings.watermark.opacity * 100);
+    setting.setName(`${t('setting.watermarkOpacity')} (${pct}%)`);
     setting.addSlider((slider) =>
       slider
-        .setLimits(0.05, 0.6, 0.01)
-        .setValue(this.plugin.settings.watermark.opacity)
+        .setLimits(5, 60, 1)
+        .setValue(pct)
+        .setDynamicTooltip()
         .onChange(async (value) => {
-          this.plugin.settings.watermark.opacity = value;
+          this.plugin.settings.watermark.opacity = value / 100;
+          setting.setName(`${t('setting.watermarkOpacity')} (${value}%)`);
           await this.plugin.saveSettings();
         }),
     );
   }
 
   private renderWatermarkRotate(setting: Setting): void {
+    const deg = this.plugin.settings.watermark.rotate;
+    setting.setName(`${t('setting.watermarkRotate')} (${deg}°)`);
     setting.addSlider((slider) =>
       slider
-        .setLimits(-60, 60, 1)
-        .setValue(this.plugin.settings.watermark.rotate)
+        .setLimits(-90, 90, 1)
+        .setValue(deg)
+        .setDynamicTooltip()
         .onChange(async (value) => {
           this.plugin.settings.watermark.rotate = value;
+          setting.setName(`${t('setting.watermarkRotate')} (${value}°)`);
           await this.plugin.saveSettings();
         }),
     );
+  }
+
+  private async restoreDefaultSettings(): Promise<void> {
+    this.plugin.settings = cloneSettings(DEFAULT_SETTINGS);
+    setLocalePreference(this.plugin.settings.locale);
+    await this.plugin.saveSettings();
+    this.refreshSettingsUi();
   }
 }

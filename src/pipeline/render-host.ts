@@ -139,29 +139,77 @@ function renderAuthorBar(container: HTMLElement, settings: ExportImgSettings): v
   }
 }
 
-function renderWatermark(container: HTMLElement, settings: ExportImgSettings): void {
-  if (!settings.watermark.enable) return;
-  const layer = container.createDiv({ cls: 'export-img-watermark' });
-  layer.setCssProps({
-    '--export-img-wm-opacity': String(settings.watermark.opacity),
-    '--export-img-wm-rotate': `${settings.watermark.rotate}deg`,
-  });
+/**
+ * Keep author as a normal-flow sibling after the preview (v1.0.4 model).
+ * Host CSS forces sizer children out of reading-view `position:absolute`
+ * so the preview box grows with content. This pass clears prior layout
+ * experiments and extends the sizer when overflow (tables/code) still
+ * paints past the box.
+ */
+export function layoutAuthorBar(contentEl: HTMLElement): void {
+  const preview =
+    contentEl.querySelector<HTMLElement>(
+      ':scope > .export-img-preview, :scope > .markdown-preview-view',
+    ) ?? null;
+  const sizer = preview?.querySelector<HTMLElement>('.markdown-preview-sizer') ?? null;
+  const author = contentEl.querySelector<HTMLElement>(':scope > .export-img-author');
 
-  if (settings.watermark.type === 'image' && settings.watermark.imageSrc) {
-    layer.createEl('img', {
-      attr: { src: settings.watermark.imageSrc, alt: '' },
-      cls: 'export-img-watermark-image',
-    });
-  } else if (settings.watermark.text) {
-    const text = layer.createDiv({
-      cls: 'export-img-watermark-text',
-      text: settings.watermark.text,
-    });
-    text.setCssProps({
-      '--export-img-wm-font-size': `${settings.watermark.fontSize}px`,
-      '--export-img-wm-color': settings.watermark.color,
-    });
+  if (preview) {
+    preview.style.removeProperty('height');
+    preview.style.removeProperty('min-height');
   }
+  if (author) {
+    author.removeClass('is-laid-out');
+    author.style.removeProperty('top');
+    author.style.removeProperty('margin-top');
+    author.style.removeProperty('--export-img-author-top');
+  }
+  contentEl.removeClass('has-author-layout');
+  contentEl.style.removeProperty('--export-img-content-min-h');
+
+  if (!sizer) return;
+
+  // Drop Obsidian / prior-pass absolute-section padding so flow height wins.
+  sizer.style.paddingBottom = '0px';
+  sizer.style.removeProperty('height');
+
+  const sizerTop = sizer.getBoundingClientRect().top;
+  let maxBottom = Math.max(sizer.scrollHeight, sizer.offsetHeight, 0);
+
+  // Prefer section boxes; only probe common overflow media (not every descendant).
+  const overflowSel =
+    'table, pre, .cm-preview-code-block, .mermaid, .internal-embed, .image-embed, img, svg';
+
+  for (const child of Array.from(sizer.children)) {
+    if (!(child instanceof HTMLElement)) continue;
+    if (child.classList.contains('export-img-page-hidden')) continue;
+
+    const cr = child.getBoundingClientRect();
+    if (cr.height >= 1) {
+      maxBottom = Math.max(maxBottom, cr.bottom - sizerTop);
+    }
+    maxBottom = Math.max(
+      maxBottom,
+      (child.offsetTop || 0) + Math.max(child.scrollHeight, child.offsetHeight, 0),
+    );
+
+    for (const node of Array.from(child.querySelectorAll(overflowSel))) {
+      if (!(node instanceof HTMLElement)) continue;
+      if (node.closest('.export-img-page-hidden')) continue;
+      const r = node.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) continue;
+      maxBottom = Math.max(maxBottom, r.bottom - sizerTop);
+    }
+  }
+
+  if (!(maxBottom > 0)) {
+    sizer.style.removeProperty('min-height');
+    return;
+  }
+
+  const height = Math.ceil(maxBottom);
+  sizer.style.boxSizing = 'border-box';
+  sizer.style.minHeight = `${height}px`;
 }
 
 export async function createRenderHost(options: RenderHostOptions): Promise<RenderHostHandle> {
@@ -210,7 +258,6 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   await MarkdownRenderer.render(app, content, sizer, sourcePath, component);
 
   renderAuthorBar(contentEl, settings);
-  renderWatermark(captureEl, settings);
 
   const remotePending = countRemoteImages(captureEl);
   const remoteWarnings: string[] = [];

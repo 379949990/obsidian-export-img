@@ -75,6 +75,53 @@ describe('migrateLoadedSettings', () => {
     expect(shouldSave).toBe(false);
   });
 
+  it('fills autoRerenderPreview default when upgrading from v2 without the key', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 2,
+      width: 800,
+    } as Parameters<typeof migrateLoadedSettings>[0]);
+    // Desktop mock → on; mobile installs get off via Platform.isMobile.
+    expect(settings.autoRerenderPreview).toBe(true);
+    expect(settings.watermark.enable).toBe(false);
+    expect(settings.author.show).toBe(false);
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(shouldSave).toBe(true);
+  });
+
+  it('preserves explicit autoRerenderPreview when upgrading to v5', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 4,
+      autoRerenderPreview: false,
+    } as Parameters<typeof migrateLoadedSettings>[0]);
+    expect(settings.autoRerenderPreview).toBe(false);
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(shouldSave).toBe(true);
+  });
+
+  it('fills platform autoRerender default when upgrading to v5 without the key', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 4,
+      width: 800,
+    } as Parameters<typeof migrateLoadedSettings>[0]);
+    expect(settings.autoRerenderPreview).toBe(true);
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(shouldSave).toBe(true);
+  });
+
+  it('clears persisted watermark/author toggles when upgrading to v4', () => {
+    const { settings, shouldSave } = migrateLoadedSettings({
+      settingsVersion: 3,
+      watermark: { enable: true, text: 'WM' },
+      author: { show: true, name: 'Ada' },
+    } as Parameters<typeof migrateLoadedSettings>[0]);
+    expect(settings.watermark.enable).toBe(false);
+    expect(settings.author.show).toBe(false);
+    expect(settings.watermark.text).toBe('WM');
+    expect(settings.author.name).toBe('Ada');
+    expect(settings.settingsVersion).toBe(SETTINGS_VERSION);
+    expect(shouldSave).toBe(true);
+  });
+
   it('maps legacy split.auto to fixed and drops overlap', () => {
     const { settings, shouldSave } = migrateLoadedSettings({
       settingsVersion: 1,

@@ -13,6 +13,8 @@ import {
 } from '../pipeline/mobile-limits';
 import { resolveThemeScheme } from '../pipeline/theme-vars';
 import type { RenderHostHandle } from '../pipeline/render-host';
+import { layoutAuthorBar } from '../pipeline/render-host';
+import { stampWatermarkOnBlob } from '../pipeline/watermark-stamp';
 import {
   applyPageBlocks,
   getAtomicBlocks,
@@ -90,6 +92,11 @@ export interface CaptureStudioResult {
   mobileCanvasRisk: boolean;
 }
 
+export interface CaptureStudioProgress {
+  page: number;
+  total: number;
+}
+
 /**
  * Capture the current host as preview (1×, no fonts) or export (configured scale).
  * Callers own settle / layout timing; pass skipPrepare when layout already ran.
@@ -99,7 +106,10 @@ export async function captureStudioPages(
   host: RenderHostHandle,
   settings: ExportImgSettings,
   kind: CaptureKind,
-  opts?: { skipPrepare?: boolean },
+  opts?: {
+    skipPrepare?: boolean;
+    onProgress?: (progress: CaptureStudioProgress) => void;
+  },
 ): Promise<CaptureStudioResult> {
   const { captureEl, contentEl } = host;
 
@@ -107,6 +117,9 @@ export async function captureStudioPages(
     prepareEmbedLayout(host.rootEl, settings.embedMaxHeight, settings.embedAlign);
     await waitForNextPaint();
   }
+
+  layoutAuthorBar(contentEl);
+  await waitForNextPaint();
 
   const preferredScale = resolveCaptureScale(settings, kind);
   const skipFontEmbed = kind === 'preview';
@@ -120,13 +133,18 @@ export async function captureStudioPages(
   const allBlocks =
     effectiveSplit.mode === 'none' ? [] : getAtomicBlocks(contentEl);
 
+  const stamp = async (blob: Blob): Promise<Blob> =>
+    stampWatermarkOnBlob(blob, settings.watermark, settings.format, preferredScale);
+
   if (effectiveSplit.mode === 'none') {
+    opts?.onProgress?.({ page: 1, total: 1 });
     const contentH = Math.max(1, captureEl.scrollHeight);
-    const blob = await captureElement(
+    const raw = await captureElement(
       captureEl,
       { scale: preferredScale, format: settings.format },
       { skipFontEmbed },
     );
+    const blob = await stamp(raw);
     return {
       parts: [{ blob }],
       mobileMegaBlock: hasMobileMegaBlock([contentH], MOBILE_ADVISORY_PAGE_HEIGHT),
@@ -154,21 +172,27 @@ export async function captureStudioPages(
 
   const captureOpts = { scale: preferredScale, format: settings.format };
   const results: CapturePagePart[] = [];
+  const pageTotal = Math.max(1, pages.filter((p) => p.length > 0).length);
 
   try {
+    let pageIndex = 0;
     for (let i = 0; i < pages.length; i++) {
       const pageBlocks = pages[i]!;
       if (pageBlocks.length === 0) continue;
+      pageIndex += 1;
+      opts?.onProgress?.({ page: pageIndex, total: pageTotal });
       applyPageBlocks(allBlocks, pageBlocks, captureEl, settings.padding);
       await waitForNextPaint();
-      const blob = await captureElement(captureEl, captureOpts, { skipFontEmbed });
+      layoutAuthorBar(contentEl);
+      const raw = await captureElement(captureEl, captureOpts, { skipFontEmbed });
       results.push({
-        blob,
+        blob: await stamp(raw),
         index: pages.length > 1 ? i + 1 : undefined,
       });
     }
   } finally {
     resetPageBlocks(allBlocks, captureEl, settings.padding);
+    layoutAuthorBar(contentEl);
   }
 
   const parts =
@@ -176,7 +200,9 @@ export async function captureStudioPages(
       ? results
       : [
           {
-            blob: await captureElement(captureEl, captureOpts, { skipFontEmbed }),
+            blob: await stamp(
+              await captureElement(captureEl, captureOpts, { skipFontEmbed }),
+            ),
           },
         ];
 

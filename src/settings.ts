@@ -1,7 +1,8 @@
 import type { ExportImgSettings, PluginLocale, EmbedAlign } from './types';
+import { Platform } from 'obsidian';
 
 /** Bump when adding a migration step that must run exactly once per install. */
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 5;
 
 export const DEFAULT_SETTINGS: ExportImgSettings = {
   settingsVersion: SETTINGS_VERSION,
@@ -13,6 +14,8 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   themeMode: 'current',
   settleTimeoutMs: 8000,
   quickExportSelection: false,
+  /** Desktop on, mobile off — avoids thrashing on phones by default. */
+  autoRerenderPreview: !Platform.isMobile,
   locale: 'auto',
   /** Default export padding — Studio opens with these values. */
   padding: {
@@ -35,17 +38,17 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
   watermark: {
     enable: false,
     type: 'text',
-    text: '',
-    fontSize: 28,
-    color: '#cccccc',
+    text: 'Watermark',
+    fontSize: 22,
+    color: '#888888',
     imageSrc: '',
-    opacity: 0.18,
-    rotate: -30,
+    opacity: 0.15,
+    rotate: 30,
   },
   author: {
     show: false,
-    name: '',
-    remark: '',
+    name: 'Your Name',
+    remark: 'The Description',
     avatarSrc: '',
     align: 'right',
   },

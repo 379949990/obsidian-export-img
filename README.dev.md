@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.6`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.7`.
 
 Agent onboarding: [HANDOFF.md](HANDOFF.md). Product overview and install: [README.md](README.md).
 
@@ -24,6 +24,8 @@ pnpm run dev
 Enable **Export Img** in Obsidian. Keep `pnpm run dev` running (esbuild watch). Prefer [Hot Reload](https://github.com/pjeby/hot-reload), or toggle the plugin after each rebuild.
 
 **Smoke test:** open [`fixtures/export-fidelity-lab.md`](fixtures/export-fidelity-lab.md) in the vault, run Export Studio, wait for **Ready**, compare to Reading view as a baseline (expect close, not pixel-identical), then Copy / Save. On mobile, prefer Save (vault attachments).
+
+Preview updates follow **Auto re-render preview on config change** (default on desktop, off on mobile). When off, use the preview-pane **Update preview** control, or Copy / Save (they refresh the host first). Panel commits: sliders on release; text on blur.
 
 ```bash
 pnpm run build   # tsc + production bundle → main.js

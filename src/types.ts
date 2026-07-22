@@ -65,6 +65,12 @@ export interface ExportImgSettings {
   split: SplitSettings;
   watermark: WatermarkSettings;
   author: AuthorSettings;
+  /**
+   * When true, Export Studio re-renders the preview after committed config changes.
+   * Default: on for desktop, off for mobile. When off, use Update preview or Copy/Save
+   * (they refresh the host first).
+   */
+  autoRerenderPreview: boolean;
 }
 
 export interface SettleDiagnostic {

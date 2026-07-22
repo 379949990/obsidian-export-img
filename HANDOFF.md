@@ -96,9 +96,10 @@ Latest public release on `main`: **1.0.6** (`6e73389`).
 
 - Studio preview: keep pan/zoom across updates — **only** first open + double-click/tap apply 94%/3% fit (refresh does not reset)
 - Author bar: host CSS forces sizer children into normal flow (v1.0.4 sibling model); `layoutAuthorBar` extends sizer `min-height` for overflow tables
-- Watermark: canvas stamp, font-weight **500**, tile across diagonal AABB; defaults text `Watermark`, rotate **30°**, opacity **15%**
+- Watermark: canvas stamp, font-weight **400**, default size **22px**, tile across diagonal AABB; defaults text `Watermark`, rotate **30°**, opacity **15%**
 - Author presets: name `Your Name`, remark `The Description` (toggles still off by default)
-- Refresh control: preview pane bottom-right (accent + label), not title bar
+- Refresh control: preview pane bottom-right `mod-cta`「更新预览」; hint chip shrinks to text width
+- Copy / Save: never blocked by stale preview — refresh host to current draft first, then export
 - Watermark/author toggles: session-only — Studio always opens unchecked; Save does not persist checked state (migrate v4)
 - Config → preview: `autoRerenderPreview` default **desktop on / mobile off** (migrate v5); sliders on release, text on blur
 - Preview loading: phase progress bar (hydrate / settle / capture pages)

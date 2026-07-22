@@ -119,7 +119,7 @@ export function FidelityPanel(props: FidelityPanelProps) {
   } = props;
   const { app } = useAppContext();
   const timedOut = settleStatus === 'timed_out';
-  const exportBlocked = busy || previewStale || (timedOut && !exportDespiteTimeout);
+  const exportBlocked = busy || (timedOut && !exportDespiteTimeout);
 
   const commit = () => {
     if (autoRerender) onCommitPreview();

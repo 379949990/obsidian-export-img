@@ -54,13 +54,13 @@ const en: Dict = {
   'studio.scaleHintMobile':
     'Preview is 1×. Copy / Save use this scale (1× / 2× / 3×). For very long notes, enable Split or lower scale if the app struggles.',
   'studio.mobileManualRefreshHint':
-    'On mobile, changing settings does not refresh the preview. Tap Refresh preview in the preview pane when ready.',
+    'On mobile, changing settings does not auto-refresh the preview. Tap Update preview when ready, or Copy / Save (they refresh first).',
   'studio.mobileRefreshRequired':
-    'Settings changed — tap Refresh preview in the preview pane before Copy / Save.',
+    'Settings changed — preview is out of date. Tap Update preview, or Copy / Save to refresh then export.',
   'studio.manualRefreshHint':
-    'Auto re-render is off. Change settings, then tap Refresh preview in the preview pane.',
+    'Auto re-render is off. Tap Update preview after edits, or Copy / Save to refresh then export.',
   'studio.refreshRequired':
-    'Settings changed — tap Refresh preview in the preview pane before Copy / Save.',
+    'Settings changed — preview is out of date. Tap Update preview, or Copy / Save to refresh then export.',
   'studio.progress.render': 'Preparing…',
   'studio.progress.hydrate': 'Remote images {done}/{total}',
   'studio.progress.settle': 'Waiting for layout…',
@@ -119,7 +119,7 @@ const en: Dict = {
   'studio.settle.ready': 'Ready',
   'studio.settle.timed_out': 'Timed out — export may be incomplete',
   'studio.remote.loading': 'Loading remote images {done}/{total}',
-  'studio.refreshPreview': 'Refresh preview',
+  'studio.refreshPreview': 'Update preview',
   'studio.copy': 'Copy',
   'studio.save': 'Save',
   'studio.rendering': 'Updating preview…',
@@ -141,9 +141,9 @@ const en: Dict = {
   'notice.mobileHint':
     'Mobile: Save writes images into your vault as attachments (path shown in the notice). Clipboard copy may be unavailable. Change settings, then tap refresh to update the preview.',
   'notice.mobileRefreshFirst':
-    'Tap Refresh preview in the preview pane to apply your settings before Copy / Save.',
+    'Preview was out of date — tap Update preview, or Copy / Save to refresh then export.',
   'notice.refreshFirst':
-    'Tap Refresh preview in the preview pane to apply your settings before Copy / Save.',
+    'Preview was out of date — tap Update preview, or Copy / Save to refresh then export.',
   'notice.mobileMegaBlock':
     'A single block (e.g. a tall image or code fence) is very tall — consider Split or a lower scale if capture fails.',
   'notice.mobileCanvasRisk':
@@ -181,7 +181,7 @@ const en: Dict = {
   'setting.quickExportSelectionDesc': 'Skip the studio and copy the selection immediately.',
   'setting.autoRerenderPreview': 'Auto re-render preview on config change',
   'setting.autoRerenderPreviewDesc':
-    'When enabled, Export Studio refreshes the preview after committed setting changes (sliders on release, text on blur, selects immediately). Default is on for desktop and off for mobile. Can increase CPU/GPU use and may feel jumpy on long notes. When off, tap Refresh preview in the preview pane after editing.',
+    'When enabled, Export Studio refreshes the preview after committed setting changes (sliders on release, text on blur, selects immediately). Default is on for desktop and off for mobile. Can increase CPU/GPU use and may feel jumpy on long notes. When off, use Update preview, or Copy / Save (they refresh the host first).',
   'setting.restoreDefaults': 'Restore defaults',
   'setting.restoreDefaultsDesc':
     'Reset all plugin settings to built-in defaults (width, theme, watermark presets, author presets, behavior flags, and more).',
@@ -231,13 +231,13 @@ const zh: Dict = {
   'studio.scaleHintMobile':
     '预览为 1×。复制 / 保存使用此处倍率（1× / 2× / 3×）。超长笔记若卡顿，可开启分页或降低倍率。',
   'studio.mobileManualRefreshHint':
-    '移动端修改配置后不会自动刷新预览。调整完成后请点预览区右下角「刷新预览」。',
+    '移动端修改配置后不会自动刷新预览。可点「更新预览」，或直接复制 / 保存（会先按当前配置刷新再导出）。',
   'studio.mobileRefreshRequired':
-    '配置已更改 — 请先点预览区「刷新预览」更新预览，再复制 / 保存。',
+    '配置已更改 — 预览未更新。可点「更新预览」，或直接复制 / 保存（会先刷新再导出）。',
   'studio.manualRefreshHint':
-    '当前未开启「配置变更自动重新渲染」。修改后请点预览区「刷新预览」更新预览。',
+    '当前未开启「配置变更自动重新渲染」。可点「更新预览」，或直接复制 / 保存（会先刷新再导出）。',
   'studio.refreshRequired':
-    '配置已更改 — 请先点预览区「刷新预览」更新预览，再复制 / 保存。',
+    '配置已更改 — 预览未更新。可点「更新预览」，或直接复制 / 保存（会先刷新再导出）。',
   'studio.progress.render': '准备中…',
   'studio.progress.hydrate': '网络图片 {done}/{total}',
   'studio.progress.settle': '等待排版稳定…',
@@ -296,7 +296,7 @@ const zh: Dict = {
   'studio.settle.ready': '就绪',
   'studio.settle.timed_out': '等待超时 — 导出结果可能不完整',
   'studio.remote.loading': '网络图片资源加载中 {done}/{total}',
-  'studio.refreshPreview': '刷新预览',
+  'studio.refreshPreview': '更新预览',
   'studio.copy': '复制',
   'studio.save': '保存',
   'studio.rendering': '正在更新预览…',
@@ -316,8 +316,10 @@ const zh: Dict = {
   'notice.remotePartial': '部分网络图片加载失败（{count}）。预览可能不完整。',
   'notice.mobileHint':
     '移动端：保存会写入库附件（Notice 会显示路径）；剪贴板复制可能不可用。修改配置后请点刷新更新预览。',
-  'notice.mobileRefreshFirst': '请先点预览区「刷新预览」应用配置，再复制 / 保存。',
-  'notice.refreshFirst': '请先点预览区「刷新预览」应用配置，再复制 / 保存。',
+  'notice.mobileRefreshFirst':
+    '预览未更新 — 可点「更新预览」，或直接复制 / 保存（会先刷新再导出）。',
+  'notice.refreshFirst':
+    '预览未更新 — 可点「更新预览」，或直接复制 / 保存（会先刷新再导出）。',
   'notice.mobileMegaBlock':
     '存在特别高的整块内容（如超高图片或代码块）。若捕获失败，可开启分页或降低倍率。',
   'notice.mobileCanvasRisk':
@@ -355,7 +357,7 @@ const zh: Dict = {
   'setting.quickExportSelectionDesc': '跳过工作室，直接复制选区图片。',
   'setting.autoRerenderPreview': '导出配置变更自动重新渲染',
   'setting.autoRerenderPreviewDesc':
-    '开启后，导出工作室会在配置「提交」后自动刷新预览（拖拽条松手、文本失焦、下拉/开关立即）。默认：桌面开启、移动端关闭。会增加 CPU/GPU 占用；长笔记可能更卡。关闭时，改完配置后点预览区「刷新预览」即可。',
+    '开启后，导出工作室会在配置「提交」后自动刷新预览（拖拽条松手、文本失焦、下拉/开关立即）。默认：桌面开启、移动端关闭。会增加 CPU/GPU 占用；长笔记可能更卡。关闭时，可点「更新预览」，或直接复制 / 保存（会先按当前配置刷新再导出）。',
   'setting.restoreDefaults': '恢复默认设置',
   'setting.restoreDefaultsDesc':
     '将全部插件设置恢复为内置默认值（宽度、主题、水印/作者预设、行为开关等）。',

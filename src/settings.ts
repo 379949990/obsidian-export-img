@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
     enable: false,
     type: 'text',
     text: 'Watermark',
-    fontSize: 28,
+    fontSize: 22,
     color: '#888888',
     imageSrc: '',
     opacity: 0.15,

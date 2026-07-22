@@ -34,6 +34,7 @@ import {
   assertNonEmptyCapture,
   captureStudioPages,
   getExportCacheKey,
+  getRenderSignature,
   getWorkSignature,
   resolvePreviewPhase,
   type CapturePagePart,
@@ -172,8 +173,16 @@ function StudioApp(
   const [renderProgress, setRenderProgress] = useState<PreviewRenderProgress | null>(null);
   const appliedRenderSigRef = useRef<string>('');
   const commitTimerRef = useRef<number | null>(null);
+  const previewWaitersRef = useRef<Array<(ok: boolean) => void>>([]);
   const autoRerender = plugin.settings.autoRerenderPreview;
   draftRef.current = draft;
+
+  const resolvePreviewWaiters = (ok: boolean) => {
+    const waiters = previewWaitersRef.current;
+    if (waiters.length === 0) return;
+    previewWaitersRef.current = [];
+    for (const resolve of waiters) resolve(ok);
+  };
 
   const revokePreviewUrls = () => {
     for (const url of previewUrlsRef.current) {
@@ -201,6 +210,36 @@ function StudioApp(
     // Do not reset pan/zoom — only first open + double-click/tap re-fit.
     setRefreshNonce((n) => n + 1);
   }, [rendering]);
+
+  /** Kick (or await) a preview pass so host DOM matches the current draft. */
+  const ensureHostMatchesDraft = useCallback((): Promise<boolean> => {
+    const want = getRenderSignature(draftRef.current);
+    const hostReady =
+      !!hostRef.current &&
+      appliedRenderSigRef.current === want &&
+      !previewStale;
+
+    if (hostReady && !rendering) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      previewWaitersRef.current.push(resolve);
+      if (!hostReady) {
+        if (commitTimerRef.current != null) {
+          window.clearTimeout(commitTimerRef.current);
+          commitTimerRef.current = null;
+        }
+        if (appliedRenderSigRef.current !== want) {
+          appliedRenderSigRef.current = '';
+        }
+        setPreviewStale(false);
+        setDebouncedWorkSig(getWorkSignature(draftRef.current));
+        setRefreshNonce((n) => n + 1);
+      }
+      // else: an in-flight render for this draft will resolve waiters when done
+    });
+  }, [previewStale, rendering]);
 
   const onCommitPreview = useCallback(() => {
     if (commitTimerRef.current != null) {
@@ -306,7 +345,12 @@ function StudioApp(
         if (phase === 'rebuild') {
           destroyHost();
           const slot = renderSlotRef.current;
-          if (!slot) return;
+          if (!slot) {
+            resolvePreviewWaiters(false);
+            setRendering(false);
+            setRenderProgress(null);
+            return;
+          }
 
           const settleAbort = new AbortController();
           settleAbortRef.current = settleAbort;
@@ -425,6 +469,7 @@ function StudioApp(
           });
           setRenderProgress(null);
           setRendering(false);
+          resolvePreviewWaiters(true);
           return;
         }
 
@@ -455,6 +500,7 @@ function StudioApp(
         });
         setRenderProgress(null);
         setRendering(false);
+        resolvePreviewWaiters(true);
       } catch (error) {
         console.error(error);
         if (token === workToken.current) {
@@ -469,6 +515,7 @@ function StudioApp(
             elapsedMs: 0,
             warnings: [String(error)],
           });
+          resolvePreviewWaiters(false);
           new Notice(t('notice.exportFail'));
         }
       }
@@ -496,6 +543,7 @@ function StudioApp(
       if (commitTimerRef.current != null) {
         window.clearTimeout(commitTimerRef.current);
       }
+      resolvePreviewWaiters(false);
       destroyHost();
       revokePreviewUrls();
     },
@@ -574,11 +622,12 @@ function StudioApp(
   const ensureExportParts = async (): Promise<CapturePagePart[]> => {
     const host = hostRef.current;
     if (!host) throw new Error('Host not ready');
-    const sig = getExportCacheKey(draft);
+    const settings = draftRef.current;
+    const sig = getExportCacheKey(settings);
     let parts = exportBlobsRef.current;
     if (!parts || exportSigRef.current !== sig) {
       // Export path: reuse settled DOM; capture at export scale with fonts.
-      const captured = await captureStudioPages(host, draft, 'export');
+      const captured = await captureStudioPages(host, settings, 'export');
       notifyMobileCaptureFlags(captured, mobileNoticeFlagsRef.current);
       parts = captured.parts;
       exportBlobsRef.current = parts;
@@ -588,12 +637,13 @@ function StudioApp(
   };
 
   const onCopy = async () => {
-    if (previewStale) {
-      new Notice(t('notice.refreshFirst'));
-      return;
-    }
     setBusy(true);
     try {
+      const ready = await ensureHostMatchesDraft();
+      if (!ready) {
+        new Notice(t('notice.copyFail'));
+        return;
+      }
       const parts = await ensureExportParts();
       if (parts.length !== 1) {
         new Notice(t('notice.copyFail'));
@@ -609,16 +659,18 @@ function StudioApp(
   };
 
   const onSave = async () => {
-    if (previewStale) {
-      new Notice(t('notice.refreshFirst'));
-      return;
-    }
     setBusy(true);
     try {
+      const ready = await ensureHostMatchesDraft();
+      if (!ready) {
+        new Notice(t('notice.saveFail'));
+        return;
+      }
+      const settings = draftRef.current;
       const parts = await ensureExportParts();
       let saved = false;
       if (parts.length === 1) {
-        const path = await saveBlob(app, parts[0]!.blob, file.basename, draft.format);
+        const path = await saveBlob(app, parts[0]!.blob, file.basename, settings.format);
         saved = path !== undefined;
       } else {
         saved = await saveMultipleBlobs(
@@ -626,15 +678,15 @@ function StudioApp(
           parts.map((p) => ({
             blob: p.blob,
             title: file.basename,
-            format: draft.format,
+            format: settings.format,
             index: p.index,
           })),
           file.basename,
         );
       }
       if (!saved) return;
-      plugin.settings = settingsToPersist(draft);
-      presetPaddingRef.current = { ...draft.padding };
+      plugin.settings = settingsToPersist(settings);
+      presetPaddingRef.current = { ...settings.padding };
       await plugin.saveSettings();
     } catch (error) {
       console.error(error);

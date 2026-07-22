@@ -412,8 +412,8 @@ export function PreviewPane({
           type="button"
           className={
             rendering
-              ? 'export-img-preview-refresh is-disabled'
-              : 'export-img-preview-refresh'
+              ? 'mod-cta export-img-preview-refresh is-disabled'
+              : 'mod-cta export-img-preview-refresh'
           }
           disabled={rendering}
           aria-label={t('studio.refreshPreview')}

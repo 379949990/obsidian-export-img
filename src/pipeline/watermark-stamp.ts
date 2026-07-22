@@ -84,8 +84,8 @@ export async function stampWatermarkOnBlob(
       return blob;
     }
   } else {
-    const fontPx = Math.max(12, Math.round(watermark.fontSize * pr));
-    ctx.font = `500 ${fontPx}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    const fontPx = Math.max(10, Math.round(watermark.fontSize * pr));
+    ctx.font = `400 ${fontPx}px system-ui, -apple-system, "Segoe UI", sans-serif`;
     ctx.fillStyle = watermark.color || '#888888';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

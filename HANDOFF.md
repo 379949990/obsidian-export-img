@@ -1,10 +1,10 @@
-# Agent handoff — Export Img (`v1.0.6`)
+# Agent handoff — Export Img (`v1.0.7`)
 
 > For a new coding agent. Read this first, then `README.dev.md` / `README.md`. Keep this file current when branch goals or release state change; delete obsolete claims.
 
 **Date:** 2026-07-22  
-**Branch:** `v1.0.6` (cut from `main` @ `40a4fbf` / release **1.0.5**)  
-**Target ship:** `1.0.6` — bump already applied in `package.json` / `manifest.json` / `versions.json`
+**Branch:** `v1.0.7` (cut from `main` @ `6e73389` / release **1.0.6**)  
+**Target ship:** `1.0.7` — bump already applied in `package.json` / `manifest.json` / `versions.json`
 
 ---
 
@@ -24,7 +24,7 @@ Obsidian community plugin **id `export-img`** (folder must match; GitHub repo ma
 | Vault plugin path: `.obsidian/plugins/export-img/` | Must match `manifest.id` |
 | Branch model: **`main` + `vX.Y.Z` only** (no `dev`) | Project choice |
 | Release tag = plain **`x.y.z`** (= manifest version) | Obsidian BRAT / community install |
-| Do **not** use Tag `Version_*` or `v1.0.6` as release tag | Conflicts with branch / store |
+| Do **not** use Tag `Version_*` or `v1.0.7` as release tag | Conflicts with branch / store |
 | Daily work on `vX.Y.Z`; **squash → push `main`** to ship | Triggers Release Action |
 | No dynamic `<script>` injection in bundle | Store “obfuscation” checks → Preact + fflate |
 | Prefer CSS classes / `setCssProps` over mass inline `el.style.*` | Community review |
@@ -71,35 +71,30 @@ Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Sa
 
 ---
 
-## Release (1.0.6 when ready)
+## Release (1.0.7 when ready)
 
-1. Finish work on `v1.0.6`; keep versions at `1.0.6`.
-2. `git checkout main && git pull && git merge --squash v1.0.6`
-3. Commit: `release(1.0.6): <summary>`
-4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.6`** + assets.
+1. Finish work on `v1.0.7`; keep versions at `1.0.7`.
+2. `git checkout main && git pull && git merge --squash v1.0.7`
+3. Commit: `release(1.0.7): <summary>`
+4. `git push origin main` → [`.github/workflows/release.yml`](.github/workflows/release.yml) builds, attests `main.js`/`styles.css`, and creates tag **`1.0.7`** + assets.
 
 If tag already exists, workflow skips. Delete GitHub Release + tag to rebuild.
 
-Latest public release on `main`: **1.0.5** (`40a4fbf`). Push `main` if the release Action / tag `1.0.5` is not on origin yet.
+Latest public release on `main`: **1.0.6** (`6e73389`).
 
 ---
 
-## Shipped in 1.0.5 (context)
-
-- Theme: copy body CSS variables for forced light/dark; code/tables keep Reading column width
-- Mobile Studio: compact panel, pinch-zoom / double-tap fit; multi-page preview fits width and height
-- Mobile capture safety: auto-split, scale ≤2×, ~8M canvas pixels/page, settle ≤5s, mega-block notice
-- Mobile Save (1.0.5 attempt): Web Share → Photos / ZIP — unreliable in Obsidian WebView; **1.0.6 reverts to vault**
-- Theme body class restore: exact prior `theme-dark` / `theme-light` presence
-- Remote images: MIME sniff; bounded LRU cache; concurrency 3
-
-## Shipped / fixed on `v1.0.6` (in progress)
+## Shipped in 1.0.6 (context)
 
 - Mobile: restore full Split + 3×; no forced auto-pagination / scale clamp (advisory notices only)
 - Mobile: settings changes do not auto-refresh preview — manual title-bar refresh + stale banner
 - Mobile UI: restore modal side gutters (~92vw); preview fit ~94% / 3% gutters (width-based); panel label sizes restored
 - Mobile Save: vault attachments (per page); all-or-nothing for settings persist
 - Hygiene: live `current` theme via css-change + scheme in render sig; dead mobile flags / i18n / stubs removed
+
+## Shipped / fixed on `v1.0.7` (in progress)
+
+_(none yet)_
 
 ## Known risks / good next work (not committed as plan)
 

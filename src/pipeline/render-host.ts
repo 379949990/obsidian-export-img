@@ -155,23 +155,34 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
   const author = contentEl.querySelector<HTMLElement>(':scope > .export-img-author');
 
   if (preview) {
-    preview.style.removeProperty('height');
-    preview.style.removeProperty('min-height');
+    preview.removeClass('is-height-forced');
+    preview.setCssProps({
+      '--export-img-preview-h': '',
+    });
   }
   if (author) {
     author.removeClass('is-laid-out');
-    author.style.removeProperty('top');
-    author.style.removeProperty('margin-top');
-    author.style.removeProperty('--export-img-author-top');
+    author.setCssProps({
+      '--export-img-author-top': '',
+      top: '',
+      'margin-top': '',
+    });
   }
   contentEl.removeClass('has-author-layout');
-  contentEl.style.removeProperty('--export-img-content-min-h');
+  contentEl.setCssProps({
+    '--export-img-content-min-h': '',
+  });
 
   if (!sizer) return;
 
   // Drop Obsidian / prior-pass absolute-section padding so flow height wins.
-  sizer.style.paddingBottom = '0px';
-  sizer.style.removeProperty('height');
+  sizer.removeClass('is-sized-for-author');
+  sizer.setCssProps({
+    '--export-img-sizer-min-h': '',
+    height: '',
+    'min-height': '',
+    'padding-bottom': '0',
+  });
 
   const sizerTop = sizer.getBoundingClientRect().top;
   let maxBottom = Math.max(sizer.scrollHeight, sizer.offsetHeight, 0);
@@ -181,8 +192,8 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
     'table, pre, .cm-preview-code-block, .mermaid, .internal-embed, .image-embed, img, svg';
 
   for (const child of Array.from(sizer.children)) {
-    if (!(child instanceof HTMLElement)) continue;
-    if (child.classList.contains('export-img-page-hidden')) continue;
+    if (!child.instanceOf(HTMLElement)) continue;
+    if (child.hasClass('export-img-page-hidden')) continue;
 
     const cr = child.getBoundingClientRect();
     if (cr.height >= 1) {
@@ -194,7 +205,7 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
     );
 
     for (const node of Array.from(child.querySelectorAll(overflowSel))) {
-      if (!(node instanceof HTMLElement)) continue;
+      if (!node.instanceOf(HTMLElement)) continue;
       if (node.closest('.export-img-page-hidden')) continue;
       const r = node.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) continue;
@@ -203,13 +214,16 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
   }
 
   if (!(maxBottom > 0)) {
-    sizer.style.removeProperty('min-height');
+    sizer.setCssProps({ '--export-img-sizer-min-h': '' });
+    sizer.removeClass('is-sized-for-author');
     return;
   }
 
   const height = Math.ceil(maxBottom);
-  sizer.style.boxSizing = 'border-box';
-  sizer.style.minHeight = `${height}px`;
+  sizer.addClass('is-sized-for-author');
+  sizer.setCssProps({
+    '--export-img-sizer-min-h': `${height}px`,
+  });
 }
 
 export async function createRenderHost(options: RenderHostOptions): Promise<RenderHostHandle> {

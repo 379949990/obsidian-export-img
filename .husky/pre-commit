@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Enforce community-review checks on squash/release commits to main.
+branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+if [ "$branch" = "main" ]; then
+  pnpm run check:community-review
+fi

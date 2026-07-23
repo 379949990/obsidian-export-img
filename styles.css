@@ -644,16 +644,24 @@
  * Reading view parks `.markdown-preview-sizer > *` at position:absolute and
  * relies on MarkdownPreviewView to set tops + padding-bottom. Our host uses
  * MarkdownRenderer only, so without this the sizer collapses and the author
- * sibling (v1.0.4 normal flow) paints over the note. Force in-flow layout.
+ * sibling (v1.0.4 normal flow) paints over the note. Force in-flow layout
+ * with higher specificity than core reading-view rules (avoid important flags).
  */
-.export-img-host .markdown-preview-sizer > * {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  width: 100% !important;
+.markdown-reading-view.export-img-host .markdown-preview-view.markdown-rendered.export-img-preview > .markdown-preview-sizer > * {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  width: 100%;
   /* Do not force transform:none — nested fit-scale lives under these sections. */
+}
+
+.markdown-reading-view.export-img-host .markdown-preview-sizer.is-sized-for-author {
+  box-sizing: border-box;
+  padding-bottom: 0;
+  height: auto;
+  min-height: var(--export-img-sizer-min-h, 0px);
 }
 
 /*

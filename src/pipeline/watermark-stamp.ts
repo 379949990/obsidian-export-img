@@ -84,7 +84,8 @@ export async function stampWatermarkOnBlob(
     return blob;
   }
 
-  const canvas = document.createElement('canvas');
+  // Obsidian helper (prefer-create-el); detached node is fine for 2d canvas work.
+  const canvas = createDiv().createEl('canvas');
   canvas.width = width;
   canvas.height = height;
 
@@ -147,7 +148,7 @@ export async function stampWatermarkOnBlob(
   const type = getMime(format);
   const quality = format === 'png' ? 1 : 0.92;
   const stamped = await new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((next) => resolve(next), type, quality);
+    canvas.toBlob((next: Blob | null) => resolve(next), type, quality);
   });
   return stamped && stamped.size > 0 ? stamped : blob;
 }

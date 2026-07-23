@@ -71,6 +71,8 @@ pnpm run dev      # watch → main.js
 
 Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → vault attachment (Notice path); multi-page = one file per page in Attachments.
 
+Community store review checklist / gates: [docs/community-review.md](docs/community-review.md). Run `pnpm run check:community-review` (also part of `pnpm run verify`). Husky blocks failing checks on **`main`** commits (squash releases).
+
 ---
 
 ## Release (1.0.8 when ready)
@@ -98,7 +100,8 @@ Latest public release on `main`: **1.0.7** (`d81dfc7`).
 
 ## Shipped / fixed on `v1.0.8` (in progress)
 
-_(none yet)_
+- Community review: static styles → `setCssProps`/classes; `instanceOf`; `createEl`; no CSS `!important` on sizer flow; slider/tooltip deprecations; destructive button helper
+- Docs + gate: `docs/community-review.md`, `pnpm run check:community-review`, Husky pre-commit on `main`
 
 ## Known risks / good next work (not committed as plan)
 

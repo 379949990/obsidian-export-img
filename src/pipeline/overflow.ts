@@ -195,7 +195,7 @@ function fitSvgToWidth(
   }
 
   const wrapEl = svg.closest('.mermaid') ?? svg.parentElement;
-  if (!(wrapEl instanceof HTMLElement)) return;
+  if (!wrapEl || !wrapEl.instanceOf(HTMLElement)) return;
   wrapEl.addClass('export-img-mermaid-wrap');
   wrapEl.removeClass('export-img-text-align-left');
   wrapEl.removeClass('export-img-text-align-center');

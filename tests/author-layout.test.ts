@@ -79,9 +79,10 @@ describe('layoutAuthorBar', () => {
     layoutAuthorBar(contentEl);
 
     // (100+400+200) - 100 = 600
-    expect(sizer.style.minHeight).toBe('600px');
-    expect(sizer.style.paddingBottom).toBe('0px');
+    expect(sizer.hasClass('is-sized-for-author')).toBe(true);
+    expect(sizer.style.getPropertyValue('--export-img-sizer-min-h').trim()).toBe('600px');
     expect(author.classList.contains('is-laid-out')).toBe(false);
     expect(author.style.marginTop).toBe('');
+    expect(author.style.top).toBe('');
   });
 });

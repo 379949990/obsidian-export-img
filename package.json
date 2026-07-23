@@ -1,6 +1,6 @@
 {
   "name": "obsidian-export-img",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Export Obsidian notes as images approximating Reading view.",
   "main": "main.js",
   "packageManager": "pnpm@11.3.0",
@@ -8,8 +8,10 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "node scripts/run-tests.mjs",
-    "verify": "tsc -noEmit -skipLibCheck && node scripts/run-tests.mjs",
-    "version": "node version-bump.mjs && git add manifest.json versions.json"
+    "check:community-review": "node scripts/check-community-review.mjs",
+    "verify": "tsc -noEmit -skipLibCheck && node scripts/check-community-review.mjs && node scripts/run-tests.mjs",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "prepare": "husky"
   },
   "keywords": [
     "obsidian",
@@ -25,6 +27,7 @@
     "@types/node": "^22.15.17",
     "esbuild": "0.25.5",
     "happy-dom": "^20.11.0",
+    "husky": "^9.1.7",
     "obsidian": "latest",
     "typescript": "^5.8.3",
     "vitest": "^3.2.7"

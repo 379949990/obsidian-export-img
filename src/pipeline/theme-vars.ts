@@ -146,12 +146,8 @@ export function applyHostTheme(host: HTMLElement, mode: ThemeMode): ResolvedThem
   const scheme = resolveThemeScheme(mode);
   host.classList.remove('theme-light', 'theme-dark');
   host.classList.add(scheme === 'dark' ? 'theme-dark' : 'theme-light');
-  host.style.colorScheme = scheme;
-
-  const vars = readBodyThemeVars(scheme);
-  for (const [name, value] of Object.entries(vars)) {
-    host.style.setProperty(name, value);
-  }
+  // color-scheme comes from .export-img-host.theme-* in styles.css (not inline).
+  host.setCssProps(readBodyThemeVars(scheme));
 
   return scheme;
 }

@@ -1,0 +1,71 @@
+{
+  "$schema_comment": "Patterns for scripts/check-community-review.mjs — keep in sync with docs/community-review.md",
+  "globs": {
+    "ts": ["src/**/*.{ts,tsx}"],
+    "css": ["styles.css"]
+  },
+  "rules": [
+    {
+      "id": "S-static-style",
+      "severity": "error",
+      "description": "Do not assign el.style.* directly; use classes or setCssProps(--*) only",
+      "glob": "ts",
+      "pattern": "\\.style\\.[a-zA-Z]+\\s*=",
+      "allowPaths": []
+    },
+    {
+      "id": "S-instanceof",
+      "severity": "error",
+      "description": "Use .instanceOf(HTMLElement) instead of instanceof HTMLElement",
+      "glob": "ts",
+      "pattern": "instanceof\\s+HTMLElement",
+      "allowPaths": []
+    },
+    {
+      "id": "S-create-el",
+      "severity": "error",
+      "description": "Use createEl / createDiv instead of document.createElement",
+      "glob": "ts",
+      "pattern": "document\\.createElement\\s*\\(",
+      "allowPaths": []
+    },
+    {
+      "id": "S-set-warning",
+      "severity": "error",
+      "description": "Avoid setWarning(); use applyDestructiveButton / setDestructive",
+      "glob": "ts",
+      "pattern": "\\.setWarning\\s*\\(",
+      "allowPaths": []
+    },
+    {
+      "id": "S-dynamic-tooltip",
+      "severity": "error",
+      "description": "Avoid deprecated setDynamicTooltip()",
+      "glob": "ts",
+      "pattern": "\\.setDynamicTooltip\\s*\\(",
+      "allowPaths": []
+    },
+    {
+      "id": "C-important",
+      "severity": "error",
+      "description": "Avoid !important in plugin CSS; raise specificity or use variables",
+      "glob": "css",
+      "pattern": ":\\s*[^;]*!important",
+      "allowPaths": []
+    }
+  ],
+  "accepted": [
+    {
+      "id": "B-vault-enum",
+      "note": "Listing vault files is required (image picker / folder export). Review may flag vault enumeration; we accept it."
+    },
+    {
+      "id": "B-clipboard",
+      "note": "Copy-to-clipboard is a core feature. Review may flag clipboard access; we accept it."
+    },
+    {
+      "id": "S-display",
+      "note": "Settings still implement display() for Obsidian older than 1.13 (minAppVersion 1.5.7). Newer APIs are also present (Path B)."
+    }
+  ]
+}

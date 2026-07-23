@@ -67,8 +67,10 @@ and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-comm
 ## Local enforcement
 
 ```bash
-pnpm run check:community-review   # standalone
+pnpm run check:community-review   # standalone — prints what was scanned, PASS/FAIL, and Accepted exceptions
 pnpm run verify                   # includes this check
 ```
+
+Output is meant to be readable without knowing the codebase: it lists each rule, then **PASS** or **FAIL**, then any **Accepted** exceptions (behaviors Review may still mention, but this project keeps on purpose).
 
 Husky `pre-commit` runs the check when the current branch is **`main`** (covers squash-release commits). Do not bypass with `--no-verify` for store releases.

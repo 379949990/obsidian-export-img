@@ -11,6 +11,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const rulesPath = path.join(root, 'scripts/community-review-rules.json');
 
 /** @typedef {{ id: string, severity: string, description: string, glob: string, pattern: string, allowPaths?: string[] }} Rule */
+/** @typedef {{ id: string, note: string }} Accepted */
 
 function walk(dir, exts, out = []) {
   for (const name of readdirSync(dir)) {
@@ -38,10 +39,64 @@ function isAllowed(fileAbs, allowPaths = []) {
   return allowPaths.some((a) => rel === a || rel.startsWith(`${a}/`));
 }
 
+function printBanner() {
+  console.log('Community review check');
+  console.log(
+    '  What:  Scans plugin source for patterns Obsidian community-plugin Review often flags.',
+  );
+  console.log('  Guide: docs/community-review.md');
+  console.log('  Rules: scripts/community-review-rules.json');
+  console.log('');
+}
+
+/**
+ * @param {Rule[]} rules
+ * @param {number} tsCount
+ * @param {number} cssCount
+ */
+function printScanSummary(rules, tsCount, cssCount) {
+  console.log('Scan');
+  console.log(`  TypeScript/TSX files under src/: ${tsCount}`);
+  console.log(`  CSS files:                       ${cssCount}`);
+  console.log(`  Forbidden-pattern rules:         ${rules.length}`);
+  for (const rule of rules) {
+    console.log(`    · ${rule.id} — ${rule.description}`);
+  }
+  console.log('');
+}
+
+/**
+ * @param {Accepted[]} accepted
+ */
+function printAccepted(accepted) {
+  if (!accepted.length) return;
+  console.log('Documented exceptions (Accepted — do not fail this check)');
+  console.log(
+    '  These behaviors may still appear in a human Review report, but this project',
+  );
+  console.log(
+    '  keeps them on purpose. Full rationale: docs/community-review.md',
+  );
+  console.log('');
+  for (const item of accepted) {
+    console.log(`  · ${item.id}`);
+    console.log(`      ${item.note}`);
+  }
+  console.log('');
+}
+
 function main() {
   const config = JSON.parse(readFileSync(rulesPath, 'utf8'));
   /** @type {Rule[]} */
   const rules = config.rules ?? [];
+  /** @type {Accepted[]} */
+  const accepted = Array.isArray(config.accepted) ? config.accepted : [];
+
+  const tsFiles = filesForGlob('ts');
+  const cssFiles = filesForGlob('css');
+
+  printBanner();
+  printScanSummary(rules, tsFiles.length, cssFiles.length);
 
   /** @type {{ id: string, file: string, line: number, text: string, description: string }[]} */
   const hits = [];
@@ -73,21 +128,26 @@ function main() {
   }
 
   if (hits.length === 0) {
-    console.log('[community-review] ok — no forbidden patterns');
-    if (Array.isArray(config.accepted) && config.accepted.length > 0) {
-      console.log(
-        `[community-review] accepted (documented): ${config.accepted.map((a) => a.id).join(', ')}`,
-      );
-    }
+    console.log('Result: PASS');
+    console.log(
+      '  No forbidden patterns found. Safe for verify / squash-to-main from this gate.',
+    );
+    console.log('');
+    printAccepted(accepted);
     process.exit(0);
   }
 
-  console.error('[community-review] failed — see docs/community-review.md\n');
+  console.error('Result: FAIL');
+  console.error(
+    `  Found ${hits.length} match(es). Fix them (or document + allow) before release.`,
+  );
+  console.error('  See docs/community-review.md\n');
   for (const h of hits) {
-    console.error(`  ${h.id}  ${h.file}:${h.line}`);
-    console.error(`    ${h.description}`);
-    console.error(`    ${h.text}\n`);
+    console.error(`  · ${h.id}  ${h.file}:${h.line}`);
+    console.error(`      ${h.description}`);
+    console.error(`      ${h.text}\n`);
   }
+  printAccepted(accepted);
   process.exit(1);
 }
 

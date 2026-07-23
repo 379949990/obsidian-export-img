@@ -57,15 +57,15 @@
   "accepted": [
     {
       "id": "B-vault-enum",
-      "note": "Vault file listing required for image picker / folder export"
+      "note": "Listing vault files is required (image picker / folder export). Review may flag vault enumeration; we accept it."
     },
     {
       "id": "B-clipboard",
-      "note": "Clipboard write required for Copy"
+      "note": "Copy-to-clipboard is a core feature. Review may flag clipboard access; we accept it."
     },
     {
       "id": "S-display",
-      "note": "Path B: display() kept while minAppVersion < 1.13; getSettingDefinitions present"
+      "note": "Settings still implement display() for Obsidian older than 1.13 (minAppVersion 1.5.7). Newer APIs are also present (Path B)."
     }
   ]
 }

@@ -156,33 +156,20 @@ export function layoutAuthorBar(contentEl: HTMLElement): void {
 
   if (preview) {
     preview.removeClass('is-height-forced');
-    preview.setCssProps({
-      '--export-img-preview-h': '',
-    });
+    preview.setCssProps({ '--export-img-preview-h': '' });
   }
   if (author) {
     author.removeClass('is-laid-out');
-    author.setCssProps({
-      '--export-img-author-top': '',
-      top: '',
-      'margin-top': '',
-    });
+    author.setCssProps({ '--export-img-author-top': '' });
   }
   contentEl.removeClass('has-author-layout');
-  contentEl.setCssProps({
-    '--export-img-content-min-h': '',
-  });
+  contentEl.setCssProps({ '--export-img-content-min-h': '' });
 
   if (!sizer) return;
 
-  // Drop Obsidian / prior-pass absolute-section padding so flow height wins.
+  // Drop prior size pass; class + CSS var carry layout (no static style keys).
   sizer.removeClass('is-sized-for-author');
-  sizer.setCssProps({
-    '--export-img-sizer-min-h': '',
-    height: '',
-    'min-height': '',
-    'padding-bottom': '0',
-  });
+  sizer.setCssProps({ '--export-img-sizer-min-h': '' });
 
   const sizerTop = sizer.getBoundingClientRect().top;
   let maxBottom = Math.max(sizer.scrollHeight, sizer.offsetHeight, 0);

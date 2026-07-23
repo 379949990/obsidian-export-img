@@ -8,7 +8,7 @@
     {
       "id": "S-static-style",
       "severity": "error",
-      "description": "Do not assign el.style.* directly; use classes or setCssProps",
+      "description": "Do not assign el.style.* directly; use classes or setCssProps(--*) only",
       "glob": "ts",
       "pattern": "\\.style\\.[a-zA-Z]+\\s*=",
       "allowPaths": []

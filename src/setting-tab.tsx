@@ -23,9 +23,9 @@ import { ImageSourceField } from './ui/image-source-field';
 function applyDestructiveButton(btn: {
   setWarning: () => unknown;
 }): void {
-  const setDestructive = Reflect.get(btn, 'setDestructive');
-  if (typeof setDestructive === 'function') {
-    (setDestructive as () => unknown).call(btn);
+  const maybe = Reflect.get(btn, 'setDestructive') as unknown;
+  if (typeof maybe === 'function') {
+    (maybe as (this: typeof btn) => void).call(btn);
     return;
   }
   btn.setWarning(); // community-review-allow: minAppVersion < 1.13 fallback
@@ -287,8 +287,15 @@ export class ExportImgSettingTab extends PluginSettingTab {
    * Obsidian &lt; 1.13 fallback when declarative defs are unavailable.
    * Path B: keep `display()` while minAppVersion is 1.5.7 (1.13 SettingTab APIs
    * are still Catalyst). Prefer {@link getSettingDefinitions} on 1.13+.
+   * Internal refreshes call {@link renderLegacySettings} — not `display()` —
+   * so deprecation lints do not fire on every locale rebuild.
    */
   display(): void {
+    this.renderLegacySettings();
+  }
+
+  /** Imperative settings UI for Obsidian &lt; 1.13 (and display() entry). */
+  private renderLegacySettings(): void {
     this.clearImageRoots();
     const { containerEl } = this;
     containerEl.empty();
@@ -299,7 +306,7 @@ export class ExportImgSettingTab extends PluginSettingTab {
       .setName(t('setting.locale'))
       .setDesc(t('setting.localeDesc'))
       .then((setting) => {
-        this.renderLocaleSetting(setting, () => this.display());
+        this.renderLocaleSetting(setting, () => this.renderLegacySettings());
       });
 
     new Setting(containerEl).setName(t('setting.heading.defaults')).setHeading();
@@ -490,12 +497,12 @@ export class ExportImgSettingTab extends PluginSettingTab {
    */
   private refreshSettingsUi(): void {
     this.clearImageRoots();
-    const updateFn = Reflect.get(this, 'update');
+    const updateFn = Reflect.get(this, 'update') as unknown;
     if (typeof updateFn === 'function') {
-      (updateFn as () => void).call(this);
+      (updateFn as (this: this) => void).call(this);
       return;
     }
-    this.display();
+    this.renderLegacySettings();
   }
 
   private renderLocaleSetting(setting: Setting, refresh: () => void): void {

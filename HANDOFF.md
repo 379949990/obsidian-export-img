@@ -100,7 +100,7 @@ Latest public release on `main`: **1.0.7** (`d81dfc7`).
 
 ## Shipped / fixed on `v1.0.8` (in progress)
 
-- Community review: static styles → `setCssProps`/classes; `instanceOf`; `createEl`; no CSS `!important` on sizer flow; slider/tooltip deprecations; destructive button helper
+- Community review: static styles → classes + `setCssProps(--*)` only (no plain CSS keys); `instanceOf`; `createEl`; no CSS `!important` on sizer flow; slider/tooltip deprecations; destructive button helper; Path B `display()` + internal `renderLegacySettings`
 - Docs + gate: `docs/community-review.md`, `pnpm run check:community-review`, Husky pre-commit on `main`
 
 ## Known risks / good next work (not committed as plan)

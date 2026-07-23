@@ -33,11 +33,12 @@ and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-comm
 
 | ID | Finding | Rule / signal | Status | Mitigation |
 | --- | --- | --- | --- | --- |
-| S-static-style | Direct `el.style.*` assignment | `obsidianmd/no-static-styles-assignment` | **Fixed** | Prefer classes + `setCssProps` (see `layoutAuthorBar`, `applyHostTheme`). |
+| S-static-style | Direct `el.style.*` assignment / static style keys via `setCssProps` | `obsidianmd/no-static-styles-assignment` | **Fixed** | Classes + CSS vars only via `setCssProps` (`--*`). Ordinary props (`top`, `height`, `color-scheme`, …) live in `styles.css`, not JS. |
 | S-instanceof | `instanceof HTMLElement` | Prefer `.instanceOf(HTMLElement)` | **Fixed** | Use Obsidian `instanceOf` for cross-window safety. |
 | S-create-el | `document.createElement` | `obsidianmd/prefer-create-el` | **Fixed** | Use `createEl` (e.g. watermark canvas). |
 | S-set-warning | `setWarning` deprecated | Prefer `setDestructive` | **Fixed** | `applyDestructiveButton` uses `setDestructive` when present, else `setWarning` (minAppVersion 1.5.7). |
-| S-display | `display()` deprecated | Prefer `getSettingDefinitions` | **Accepted (Path B)** | Dual path: `getSettingDefinitions` for 1.13+; keep `display()` until `minAppVersion` ≥ 1.13.0. |
+| S-unsafe-assign | Unsafe `Reflect.get` / `any` assignment | `@typescript-eslint/no-unsafe-assignment` | **Fixed** | Narrow `Reflect.get` results with `as unknown` + `typeof === 'function'` before call. |
+| S-display | `display()` deprecated | Prefer `getSettingDefinitions` | **Accepted (Path B)** | Dual path: `getSettingDefinitions` for 1.13+; keep `display()` until `minAppVersion` ≥ 1.13.0. Internal refresh uses `renderLegacySettings()` so deprecation sites are not re-triggered. |
 | S-dynamic-tooltip | `setDynamicTooltip` deprecated | Value shown inline | **Fixed** | Removed; labels already show live `%` / `°`. |
 | C-important | CSS `!important` | Prefer specificity / variables | **Fixed** | Author/sizer flow overrides use longer selectors, not `!important`. |
 

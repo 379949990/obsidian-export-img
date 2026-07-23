@@ -43,7 +43,8 @@ describe('applyHostTheme', () => {
     expect(host.classList.contains('theme-dark')).toBe(true);
     expect(host.style.getPropertyValue('--code-background')).toBe('rgb(30, 30, 30)');
     expect(host.style.getPropertyValue('--text-normal')).toBe('rgb(220, 220, 220)');
-    expect(host.style.colorScheme).toBe('dark');
+    // color-scheme is stylesheet-driven via .export-img-host.theme-* (not inline).
+    expect(host.style.colorScheme).toBe('');
   });
 
   it('applies opposite scheme on the host and leaves the app shell unchanged', () => {

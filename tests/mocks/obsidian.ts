@@ -43,11 +43,15 @@ export type App = {
   };
 };
 
+export function setIcon(_el: HTMLElement, _icon: string): void {}
+
+export function parseYaml(_text: string): unknown {
+  return {};
+}
+
 export function getLanguage(): string {
   return 'en';
 }
-
-export function setIcon(_el: HTMLElement, _icon: string): void {}
 
 export async function requestUrl(_opts: {
   url: string;

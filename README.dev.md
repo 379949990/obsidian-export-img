@@ -62,9 +62,12 @@ Same version already tagged → workflow skips (no duplicate release). To rebuil
 ```html
 <div class="export-img-host markdown-reading-view">
   <div class="export-img-capture">
-    <div class="markdown-preview-view markdown-rendered export-img-preview">
+    <div class="markdown-preview-view markdown-rendered export-img-preview show-properties">
       <div class="inline-title export-img-title"></div>
-      <div class="metadata-container export-img-metadata"></div>
+      <div class="metadata-container export-img-metadata" data-property-count="…">
+        <div class="metadata-properties-heading">…</div>
+        <div class="metadata-content"><div class="metadata-properties">…</div></div>
+      </div>
       <div class="markdown-preview-sizer">…</div>
     </div>
     <div class="export-img-author">…</div>
@@ -72,3 +75,6 @@ Same version already tagged → workflow skips (no duplicate release). To rebuil
   </div>
 </div>
 ```
+
+Properties reuse Obsidian `metadata-*` hooks (plus `show-properties`) so theme CSS applies; Studio forces `--metadata-display-reading: block`.
+

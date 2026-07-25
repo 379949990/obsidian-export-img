@@ -95,7 +95,7 @@ Latest public release on `main`: **1.0.8** (`44b45cf`).
 
 ## Shipped / fixed on `v1.0.9` (in progress)
 
-_(none yet)_
+- Properties export: Reading-view-like strip (`metadata-*` DOM + `show-properties`), tags/links as pills, localized heading; avoid grey code-block box styling
 
 ## Known risks / good next work (not committed as plan)
 

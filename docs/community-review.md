@@ -3,9 +3,10 @@
 Canonical list of Obsidian community-plugin review findings for this repo.
 Agents and humans update this file when a new Review report lands; keep **Status** current.
 
-Machine checks live in [`scripts/community-review-rules.json`](../scripts/community-review-rules.json)
-and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-community-review.mjs)
-(via `pnpm run check:community-review`, `pnpm run verify`, and Husky on `main` commits).
+**Machine checks** use the community package
+[`obsidian-plugin-validator`](https://github.com/philpalmieri/obsidian-plugin-validator)
+(`pnpm run check:plugin`, also part of `pnpm run verify` and Husky on `main` commits).
+This document is the **human / Accepted** record only — do not maintain a parallel rule table.
 
 ---
 
@@ -33,14 +34,13 @@ and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-comm
 
 | ID | Finding | Rule / signal | Status | Mitigation |
 | --- | --- | --- | --- | --- |
-| S-static-style | Direct `el.style.*` assignment / static style keys via `setCssProps` | `obsidianmd/no-static-styles-assignment` | **Fixed** | Classes + CSS vars only via `setCssProps` (`--*`). Ordinary props (`top`, `height`, `color-scheme`, …) live in `styles.css`, not JS. |
+| S-static-style | Direct `el.style.*` / static style keys | `obsidianmd/no-static-styles-assignment` | **Fixed** | Classes + CSS vars only via `setCssProps(--*)`. |
 | S-instanceof | `instanceof HTMLElement` | Prefer `.instanceOf(HTMLElement)` | **Fixed** | Use Obsidian `instanceOf` for cross-window safety. |
-| S-create-el | `document.createElement` | `obsidianmd/prefer-create-el` | **Fixed** | Use `createEl` (e.g. watermark canvas). |
-| S-set-warning | `setWarning` deprecated | Prefer `setDestructive` | **Fixed** | `applyDestructiveButton` uses `setDestructive` when present, else `setWarning` (minAppVersion 1.5.7). |
-| S-unsafe-assign | Unsafe `Reflect.get` / `any` assignment | `@typescript-eslint/no-unsafe-assignment` | **Fixed** | Narrow `Reflect.get` results with `as unknown` + `typeof === 'function'` before call. |
-| S-display | `display()` deprecated | Prefer `getSettingDefinitions` | **Accepted (Path B)** | Dual path: `getSettingDefinitions` for 1.13+; keep `display()` until `minAppVersion` ≥ 1.13.0. Internal refresh uses `renderLegacySettings()` so deprecation sites are not re-triggered. |
-| S-dynamic-tooltip | `setDynamicTooltip` deprecated | Value shown inline | **Fixed** | Removed; labels already show live `%` / `°`. |
-| C-important | CSS `!important` | Prefer specificity / variables | **Fixed** | Author/sizer flow overrides use longer selectors, not `!important`. |
+| S-create-el | `document.createElement` | `obsidianmd/prefer-create-el` | **Fixed** | Use `createEl` / `createDiv`. |
+| S-set-warning | `setWarning` deprecated | Prefer `setDestructive` | **Fixed** | `applyDestructiveButton` prefers `setDestructive`. |
+| S-display | `display()` deprecated | Prefer `getSettingDefinitions` | **Accepted (Path B)** | Dual path until `minAppVersion` ≥ 1.13.0; see validator / eslint notes if flagged. |
+| S-dynamic-tooltip | `setDynamicTooltip` deprecated | Value shown inline | **Fixed** | Removed. |
+| C-important | CSS `!important` | Prefer specificity / variables | **Fixed** | Longer selectors, not `!important` (not covered by validator; keep by convention). |
 
 ---
 
@@ -58,8 +58,8 @@ and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-comm
 ## How to update after a new Review
 
 1. Paste new rows into the tables above (or mark Status).
-2. Add/adjust patterns in `scripts/community-review-rules.json` when the finding is mechanically checkable.
-3. Run `pnpm run check:community-review` and fix failures.
+2. Prefer fixing code so `pnpm run check:plugin` stays green; only document **Accepted** product exceptions here.
+3. Run `pnpm run verify` before squash → `main`.
 4. Note the Review date briefly in [HANDOFF.md](../HANDOFF.md) if it changes release blockers.
 
 ---
@@ -67,10 +67,8 @@ and are enforced by [`scripts/check-community-review.mjs`](../scripts/check-comm
 ## Local enforcement
 
 ```bash
-pnpm run check:community-review   # standalone — prints what was scanned, PASS/FAIL, and Accepted exceptions
-pnpm run verify                   # includes this check
+pnpm run check:plugin   # obsidian-plugin-validator (manifest + eslint-plugin-obsidianmd)
+pnpm run verify         # tsc + check:plugin + test
 ```
 
-Output is meant to be readable without knowing the codebase: it lists each rule, then **PASS** or **FAIL**, then any **Accepted** exceptions (behaviors Review may still mention, but this project keeps on purpose).
-
-Husky `pre-commit` runs the check when the current branch is **`main`** (covers squash-release commits). Do not bypass with `--no-verify` for store releases.
+Husky `pre-commit` runs `check:plugin` when the current branch is **`main`** (covers squash-release commits). Do not bypass with `--no-verify` for store releases.

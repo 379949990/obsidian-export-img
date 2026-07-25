@@ -141,7 +141,7 @@ export function promptImageUrl(app: App, current: string): Promise<string | null
       type: 'url',
       cls: 'export-img-image-url-input',
       attr: {
-        placeholder: 'https://…',
+        placeholder: t('imageSource.urlPlaceholder'),
         value: isHttpLike(current) ? current : '',
       },
     });

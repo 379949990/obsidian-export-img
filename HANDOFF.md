@@ -71,7 +71,7 @@ pnpm run dev      # watch → main.js
 
 Smoke: load fixture in **desktop** vault → Export Studio → Ready → Copy/Save. Mobile: Save → vault attachment (Notice path); multi-page = one file per page in Attachments.
 
-Community store review checklist / gates: [docs/community-review.md](docs/community-review.md). Run `pnpm run check:community-review` (also part of `pnpm run verify`). Husky blocks failing checks on **`main`** commits (squash releases).
+Community store review: machine gate is `pnpm run check:plugin` ([obsidian-plugin-validator](https://github.com/philpalmieri/obsidian-plugin-validator); also part of `pnpm run verify`). Human Accepted exceptions: [docs/community-review.md](docs/community-review.md). Husky blocks failing checks on **`main`** commits (squash releases).
 
 ---
 
@@ -91,11 +91,12 @@ Latest public release on `main`: **1.0.8** (`44b45cf`).
 ## Shipped in 1.0.8 (context)
 
 - Community review: static styles → classes + `setCssProps(--*)` only (no plain CSS keys); `instanceOf`; `createEl`; no CSS `!important` on sizer flow; slider/tooltip deprecations; destructive button helper; Path B `display()` + internal `renderLegacySettings`
-- Docs + gate: `docs/community-review.md`, `pnpm run check:community-review`, Husky pre-commit on `main`
+- Docs + gate: `docs/community-review.md` (Accepted), `pnpm run check:plugin` via obsidian-plugin-validator, Husky pre-commit on `main`
 
 ## Shipped / fixed on `v1.0.9` (in progress)
 
 - Properties export: Reading-view-like strip (`metadata-*` DOM + `show-properties`), tags/links as pills, localized heading; avoid grey code-block box styling
+- Pre-merge gate: replace custom community-review scanner with `obsidian-plugin-validator` (`pnpm run check:plugin`)
 
 ## Known risks / good next work (not committed as plan)
 

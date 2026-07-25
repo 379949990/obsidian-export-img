@@ -34,10 +34,10 @@ export function formatMetaValue(value: unknown): string {
     try {
       return JSON.stringify(value);
     } catch {
-      return String(value);
+      return '';
     }
   }
-  return String(value);
+  return '';
 }
 
 export function unwrapMetaItem(value: unknown): string {

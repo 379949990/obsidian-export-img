@@ -692,39 +692,93 @@
   line-height: var(--inline-title-line-height, 1.3);
 }
 
-.export-img-metadata {
+/*
+ * Properties strip: reuse Obsidian `metadata-*` DOM hooks for theme fidelity.
+ * Core CSS hides `.markdown-preview-view .metadata-container` unless
+ * `.show-properties` is set — Studio adds that class and forces
+ * `--metadata-display-reading: block`. This selector beats residual hide rules.
+ */
+.export-img-host .markdown-preview-view.export-img-preview.show-properties > .export-img-metadata.metadata-container {
   display: block;
   visibility: visible;
   opacity: 1;
-  margin: 0 0 1em;
-  padding: 10px 12px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 6px;
-  background: var(--background-secondary);
+  position: relative;
+  /* Prefer theme tokens; avoid the grey “code block” box look. */
+  background-color: var(--metadata-background, transparent);
+  border-width: var(--metadata-border-width, 0);
+  border-color: var(--metadata-border-color, transparent);
+  border-radius: var(--metadata-border-radius, 0);
+  padding: var(--metadata-padding, var(--size-4-2) 0);
+  margin-block-end: 1.25em;
+  max-width: 100%;
+  box-sizing: border-box;
+  /* Capture should not shift with editing-view translateX. */
+  transform: none;
 }
 
-.export-img-metadata-content {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.export-img-host .export-img-metadata .metadata-properties-heading {
+  margin-bottom: 0.35em;
 }
 
-.export-img-metadata-row {
-  display: grid;
-  grid-template-columns: minmax(72px, 32%) 1fr;
-  gap: 8px 12px;
-  align-items: start;
-  font-size: var(--font-ui-small);
-}
-
-.export-img-metadata-key {
+.export-img-host .export-img-metadata .metadata-property-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-inline-end: 0.35em;
   color: var(--text-muted);
-  font-weight: 600;
 }
 
-.export-img-metadata-value {
-  color: var(--text-normal);
+.export-img-host .export-img-metadata .metadata-property-name {
+  color: var(--metadata-label-text-color, var(--text-muted));
+  font-size: var(--metadata-label-font-size, var(--font-ui-small));
+  font-weight: var(--metadata-label-font-weight, var(--font-medium));
+  line-height: var(--line-height-tight, 1.3);
+  padding: var(--metadata-input-padding, 0 var(--size-2-2));
+  display: flex;
+  align-items: center;
+  min-height: var(--metadata-input-height, var(--input-height, 1.8em));
+}
+
+.export-img-host .export-img-metadata .metadata-input-longtext {
+  color: var(--metadata-input-text-color, var(--text-normal));
+  font-size: var(--metadata-input-font-size, var(--font-ui-small));
+  padding: var(--metadata-input-padding, 0 var(--size-2-2));
+  line-height: var(--line-height-tight, 1.3);
+  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.export-img-host .export-img-metadata .multi-select-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2-2, 6px);
+  align-items: center;
+  padding: var(--metadata-input-padding, 2px var(--size-2-2));
+  min-height: var(--metadata-input-height, var(--input-height, 1.8em));
+}
+
+.export-img-host .export-img-metadata .multi-select-pill {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 8px;
+  border-radius: var(--pill-radius, 4px);
+  background-color: var(--pill-background, var(--background-modifier-border));
+  color: var(--pill-color, var(--text-normal));
+  font-size: var(--font-ui-smaller, 0.85em);
+  line-height: 1.3;
+}
+
+.export-img-host .export-img-metadata .multi-select-pill.mod-link,
+.export-img-host .export-img-metadata .multi-select-pill .internal-link {
+  color: var(--link-color, var(--text-accent));
+  text-decoration: none;
+}
+
+.export-img-host .export-img-metadata .multi-select-pill-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .export-img-author {

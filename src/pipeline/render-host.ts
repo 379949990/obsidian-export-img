@@ -1,12 +1,12 @@
 import {
   Component,
   MarkdownRenderer,
-  parseYaml,
   type App,
   type FrontMatterCache,
 } from 'obsidian';
 import type { ExportImgSettings, ThemeMode } from '../types';
 import { prepareMarkdown } from './prepare';
+import { renderMetadata, resolveFrontmatter } from './metadata';
 import {
   hydrateRemoteImages,
   countRemoteImages,
@@ -42,78 +42,6 @@ export interface RenderHostHandle {
     timeoutMs?: number;
   }) => Promise<RemoteHydrateResult>;
   destroy: () => void;
-}
-
-function formatMetaValue(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  if (Array.isArray(value)) {
-    return value.map((v) => formatMetaValue(v)).filter(Boolean).join(', ');
-  }
-  if (typeof value === 'object') {
-    const rec = value as Record<string, unknown>;
-    if (typeof rec.displayText === 'string') return rec.displayText;
-    if (typeof rec.path === 'string') return rec.path;
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return String(value);
-    }
-  }
-  return String(value);
-}
-
-function resolveFrontmatter(
-  markdown: string,
-  frontmatter?: FrontMatterCache,
-): Record<string, unknown> {
-  const fromCache = frontmatter
-    ? Object.fromEntries(
-        Object.entries(frontmatter).filter(([key]) => key !== 'position'),
-      )
-    : {};
-  if (Object.keys(fromCache).length > 0) return fromCache;
-
-  if (markdown.startsWith('---')) {
-    const end = markdown.indexOf('\n---', 3);
-    if (end !== -1) {
-      try {
-        const parsed: unknown = parseYaml(markdown.slice(3, end));
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-          return parsed as Record<string, unknown>;
-        }
-      } catch {
-        // ignore parse errors
-      }
-    }
-  }
-  return {};
-}
-
-function renderMetadata(
-  container: HTMLElement,
-  frontmatter: Record<string, unknown>,
-): void {
-  const entries = Object.entries(frontmatter).filter(([key]) => key !== 'position');
-  if (entries.length === 0) return;
-
-  const meta = container.createDiv({
-    cls: 'metadata-container export-img-metadata',
-  });
-
-  const content = meta.createDiv({ cls: 'metadata-content export-img-metadata-content' });
-
-  for (const [key, value] of entries) {
-    const row = content.createDiv({ cls: 'metadata-property export-img-metadata-row' });
-    const keyEl = row.createDiv({ cls: 'metadata-property-key export-img-metadata-key' });
-    keyEl.createSpan({ cls: 'metadata-property-name', text: key });
-    const valEl = row.createDiv({
-      cls: 'metadata-property-value export-img-metadata-value',
-    });
-    valEl.setText(formatMetaValue(value));
-  }
 }
 
 function renderAuthorBar(container: HTMLElement, settings: ExportImgSettings): void {
@@ -251,7 +179,14 @@ export async function createRenderHost(options: RenderHostOptions): Promise<Rend
   }
 
   if (settings.showMetadata) {
-    renderMetadata(preview, resolveFrontmatter(markdown, frontmatter));
+    const resolved = resolveFrontmatter(markdown, frontmatter);
+    const count = renderMetadata(preview, resolved);
+    if (count > 0) {
+      // Obsidian core hides `.metadata-container` unless `.show-properties`
+      // is present; vault “Hidden” also sets `--metadata-display-reading: none`.
+      preview.addClass('show-properties');
+      rootEl.setCssProps({ '--metadata-display-reading': 'block' });
+    }
   }
 
   const sizer = preview.createDiv({ cls: 'markdown-preview-sizer' });

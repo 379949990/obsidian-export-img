@@ -1,6 +1,6 @@
 # Export Img — Developer guide
 
-Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.8`.
+Package manager: [pnpm](https://pnpm.io/) only. Current development branch: `v1.0.9`.
 
 Agent onboarding: [HANDOFF.md](HANDOFF.md). Product overview and install: [README.md](README.md).
 
@@ -30,13 +30,13 @@ Preview updates follow **Auto re-render preview on config change** (default on d
 ```bash
 pnpm run build   # tsc + production bundle → main.js
 pnpm run test    # vitest (hard-killed if >60s)
-pnpm run check:community-review  # store review anti-patterns (see docs/community-review.md)
-pnpm run verify  # tsc + community-review + test — also run by CI on PRs / version branches
+pnpm run check:plugin  # obsidian-plugin-validator (manifest + eslint-plugin-obsidianmd)
+pnpm run verify  # tsc + check:plugin + test — also run by CI on PRs / version branches
 ```
 
 Automated coverage (Node + `happy-dom`): markdown prep, pagination, settings migrate, Studio signatures, **embed layout CSS classes**, **page-hidden split DOM**, **mobile vault save / desktop zip**, capture mime helpers, i18n, watermark tile-step. Still **not** a substitute for the desktop fixture smoke (Obsidian `MarkdownRenderer`, Mermaid settle, real clipboard).
 
-Husky (`prepare` → `husky`): on commits to **`main`**, `pre-commit` runs `check:community-review` so squash releases cannot land with known store lint regressions. Why Husky: mainstream git-hook runner; rules stay in `scripts/community-review-rules.json`, not a custom hook installer.
+Husky (`prepare` → `husky`): on commits to **`main`**, `pre-commit` runs `check:plugin` so squash releases cannot land with known store/validator regressions. Why Husky: mainstream git-hook runner; mechanical rules come from [`obsidian-plugin-validator`](https://github.com/philpalmieri/obsidian-plugin-validator), not a custom pattern scanner. Human Accepted exceptions: [docs/community-review.md](docs/community-review.md).
 CI: [`.github/workflows/verify.yml`](.github/workflows/verify.yml) on `pull_request` and pushes to `main` / `v*`. Release remains [`.github/workflows/release.yml`](.github/workflows/release.yml) on `main` only.
 
 ---
@@ -62,9 +62,12 @@ Same version already tagged → workflow skips (no duplicate release). To rebuil
 ```html
 <div class="export-img-host markdown-reading-view">
   <div class="export-img-capture">
-    <div class="markdown-preview-view markdown-rendered export-img-preview">
+    <div class="markdown-preview-view markdown-rendered export-img-preview show-properties">
       <div class="inline-title export-img-title"></div>
-      <div class="metadata-container export-img-metadata"></div>
+      <div class="metadata-container export-img-metadata" data-property-count="…">
+        <div class="metadata-properties-heading">…</div>
+        <div class="metadata-content"><div class="metadata-properties">…</div></div>
+      </div>
       <div class="markdown-preview-sizer">…</div>
     </div>
     <div class="export-img-author">…</div>
@@ -72,3 +75,6 @@ Same version already tagged → workflow skips (no duplicate release). To rebuil
   </div>
 </div>
 ```
+
+Properties reuse Obsidian `metadata-*` hooks (plus `show-properties`) so theme CSS applies; Studio forces `--metadata-display-reading: block`.
+

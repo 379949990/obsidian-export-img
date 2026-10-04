@@ -41,6 +41,13 @@ export function migrateLoadedSettings(data: RawSettingsData | null): {
   settings: ExportImgSettings;
   shouldSave: boolean;
 } {
+  if (data === null) {
+    return {
+      settings: cloneSettings(DEFAULT_SETTINGS),
+      shouldSave: true,
+    };
+  }
+
   const {
     previewMaxHeight: legacyPreviewMaxHeight,
     previewAlign: legacyPreviewAlign,

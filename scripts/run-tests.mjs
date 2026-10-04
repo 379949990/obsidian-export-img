@@ -11,9 +11,11 @@ const TIMEOUT_MS = 60_000;
 const root = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(root, '..');
 
+const vitestBin = path.resolve(cwd, 'node_modules', 'vitest', 'vitest.mjs');
+
 const child = spawn(
-  process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
-  ['exec', 'vitest', 'run', ...process.argv.slice(2)],
+  process.execPath,
+  [vitestBin, 'run', ...process.argv.slice(2)],
   {
     cwd,
     stdio: 'inherit',

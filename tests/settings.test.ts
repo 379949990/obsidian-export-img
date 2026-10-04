@@ -25,9 +25,9 @@ describe('cloneSettings', () => {
 });
 
 describe('DEFAULT_SETTINGS decorations', () => {
-  it('leaves watermark and author off by default', () => {
-    expect(DEFAULT_SETTINGS.watermark.enable).toBe(false);
-    expect(DEFAULT_SETTINGS.author.show).toBe(false);
+  it('enables watermark and author by default', () => {
+    expect(DEFAULT_SETTINGS.watermark.enable).toBe(true);
+    expect(DEFAULT_SETTINGS.author.show).toBe(true);
     expect(DEFAULT_SETTINGS.watermark.rotate).toBe(30);
     expect(DEFAULT_SETTINGS.watermark.text).toBe('Watermark');
     expect(DEFAULT_SETTINGS.author.name).toBe('Your Name');

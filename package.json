@@ -9,7 +9,7 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "node scripts/run-tests.mjs",
     "check:plugin": "obsidian-plugin-validator .",
-    "verify": "tsc -noEmit -skipLibCheck && pnpm run check:plugin && node scripts/run-tests.mjs",
+    "verify": "tsc -noEmit -skipLibCheck && obsidian-plugin-validator . && node scripts/run-tests.mjs",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
     "prepare": "husky"
   },

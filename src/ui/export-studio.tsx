@@ -43,20 +43,20 @@ import {
 
 function createStudioDraft(plugin: ExportImgPlugin): ExportImgSettings {
   const draft = cloneSettings(plugin.settings);
-  // Studio toggles are session-only — never open with watermark/author pre-checked.
-  draft.watermark.enable = false;
-  draft.author.show = false;
+  // Toggle dekorasi Studio aktif secara default.
+  draft.watermark.enable = true;
+  draft.author.show = true;
   if (draft.split.height <= 0) {
     draft.split.height = defaultSplitHeight(draft.width);
   }
   return draft;
 }
 
-/** Persist preconfig from Studio without carrying session decoration toggles. */
+/** Simpan konfigurasi awal dari Studio tanpa mengubah toggle dekorasi sesi (default aktif). */
 function settingsToPersist(draft: ExportImgSettings): ExportImgSettings {
   const next = cloneSettings(draft);
-  next.watermark.enable = false;
-  next.author.show = false;
+  next.watermark.enable = true;
+  next.author.show = true;
   return next;
 }
 

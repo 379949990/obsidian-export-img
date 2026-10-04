@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
     height: 0,
   },
   watermark: {
-    enable: false,
+    enable: true,
     type: 'text',
     text: 'Watermark',
     fontSize: 22,
@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: ExportImgSettings = {
     rotate: 30,
   },
   author: {
-    show: false,
+    show: true,
     name: 'Your Name',
     remark: 'The Description',
     avatarSrc: '',
